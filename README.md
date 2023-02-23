@@ -4,19 +4,35 @@ Yep, another fixed-point library. The idea is to have something that can be used
 
 ## Motivation
 
-In embedded systems programmed with C/C++ it is quite common to avoid the built-in floating-point types `float` and `double` because they have a pretty high impact on code size and execution time, which are both precious goods in microcontrollers. An established way around the use of floating-point values is to use integers scaled with some *fixed* power of two factor so that decimal places can be expressed as well. For example, if a 32-bit unsigned integer is scaled with the factor 2<sup>16</sup>, there are 16 bits before the comma to express integers (0-65535) and 16 remaining bits after the comma to express fractions (with a precision of 2<sup>-16</sup>). This is an example of the very common UQ16.16 `fixed-point` type in ARM's **Q notation**. It is called fixed-point type because the comma is (implicitly) fixed. Of course, the comma can be at any desired place: UQ0.32, UQ5.27 and UQ31.1 also describe valid fixed-point types with an unsigned 32-bit integer as base type. Negative numbers are usually expressed as a signed integer in two's complement representation. For instance, Q14.2 has a signed 16-bit integer base type with 1 sign bit, 13 integer bits and 2 fraction bits to represent values between -2<sup>13</sup> = -8192.00 to +2<sup>13</sup>-2<sup>-2</sup> = 8191.75.
+In embedded systems programmed with C/C++ it's quite common to avoid the built-in floating-point types `float` and `double`, as they have a high negative impact on code size and execution time, which are both precious goods in micro-controllers. An established way around the use of floating-point values is to use integers scaled with some *fixed* power of two factor so that decimal places can be expressed as well.  
+For example, if a 32-bit unsigned integer is scaled with the factor 2<sup>16</sup>, there are 16 bits before the comma to express integers (0-65535) and 16 remaining bits after the comma to express fractions (with a precision of 2<sup>-16</sup>). This is an example of the very common UQ16.16 `fixed-point` type in ARM's **Q notation**. It is called fixed-point type because the comma is fixed. Of course, the comma can be at any desired place for different fixed-point types: UQ0.32, UQ5.27 and UQ31.1 also describe fixed-point types with an unsigned 32-bit integer as base type.  
+Negative numbers are usually expressed as a signed integer in two's complement representation. For instance, Q14.2 has a signed 16-bit integer base type with 1 sign bit, 13 integer bits and 2 fraction bits to represent values between -2<sup>13</sup> = -8192.00 to +2<sup>13</sup>-2<sup>-2</sup> = 8191.75.
 
-What sounds more or less simple so far is actually one of the most underestimated sources for bugs. Mathematical operations like multiplications or powers and especially more complex formulas tend to exceed the value range of the underlying base type quite fast. When no overflow check is performed and the values are not saturated, the integers will quietly overflow and the calculations will return completely wrong values with unpredictable consequences.
+### Problems and Expectations
 
-And yet developers only want to calculate something and not have to worry about any value ranges and overflow issues. They want to write plain formulas without any additional corrections (e.g. to maintain the scaling) which obscure the actual calculations. They *might* want to explicitly change the precision or the value range. And they expect that these things just work, safely. But that's it.
+What sounds reasonable so far is actually one of the most underestimated sources for bugs:
+- Mathematical operations like multiplications and especially more complex formulas tend to exceed the value range of the underlying base type quite fast. When no overflow check is performed and the values are not saturated, the integers will quietly overflow and the calculations will return completely wrong values with unpredictable consequences.
+- Calculations with scaled values are quite complicated when done manually because scaling corrections are needed for many operators. As a result complex formulas are often hard to read and correcting factors can easily be forgotten.
 
-## The Solution - This Library
+In the end, developers just want to perform calculations with a predefined value range and precision without having to worry about things like overflow. So let's define a list of expectations what a fixed-point library should provide:
 
-It provides different fixed point types with various checks at compile- and runtime.
+- predefined fixed-point types based on signed and unsigned integer types (8, 16, 32 and 64 bits)
+- user-defined precision and value range (at compile-time)
+- ability to specify the value range via floats (= unscaled values) or scaled integers
+- ability to change the precision and/or the value range later in code (still at compile-time)
+- implementation of the most-common mathematical operators (+, -, *, /, %, ^, sqr, sqrt, <<, >>)
+- simple, on-point formulas without any obscuring scaling corrections
+- implicit and explicit conversion between fixed-point types (implicit: to higher precision)
+- no implicit construction from any integer or floating-point types (safety, to avoid confusion)
+- explicit construction from static integers at compile time
+- explicit construction from integer-based variables at runtime
+- explicit construction of static floats at compile time
+- no runtime construction from floats (because we don't want floats at runtime)
+- different types of overflow checks (compile-time, runtime::saturation, runtime::assertion)
 
-TODO
+## This Library
 
-
+It tries to provide different fixed-point types which fulfill the expectations from above (more or less).
 
 ## Badges
 On some READMEs, you may see small images that convey metadata, such as whether or not all the tests are passing for the project. You can use Shields to add some to your README. Many services also have instructions for adding a badge.
