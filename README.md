@@ -1,12 +1,12 @@
 # Fixed-Point Math
 
-Yep, another fixed-point library. The idea is to have something that can be used in embedded C++ systems that compiles down to more or less plain integer math operations, however with compile-time and (low-cost) runtime checks that make sure that the integers do not exceed a specified value range.
+Yep, another fixed-point library. The idea is to have something that can be used in embedded C++ systems that compiles down to more or less plain integer math operations, however **with compile-time and well placed (low-cost) runtime checks that make sure that the integers do not exceed a specified value range**.
 
 ## Motivation
 
 In embedded systems programmed with C/C++ it's quite common to avoid the built-in floating-point types `float` and `double`, as they have a high negative impact on code size and execution time, which are both precious goods in micro-controllers. An established way around the use of floating-point values is to use integers scaled with some *fixed* power of two factor so that decimal places can be expressed as well.  
-For example, if a 32-bit unsigned integer is scaled with the factor 2<sup>16</sup>, there are 16 bits before the comma to express integers (0-65535) and 16 remaining bits after the comma to express fractions (with a precision of 2<sup>-16</sup>). This is an example of the very common UQ16.16 `fixed-point` type in ARM's **Q notation**. It is called fixed-point type because the comma is fixed. Of course, the comma can be at any desired place for different fixed-point types: UQ0.32, UQ5.27 and UQ31.1 also describe fixed-point types with an unsigned 32-bit integer as base type.  
-Negative numbers are usually expressed as a signed integer in two's complement representation. For instance, Q14.2 has a signed 16-bit integer base type with 1 sign bit, 13 integer bits and 2 fraction bits to represent values between -2<sup>13</sup> = -8192.00 to +2<sup>13</sup>-2<sup>-2</sup> = 8191.75.
+For example, if a 32-bit unsigned integer is scaled with the factor 2<sup>16</sup>, there are 16 bits before the comma to express integers (0-65535) and 16 remaining bits after the comma to express fractions (with a precision of 2<sup>-16</sup>). This is an example of the very common UQ16.16 `fixed-point` type in ARM's **Q notation** that can represent numbers from *0* to *2<sup>16</sup> - 2<sup>-16</sup> = 65535.99998474*. It is called fixed-point type because the comma is fixed. Of course, the comma can be at any desired place for different fixed-point types: UQ0.32, UQ5.27 and UQ31.1 also describe fixed-point types with an unsigned 32-bit integer as base type.  
+Negative numbers are usually expressed as a signed integer in two's complement representation. For instance, Q14.2 has a signed 16-bit integer base type with 1 sign bit, 13 integer bits and 2 fraction bits to represent values between *-2<sup>13</sup> = -8192.00* and *+2<sup>13</sup>-2<sup>-2</sup> = 8191.75*.
 
 ### Problems and Expectations
 
@@ -14,14 +14,14 @@ What sounds reasonable so far is actually one of the most underestimated sources
 - Mathematical operations like multiplications and especially more complex formulas tend to exceed the value range of the underlying base type quite fast. When no overflow check is performed and the values are not saturated, the integers will quietly overflow and the calculations will return completely wrong values with unpredictable consequences.
 - Calculations with scaled values are quite complicated when done manually because scaling corrections are needed for many operators. As a result complex formulas are often hard to read and correcting factors can easily be forgotten.
 
-In the end, developers just want to perform calculations with a predefined value range and precision without having to worry about things like overflow. So let's define a list of expectations what a fixed-point library should provide:
+In the end, we just want to perform calculations with a predefined value range and precision without having to worry about things like overflow too much. So let's define a list of expectations what a fixed-point library should provide:
 
 - predefined fixed-point types based on signed and unsigned integer types (8, 16, 32 and 64 bits)
 - user-defined precision and value range (at compile-time)
 - ability to specify the value range via floats (= unscaled values) or scaled integers
-- ability to change the precision and/or the value range later in code (still at compile-time)
+- ability to change the precision and/or the value range later in code (only at compile-time)
 - implementation of the most-common mathematical operators (+, -, *, /, %, ^, sqr, sqrt, <<, >>)
-- simple, on-point formulas without any obscuring scaling corrections
+- simple, easy-to-debug, on-point formulas without any obscuring scaling corrections
 - implicit and explicit conversion between fixed-point types (implicit: to higher precision)
 - no implicit construction from any integer or floating-point types (safety, to avoid confusion)
 - explicit construction from static integers at compile time
@@ -32,7 +32,38 @@ In the end, developers just want to perform calculations with a predefined value
 
 ## This Library
 
-It tries to provide different fixed-point types which fulfill the expectations from above (more or less).
+Provides different fixed-point types which fulfill the expectations from above (more or less).
+
+### Some Tests (will be replaced with proper sections in this document)
+
+````C++
+/* normal fixed-point type in Q notation with value saturation or assertion at runtime */
+fpm::q<type, n, v_min, v_max>;
+// or use 'fixed' instead of 'q'?
+fpm::fixed<type, n, v_min, v_max>;
+
+// predefined
+using q32<...> = fpm::q<int32_t, ...>;
+using qu32<...> = fpm::q<uint32_t, ...>;
+using q16<...> = fpm::q<int16_t, ...>;
+using qu16<...> = fpm::q<uint16_t, ...>;
+// ...
+
+// user-defined
+using q32n16<...> = q32<16, ...>;  // resolution 2^-16
+using qu32n20<...> = qu32<20, ...>;  // resolution 2^-20
+
+// formulas
+
+
+
+/* static Q-type for static calculations that can be used to guarantee at compile time that
+ * a formula works for a range of input values */
+fpm::sq<...>
+
+// ...
+````
+
 
 ## Badges
 On some READMEs, you may see small images that convey metadata, such as whether or not all the tests are passing for the project. You can use Shields to add some to your README. Many services also have instructions for adding a badge.
