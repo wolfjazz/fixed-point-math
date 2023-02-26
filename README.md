@@ -20,7 +20,7 @@ In the end, we just want to perform calculations with a predefined value range a
 - user-defined precision and value range (at compile-time)
 - ability to specify the value range via floats (= unscaled values)
 - ability to change the precision and/or the value range later in code (only at compile-time)
-- implementation of the most-common mathematical operators (+, -, *, /, %, ^, sqr, sqrt, <<, >>)
+- implementation of the most-common mathematical operators (+, -, *, /, %, ^, sqr, sqrt, <<, >>, ++, --, <, >)
 - simple, easy-to-debug, on-point formulas without any obscuring scaling corrections
 - implicit and explicit conversion between fixed-point types (implicit: to higher precision)
 - no implicit construction from any integer or floating-point types (safety, to avoid confusion)
@@ -42,10 +42,11 @@ Provides different fixed-point types which fulfill the expectations from above (
  */
 
 // base-type, number of fraction bits n, check type, minimum value, maximum value;
-// note: only scaled value is stored in memory; rest (e.g. value range) is compile-time-only!
+// note: only scaled integer value (mem-value) is stored in memory; rest (e.g. value range) is
+//       compile-time-only!
 fpm::q<type, n, check, v_min, v_max>;
 // or use 'fixed' instead of 'q'?
-// fpm::fixed<type, n, v_min, v_max>;
+// fpm::fixed<type, n, v_min, v_max>;  --> no
 
 // predefined types
 using q32<...> = fpm::q<int32_t, ...>;
@@ -55,26 +56,52 @@ using qu16<...> = fpm::q<uint16_t, ...>;
 // ...
 
 // user-defined types
-using qu32n16<...> = qu32<16, fpm::check::SATURATE, ...>;  // res. 2^-16; overflow prot.: saturation
-using qu32n20<...> = qu32<20, fpm::check::ASSERT, ...>;  // res. 2^-20; overflow prot.: assertion
+using qu32n16<...> = qu32<16, fpm::check::SATURATE, ...>;  // res. 2^-16; overflow protection: saturation
+using qu32n20<...> = qu32<20, fpm::check::ASSERT, ...>;  // res. 2^-20; overflow protection: assertion
 
 /* declaration and initialization */
-auto a = qu32n16<>(45678.123);  // construction; default value range is full possible range
+qu32n16<> a0(99.9);  // direct initialization; default value range is full possible range
+auto a = qu32n16<>(45678.123);  // construction
 auto b = qu32n16<45.0, 98.2>(66.);  // construction; value range 45.0-98.2 (2949120-6435635);
 // value range specified via scaled integer is not useful because if the value of n is changed
 // all ranges need to be adapted when scaled values are used; this is not needed for real values
 // and lets be honest - this is not intuitive either.
 //auto c = qu32n16<1966080, 3932160>(45.1);
 
-// construct from another q value with same base-type (copy); value range is extended
-qu32n16<> d = b;
-// copy-upscaling: value increased by 2^4 and saturated/asserted at runtime (value range reduced)
+// copy: construct from another q value with same base-type; value range can be changed this way;
+// note that copy will perform a range check at runtime when the lhs range is smaller than the rhs range
+qu32n16<> d1 = b;
+qu32n16<40000.0, 50000.0> d2 = a;  // limitation of value range; will perform range check at runtime
+// upscale-copy: mem-value increased by 2^4 and checked at runtime; value range implicitly reduced
 qu32n20<> e = a;
-// copy-downscaling: value decreased at runtime (no checks needed) (value range extended)
+auto e2 = qu32n20<>(a);
+qu32n20<> e3 = qu32n16<>(1.1);  // construct temporary q16 and upscale-move to q20 lvalue
+// downscale-copy: mem-value decreased at runtime without checks; value range implicitly extended
 qu32n16<> f = e;
+auto f2 = qu32n16<>(e);
+
+/* assignment operator */
+f = a;  // assigns value of a to f; performs runtime checks when lhs range is smaller than rhs range
+
+/* casting */
+// TODO  // explicit cast from signed to unsigned or vice versa (e.g. u32 to i32)
+// TODO  // explicit cast to different base type size (e.g. i32 to i16)
 
 /* addition */
-// TODO
+qu32n16<> g = a + b;
+qu32n16<0., 45700.> h = a + b;  // runtime check error: out of range (beyond upper limit)
+qu32n20<> i = a + e;  // addition performed in q20 (higher precision of e) and stored as q20 (i)
+qu32n16<> j = a + e;  // addition performed in q20 (higher precision of e) and stored as q16 (j)
+
+// think-about: no range check performed when R1 * R2 (ranges Ri, * is an operator) cannot go ooR
+auto x = qu32n16<40., 80.>(50.);
+auto y = qu32n16<10., 20.>(15.);
+qu32n16<> z = x + y;  // no range check performed here because R1 + R2 cannot go out-of-range
+
+/* subtraction */
+/* multiplication */
+/* division */
+// similar to addition
 
 
 /* static Q-type for static formulas that can be used to guarantee at compile time that a calculation
@@ -84,9 +111,9 @@ qu32n16<> f = e;
  * Runtime checks are not included as long as only sq values are used in the formula. This guarantees
  * that the formula compiles into an efficient calculation.
  * Note: By design, sq values cannot be changed. For each operator a new sq value is constructed. */
-fpm::sq<...>
+fpm::sq<type, n, check, v_min, v_max>;
 
-// ...n
+// ...
 ````
 
 
