@@ -18,7 +18,7 @@ In the end, we just want to perform calculations with a predefined value range a
 
 - predefined fixed-point types based on signed and unsigned integer types (8, 16, 32 and 64 bits)
 - user-defined precision and value range (at compile-time)
-- ability to specify the value range via floats (= unscaled values) or scaled integers
+- ability to specify the value range via floats (= unscaled values)
 - ability to change the precision and/or the value range later in code (only at compile-time)
 - implementation of the most-common mathematical operators (+, -, *, /, %, ^, sqr, sqrt, <<, >>)
 - simple, easy-to-debug, on-point formulas without any obscuring scaling corrections
@@ -37,31 +37,56 @@ Provides different fixed-point types which fulfill the expectations from above (
 ### Some Tests (will be replaced with proper sections in this document)
 
 ````C++
-/* normal fixed-point type in Q notation with value saturation or assertion at runtime */
-fpm::q<type, n, v_min, v_max>;
-// or use 'fixed' instead of 'q'?
-fpm::fixed<type, n, v_min, v_max>;
+/*
+ * normal fixed-point type in Q notation with value saturation or assertion at runtime
+ */
 
-// predefined
+// base-type, number of fraction bits n, check type, minimum value, maximum value;
+// note: only scaled value is stored in memory; rest (e.g. value range) is compile-time-only!
+fpm::q<type, n, check, v_min, v_max>;
+// or use 'fixed' instead of 'q'?
+// fpm::fixed<type, n, v_min, v_max>;
+
+// predefined types
 using q32<...> = fpm::q<int32_t, ...>;
 using qu32<...> = fpm::q<uint32_t, ...>;
 using q16<...> = fpm::q<int16_t, ...>;
 using qu16<...> = fpm::q<uint16_t, ...>;
 // ...
 
-// user-defined
-using q32n16<...> = q32<16, ...>;  // resolution 2^-16
-using qu32n20<...> = qu32<20, ...>;  // resolution 2^-20
+// user-defined types
+using qu32n16<...> = qu32<16, fpm::check::SATURATE, ...>;  // res. 2^-16; overflow prot.: saturation
+using qu32n20<...> = qu32<20, fpm::check::ASSERT, ...>;  // res. 2^-20; overflow prot.: assertion
 
-// formulas
+/* declaration and initialization */
+auto a = qu32n16<>(45678.123);  // construction; default value range is full possible range
+auto b = qu32n16<45.0, 98.2>(66.);  // construction; value range 45.0-98.2 (2949120-6435635);
+// value range specified via scaled integer is not useful because if the value of n is changed
+// all ranges need to be adapted when scaled values are used; this is not needed for real values
+// and lets be honest - this is not intuitive either.
+//auto c = qu32n16<1966080, 3932160>(45.1);
+
+// construct from another q value with same base-type (copy); value range is extended
+qu32n16<> d = b;
+// copy-upscaling: value increased by 2^4 and saturated/asserted at runtime (value range reduced)
+qu32n20<> e = a;
+// copy-downscaling: value decreased at runtime (no checks needed) (value range extended)
+qu32n16<> f = e;
+
+/* addition */
+// TODO
 
 
-
-/* static Q-type for static calculations that can be used to guarantee at compile time that
- * a formula works for a range of input values */
+/* static Q-type for static formulas that can be used to guarantee at compile time that a calculation
+ * works for a range of input values. Runtime checks are only needed when a q value is transformed
+ * into an sq value and vice versa. sq-only formulas are guaranteed to be safe at runtime, because
+ * for each operator the value range is modified and checked against overflow at compile-time.
+ * Runtime checks are not included as long as only sq values are used in the formula. This guarantees
+ * that the formula compiles into an efficient calculation.
+ * Note: By design, sq values cannot be changed. For each operator a new sq value is constructed. */
 fpm::sq<...>
 
-// ...
+// ...n
 ````
 
 
