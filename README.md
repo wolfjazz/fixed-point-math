@@ -20,21 +20,23 @@ In the end, we just want to perform calculations with a predefined value range a
 - user-defined precision and value range (at compile-time)
 - ability to specify the value range via floats (= unscaled values)
 - ability to change the precision and/or the value range later in code (only at compile-time)
-- implementation of the most-common mathematical operators (+, -, *, /, %, ^, sqr, sqrt, <<, >>, ++, --, <, >)
+- implementation of the most-common mathematical operators (+, -, *, /, %, pow, sqr, sqrt, <<, >>, ++, --, <, >) and the corresponding assignment-operator constructs (+=, -=, *=, /=, %=, <<=, >>=)
 - simple, easy-to-debug, on-point formulas without any obscuring scaling corrections
-- implicit and explicit conversion between fixed-point types (implicit: to higher precision)
 - no implicit construction from any integer or floating-point types (safety, to avoid confusion)
 - explicit construction from static integers at compile time
 - explicit construction from integer-based variables at runtime
 - explicit construction of static floats at compile time
 - no runtime construction from floats (because we don't want floats at runtime)
-- different types of overflow checks (compile-time, runtime::saturation, runtime::assertion)
+- compile-time overflow checks where possible
+- different types of runtime overflow checks (runtime::saturation, runtime::assertion, runtime::forbidden)
+- implicit conversion between fixed-point types of same base type to higher precision
+- explicit conversion to different base type or lower precision -> casting (static, safe, use-as)
 
 ## This Library
 
 Provides different fixed-point types which fulfill the expectations from above (more or less).
 
-### Some Tests (will be replaced with proper sections in this document)
+### Some Ideas (will be replaced with proper sections in this document when ready)
 
 ````C++
 /*
@@ -57,7 +59,11 @@ using qu16<...> = fpm::q<uint16_t, ...>;
 
 // user-defined types
 using qu32n16<...> = qu32<16, fpm::check::SATURATE, ...>;  // res. 2^-16; overflow protection: saturation
-using qu32n20<...> = qu32<20, fpm::check::ASSERT, ...>;  // res. 2^-20; overflow protection: assertion
+using q32n16<...> = q32<16, fpm::check::ASSERT, ...>;  // res. 2^-16; overflow protection: assertion
+// res. 2^-20; checks at runtime forbidden -> code does not compile if check would be needed
+using qu32n20<...> = qu32<20, fpm::check::FORBIDDEN, ...>;
+using q16n2<...> = q16<2, fpm::check::SATURATE, ...>;  // res. 2^-2; saturation
+
 
 /* declaration and initialization */
 qu32n16<> a0(99.9);  // direct initialization; default value range is full possible range
@@ -80,12 +86,22 @@ qu32n20<> e3 = qu32n16<>(1.1);  // construct temporary q16 and upscale-move to q
 qu32n16<> f = e;
 auto f2 = qu32n16<>(e);
 
+
 /* assignment operator */
 f = a;  // assigns value of a to f; performs runtime checks when lhs range is smaller than rhs range
 
+
 /* casting */
-// TODO  // explicit cast from signed to unsigned or vice versa (e.g. u32 to i32)
-// TODO  // explicit cast to different base type size (e.g. i32 to i16)
+// explicit cast from signed to unsigned or vice versa (e.g. u32 to i32);
+// explicit cast to different base type size (e.g. i32 to i16) and/or different precision;
+// whether or not runtime checks are performed, depends on the type of the cast:
+auto cast1 = static_cast<q16n2<>>(b);  // Performs checks if needed (decided at compile-time).
+auto cast1b = static_q_cast<q16n2<>>(b);  // Same as static_cast; Provided for consistency.
+auto cast2 = safe_q_cast<q16n2<>>(a);  // Safe cast will always perform checks.
+// Use-as cast will never perform checks! Value is simply reused (reinterpreted). Can overflow!
+// (E.g. useful if an overflow is required as part of an algorithm.)
+auto cast3 = use_as_q_cast<q16n2<40., 100.>>(b);
+
 
 /* addition */
 qu32n16<> g = a + b;
@@ -93,10 +109,11 @@ qu32n16<0., 45700.> h = a + b;  // runtime check error: out of range (beyond upp
 qu32n20<> i = a + e;  // addition performed in q20 (higher precision of e) and stored as q20 (i)
 qu32n16<> j = a + e;  // addition performed in q20 (higher precision of e) and stored as q16 (j)
 
-// think-about: no range check performed when R1 * R2 (ranges Ri, * is an operator) cannot go ooR
+// no range check performed when R1 * R2 (ranges Ri, * is an operator) cannot go out-of-range
 auto x = qu32n16<40., 80.>(50.);
 auto y = qu32n16<10., 20.>(15.);
-qu32n16<> z = x + y;  // no range check performed here because R1 + R2 cannot go out-of-range
+qu32n16<> z = x + y;  // for example, no range check performed here because R1 + R2 cannot go out-of-range
+
 
 /* subtraction */
 /* multiplication */
@@ -111,13 +128,59 @@ qu32n16<> z = x + y;  // no range check performed here because R1 + R2 cannot go
  * Runtime checks are not included as long as only sq values are used in the formula. This guarantees
  * that the formula compiles into an efficient calculation.
  * Note: By design, sq values cannot be changed. For each operator a new sq value is constructed. */
-fpm::sq<type, n, check, v_min, v_max>;
+fpm::sq<type, n, v_min, v_max>;
+
+// predefined types
+using sq32<...> = fpm::sq<int32_t, ...>;
+using squ32<...> = fpm::sq<uint32_t, ...>;
+using sq16<...> = fpm::sq<int16_t, ...>;
+using squ16<...> = fpm::sq<uint16_t, ...>;
+// ...
+
+// user-defined types
+// from above: for q-types, corresponding sq types are created; can be accessed via q<>::sq<>;
+//             default value range of these sq types is that of the related q types;
+//             can be changed to a different (smaller) range of values!
+
+
+// ...
+// some given q values, e.g. speed [mm/s] and acceleration [mm/s^2]
+using speed_t = q32n16<-100., 100.>;
+using accel_t = q32n16<-10., 10.>;
+using pos_t = q32n16<-10000., 10000.>;
+auto speed0 = speed_t(50.);
+auto accel = accel_t(5.);
+auto pos0 = pos_t(1000.);
+// ...
+
+// sq-calculation, performed safely via sq values. As mentioned above, if only sq values are used
+// in a formula, this whole calculation will not include any overflow checks at runtime, because the
+// compiler is doing these checks for the value ranges at compile-time and the code does not compile
+// when the calculated value range does not fit the user-defined, expected value range.
+// Note: Transitions from q to sq space and vice versa are explicit by design (assignment does not work)!
+speed_t::sq<> sV0 = speed0.as_sq();  // construct sq value from corresponding q value; checks needed?
+accel_t::sq<> sAccel = accel.as_sq();  // note: default value range of sq type here is that of q type
+pos_t::sq<-5000., 5000.> sS0 = pos0.as_sq();  // sq value for pos0 with a smaller value range; performs checks
+auto sTime = squ16n8<0., 10.>(4.);  // current time [s]
+// calculation; perform for a range of input values; expect a range of output values (can and should
+// be calculated with the real decimal range values given when the types are defined;
+// for example, 10*10*10/2 + 100*10 + 10000 = 11500 is the upper limit of the output range);
+// no checks are performed here; only the given operations and the implicit precision and scaling corrections
+// one would need to perform explicitly when doing these calculations manually with scaled integers;
+// s = a/2*t^2 + v0*t + s0
+pos_t::sq<-6500., 6500.> s = sAccel*sTime*sTime/2 + sV0*time + sS0;  // TODO: handle /2 how?
+// another calculation step; note that a new variable needs to be defined because s cannot be changed
+// since it is a sq type.
+pos_t::sq<-6500., 7000.> s2 = s + pos_t::sq<0., 500.>(250.);  // add some constant value from a range
+// now update position in q scaling;
+// performs no check when value of s is assigned to pos0 this way because of smaller value range
+pos = s2.as_q();
 
 // ...
 ````
 
 
-## Badges
+## Badges 
 On some READMEs, you may see small images that convey metadata, such as whether or not all the tests are passing for the project. You can use Shields to add some to your README. Many services also have instructions for adding a badge.
 
 ## Visuals
