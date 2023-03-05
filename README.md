@@ -46,10 +46,10 @@ Provides different fixed-point types which fulfill the expectations from above (
  * normal fixed-point type in Q notation with value saturation or assertion at runtime
  */
 
-// base-type, number of fraction bits f, overflow protection, minimum value, maximum value;
+// base-type, number of fraction bits f, minimum value, maximum value, overflow protection;
 // note: only scaled integer value (mem-value) is stored in memory; rest (e.g. value range) is
 //       compile-time-only!
-fpm::q<type, f, ovf, v_min, v_max>;
+fpm::q<type, f, v_min, v_max, ovf>;
 
 // predefined types
 using q32<...> = fpm::q<int32_t, ...>;
@@ -59,11 +59,15 @@ using qu16<...> = fpm::q<uint16_t, ...>;
 // ...
 
 // user-defined types
-using qu32f16<...> = qu32<16, fpm::overflow::SATURATE, ...>;  // res. 2^-16; overflow protection: saturation
-using q32f16<...> = q32<16, fpm::overflow::ASSERT, ...>;  // res. 2^-16; overflow protection: assertion
+// note: overflow actions are examples here; best practice is to use the default, FORBIDDEN, and
+//       to change the overflow action explicitly when needed/desired (so that a dev has control when
+//       the compiler should add overflow checks; code does not compile if a check is needed -> this
+//       way a dev can add a check explicitly, or fix the bug if the check should not be needed)
+using qu32f16<...> = qu32<16, ..., fpm::overflow::SATURATE>;  // res. 2^-16; overflow: saturation
+using q32f16<...> = q32<16, ..., fpm::overflow::ASSERT>;  // res. 2^-16; overflow: assertion
 // res. 2^-20; overflow at runtime forbidden -> code does not compile if check would be needed
-using qu32f20<...> = qu32<20, fpm::overflow::FORBIDDEN, ...>;
-using q16f2<...> = q16<2, fpm::overflow::SATURATE, ...>;  // res. 2^-2; saturation
+using qu32f20<...> = qu32<20, ...>;  // overflow::FORBIDDEN is default
+using q16f2<...> = q16<2, ..., fpm::overflow::SATURATE>;  // res. 2^-2; overflow: saturation
 
 
 /* declaration and initialization */
@@ -110,32 +114,26 @@ auto cast3 = translate_q_cast<q16f2<40., 100.>>(b);
 // copy constructors can be used to cast when the base type is the same but the precision is different
 
 
-/* addition */
-qu32f16<> g = a + b;
-qu32f16<0., 45700.> h = a + b;  // runtime check error: out of range (beyond upper limit)
-qu32f20<> i = a + e;  // addition performed in q20 (higher precision of e) and stored as q20 (i)
-qu32f16<> j = a + e;  // addition performed in q20 (higher precision of e) and stored as q16 (j)
-
-// no range check performed when R1 * R2 (ranges Ri, * is an operator) cannot go out-of-range
-auto x = qu32f16<40., 80.>(50.);
-auto y = qu32f16<10., 20.>(15.);
-qu32f16<> z = x + y;  // for example, no range check performed here because R1 + R2 cannot go out-of-range
+/* operations */
+// q values do not implement operators! When operators are used, they are implicitly converted to
+// static q values (see next section) within the same range. The user can, if needed, change the
+// value range by explicitly converting the value.
 
 
-/* subtraction */
-/* multiplication */
-/* division */
-// similar to addition
-
-
-/* static Q-type for static formulas that can be used to guarantee at compile time that a calculation
- * works for a range of input values. Runtime checks may only be needed when a q value is transformed
- * into an sq value and vice versa. sq-only formulas are guaranteed to be safe at runtime, because
- * for each operator the value range is modified and checked against overflow at compile-time.
- * Runtime checks are not included as long as only sq values are used in the formula. This guarantees
- * that the formula compiles into an efficient calculation.
- * Note: By design, sq values cannot be changed. For each operator a new sq value is constructed. */
-fpm::sq<type, n, v_min, v_max>;
+/* static Q-type for static formulas that have to be used to guarantee at compile time that a calculation
+ * works for a range of input values. Runtime checks are only needed when a q value is transformed
+ * into an sq value (and vice versa) when the value range gets smaller.
+ * sq-only formulas are guaranteed to be safe at runtime, because for each operator the value range is
+ * modified and checked against overflow at compile-time. Runtime checks are not included as long as
+ * only sq values are used in the formula. This guarantees that the formula compiles into an efficient
+ * calculation.
+ * Note: By design, sq values cannot be changed. For each operator a new sq value is constructed. 
+ *  => q values are dynamic and can be changed, but they do not implement mathematical operations.
+ *     For formulas sq values are needed; they are static so that formulas can be guaranteed to
+ *     be secure for a given range of input values. As a result, sq values can only live in their
+ *     local scope, e.g. a function. For inter-scope transitions q values are needed to carry a value.
+ */
+fpm::sq<type, f, v_min, v_max, ovf>;
 
 // predefined types
 using sq32<...> = fpm::sq<int32_t, ...>;
@@ -147,7 +145,7 @@ using squ16<...> = fpm::sq<uint16_t, ...>;
 // user-defined types
 // from above: for q-types, corresponding sq types are created; can be accessed via q<>::sq<>;
 //             default value range of these sq types is that of the related q types;
-//             can be changed to a different (only smaller?) range of values!
+//             can be changed to a different (usually smaller) range of values!
 
 
 // ...
@@ -163,39 +161,75 @@ auto pos = pos_t(1000.);
 // sq-calculation, performed safely via sq values. As mentioned above, if only sq values are used
 // in a formula, this whole calculation will not include any overflow checks at runtime, because the
 // compiler is doing these checks for the value ranges at compile-time and the code does not compile
-// when the calculated value range does not fit the user-defined, expected value range.
-// Note: Transitions from q to sq space and vice versa are explicit by design (assignment does not work)!
-speed_t::sq<> v0 = speed.as_sq();  // construct sq value from corresponding q value
-accel_t::sq<> a = accel.as_sq();  // note: default value range of sq type here is that of q type
-pos_t::sq<-5000., 5000.> s0 = pos.as_sq();  // sq value for pos0 with a smaller value range; performs checks
-auto time = squ16f8<0., 10.>(4.);  // current time [s]
-// calculation; perform for a range of input values; expect a range of output values (can and should
-// be calculated with the real decimal range values given when the types are defined;
-// for example, 10*10*10/2 + 100*10 + 10000 = 11500 is the upper limit of the output range);
+// when the calculated value range does not fit into the user-defined, expected value range.
+// Note: Transitions from q to sq space can be implicit, transitions from sq to q space must be explicit
+//       by design!
+//
+// not needed: construct sq value from corresponding q value;  -> is done implicitly for operators;
+//             default value range of sq type is that of the q type
+//speed_t::sq<> v0 = speed.as_sq();
+//accel_t::sq<> a = accel.as_sq();
+//
+// explicit change of value range: sq value for pos0 with a smaller value range; performs overflow checks!
+pos_t::sq<-5000., 5000., overflow::SATURATE> s0 = pos.as_sq();
+//
+// also given: current time [s]
+auto time = squ16f8<0., 10.>(4.);
+//
+// calculation; for a range of input values; expect an sq value within a given range (can and should
+// be calculated with the real decimal range values given when the types are defined; for example,
+// 10*10*10/2 + 100*10 + 10000 = 11500 is the upper limit of the output range);
 // no checks are performed; only the given operations and the implicit precision and scaling corrections
 // one would need to perform manually when doing these calculations with scaled integers;
+// -> output value is always of sq type! Can be converted explicitly to a q value eventually.
 // s = 1/2*a*t^2 + v0*t + s0
-pos_t::sq<-6500., 6500.> s = a*time*time/2 + v0*time + s0;
+pos_t::sq<-6500., 6500.> s = accel*time*time/2 + speed*time + s0;
+//
+// think about (if possible): explicit conversion in situ:
+pos_t::sq<-6500., 6500.> s = accel*time*time/2 + speed*time + pos<-5e3, 5e3, overflow::SATURATE>;
+//                                                            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+//
 // another calculation step; note that a new variable needs to be defined because s cannot be changed
-// since it is a sq type.
+// since it is of sq type.
 pos_t::sq<-6500., 7000.> s2 = s + pos_t::sq<0., 500.>(250.);  // add some constant value from a range
+//
 // now update position in q scaling;
-// performs no check when value of s is assigned to pos this way because of smaller value range
+// performs no check when value of s is assigned to pos this way because of smaller value range of s2
 pos = s2.as_q();  // => calculations in sq scope, storage of runtime values in q scope
 
 // some thoughts about implicit conversion of integers in formulas:
 // - should the following be possible? This is somehow ambiguous (does it mean that the underlying
 //   base integer is increased by one or that the value that is represented by s is increased by 1).
+//   --> no!
 pos_t::sq<> s3 = s + 1;  // same problem for minus operator
 // - the following definitely makes sense though (because it is not ambiguous):
+//   --> yes!
 pos_t::sq<> s4 = s * 4;
 pos_t::sq<> s5 = s / 3;
 
-// think about: no operators for q values, all calculations with sq values
-// + force developers to use safe and optimized calculations (they cannot misuse
-//   q operators and accidentally introduce lots of heavy range checks)
-// - overhead for simple calculations (q values need to be transformed to sq space for calculations
-//   and transformed back) -> maybe this problem can be solved with some syntax sugar
+
+/* mathematical operators */
+// using:
+squ32f16<4.e4, 5.e4> aa = a;
+squ32f20<4.e4, 5.e4> ee = e;
+//
+/* addition */
+squ32f16<> g = aa + b;
+squ32f16<0., 45700.> h = aa + b;  // runtime check error: out of range (beyond upper limit)
+squ32f20<> i = aa + ee;  // addition performed in q20 (higher precision of e) and stored as q20 (i)
+squ32f16<> j = aa + ee;  // addition performed in q20 (higher precision of e) and stored as q16 (j)
+//
+// remember: no range check performed when R1 * R2 (ranges Ri, * is an operator) cannot go ooR
+auto x = qu32f16<40., 80.>(50.);
+auto y = qu32f16<10., 20.>(15.);
+squ32f16<> sz = x + y;  // no range check performed here
+qu32f16<> z = sz.as_q();  // convert to q-value
+//
+//
+/* subtraction */
+/* multiplication */
+/* division */
+// similar to addition
 
 // ...
 ````
