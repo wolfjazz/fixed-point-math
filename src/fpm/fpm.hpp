@@ -40,26 +40,29 @@ using scaling_t = int8_t;
 /** Scale-To-Scale scaling function.
  * Used to scale a given integer value to a different scaling factor.
  * \note Shift operations are well defined for C++20 and above (signed integers are Two's Complement). */
-template< scaling_t FROM, scaling_t TO, typename VALUE_T >
-VALUE_T s2s(VALUE_T value) {
-    static_assert(std::is_integral<VALUE_T>::value, "s2s only supports integers");
+template< typename TARGET_T, scaling_t FROM, scaling_t TO, typename VALUE_T >
+constexpr TARGET_T s2s(VALUE_T value) noexcept {
+    static_assert(std::is_integral<VALUE_T>::value && std::is_integral<TARGET_T>::value, "s2s only supports integers");
 
     if constexpr (FROM > TO) {
-        return value >> (unsigned)(FROM - TO);
+        // first downscale, then cast
+        return static_cast<TARGET_T>(value >> (unsigned)(FROM - TO));
     }
     else if constexpr (TO > FROM) {
-        return value << (unsigned)(TO - FROM);
+        // first cast, then upscale
+        return static_cast<TARGET_T>(value) << (unsigned)(TO - FROM);
     }
     else /* FROM == TO */ {
-        return value;
+        return static_cast<TARGET_T>(value);
     }
 }
 
 
 /** Value-To-Scale scaling function.
- * Used to scale a given compile-time floating-point value to a scaled runtime integer value. */
+ * Used to scale a given compile-time floating-point value to a scaled runtime integer value.
+ * \note consteval ensures that this evaluates to a compile-time constant expression. */
 template< typename INT_T, scaling_t TO >
-constexpr INT_T v2s(double fpValue) {
+consteval INT_T v2s(double fpValue) noexcept {
     static_assert(std::is_integral<INT_T>::value, "v2s must return an integer");
 
     if constexpr (TO < 0) {

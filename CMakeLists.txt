@@ -1,12 +1,32 @@
-cmake_minimum_required(VERSION 3.1.0)
-project(FixedPointMath VERSION 0.1.0)
+cmake_minimum_required(VERSION 3.25)
 
-include(CTest)
+set(This FixedPointMath)
+set(ThisShort FpmQ)
+project(${This} VERSION 0.1.0 LANGUAGES C CXX)
+
+set(CMAKE_C_STANDARD 17)
+set(CMAKE_CXX_STANDARD 23)
+set(CMAKE_CXX_EXTENSIONS OFF)
+
+
 enable_testing()
 
-add_executable(FpmQ src/main.cpp)
+add_subdirectory(googletest)
+add_subdirectory(test)
 
-target_compile_features(FpmQ PUBLIC cxx_std_23)
+set(Headers
+    src/fpm/fpm.hpp
+    src/fpm/q.hpp
+    src/fpm/sq.hpp
+)
+
+set(Sources
+    src/fpm/fpm.cpp
+)
+
+
+add_library(${ThisShort} STATIC ${Headers} ${Sources})
+set_target_properties(${ThisShort} PROPERTIES LINKER_LANGUAGE CXX)
 
 set(CPACK_PROJECT_NAME ${PROJECT_NAME})
 set(CPACK_PROJECT_VERSION ${PROJECT_VERSION})
