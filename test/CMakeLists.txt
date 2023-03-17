@@ -17,4 +17,4 @@ target_link_libraries(${This} PUBLIC ${CMAKE_THREAD_LIBS_INIT}
     gtest_main
 )
 
-target_include_directories(${This} PUBLIC ../src)
+target_include_directories(${This} PUBLIC ../src ../googletest/googletest/include)

@@ -13,11 +13,11 @@ using namespace std;
 class S2STest : public ::testing::Test
 {
 protected:
-    virtual void SetUp()
+    void SetUp() override
     {
     }
 
-    virtual void TearDown()
+    void TearDown() override
     {
     }
 
@@ -79,11 +79,11 @@ TEST_F(S2STest, s2s__constexpr_signed_positiveF__int_sameF) {
 class V2STest : public ::testing::Test
 {
 protected:
-    virtual void SetUp()
+    void SetUp() override
     {
     }
 
-    virtual void TearDown()
+    void TearDown() override
     {
     }
 
@@ -114,11 +114,11 @@ TEST_F(V2STest, v2s__dynamic_construction__not_possible) {
 class SQTest : public ::testing::Test
 {
 protected:
-    virtual void SetUp()
+    void SetUp() override
     {
     }
 
-    virtual void TearDown()
+    void TearDown() override
     {
     }
 };

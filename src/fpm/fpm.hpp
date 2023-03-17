@@ -5,7 +5,7 @@
 #ifndef _FPM_FPM_HPP_
 #define _FPM_FPM_HPP_
 
-#include <limits>
+#include <type_traits>
 #include <cstdint>
 
 
@@ -27,7 +27,7 @@ enum overflow : uint8_t {
     ASSERT = 1u,
 
     /// In case of an overflow, the value will be saturated to the closest limitation value.
-    /// \note This is the type that should be used in released software when an overflow checks cannot
+    /// \note This is the type that should be used in released software when overflow checks cannot
     /// be avoided in the first place.
     SATURATE = 2u,
 };

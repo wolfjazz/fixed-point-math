@@ -6,6 +6,7 @@
 #define _FPM_SQ_HPP_
 
 #include "fpm.hpp"
+#include <limits>
 
 
 namespace fpm {
@@ -13,8 +14,8 @@ namespace fpm {
 template<
     typename BASE_T,  ///< type of the scaled integer stored in memory
     scaling_t F,      ///< number of fraction bits (precision 2^-F)
-    double V_MIN,     ///< minimum real value represented by this type
-    double V_MAX,     ///< maximum real value represented by this type
+    double V_MIN = std::numeric_limits<BASE_T>::min(),  ///< minimum real value represented by this type
+    double V_MAX = std::numeric_limits<BASE_T>::max(),  ///< maximum real value represented by this type
     overflow OVF_ACTION = overflow::FORBIDDEN  ///< overflow action when overflow check is positive
 >
 class sq final
@@ -22,8 +23,8 @@ class sq final
     static_assert(std::is_integral<BASE_T>::value, "base type must be integral");
 
 public:
-    static constexpr BASE_T T_MIN = numeric_limits<BASE_T>::min();  ///< minimum possible value of base type
-    static constexpr BASE_T T_MAX = numeric_limits<BASE_T>::max();  ///< maximum possible value of base type
+    static constexpr BASE_T T_MIN = std::numeric_limits<BASE_T>::min();  ///< minimum possible value of base type
+    static constexpr BASE_T T_MAX = std::numeric_limits<BASE_T>::max();  ///< maximum possible value of base type
     static constexpr BASE_T MIN = v2s<BASE_T, F>(V_MIN);  ///< minimum value of integer value range
     static constexpr BASE_T MAX = v2s<BASE_T, F>(V_MAX);  ///< maximum value of integer value range
 
