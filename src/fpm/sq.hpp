@@ -14,8 +14,8 @@ namespace fpm {
 template<
     typename BASE_T,  ///< type of the scaled integer stored in memory
     scaling_t F,      ///< number of fraction bits (precision 2^-F)
-    double V_MIN = std::numeric_limits<BASE_T>::min(),  ///< minimum real value represented by this type
-    double V_MAX = std::numeric_limits<BASE_T>::max(),  ///< maximum real value represented by this type
+    double V_MIN,     ///< minimum real value represented by this type
+    double V_MAX,     ///< maximum real value represented by this type
     overflow OVF_ACTION = overflow::FORBIDDEN  ///< overflow action when overflow check is positive
 >
 class sq final
@@ -30,7 +30,7 @@ public:
 
     /// Explicit compile-time-only constructor from floating-point value.
     /// \note Due to consteval it is guaranteed that this will not overflow (would not compile otherwise).
-    explicit consteval sq(double value) noexcept : sq(v2s<BASE_T, F>(value))
+    explicit consteval sq(double value) noexcept : sq( v2s<BASE_T, F>(value) )
     {}
 
     /// Destructor.
