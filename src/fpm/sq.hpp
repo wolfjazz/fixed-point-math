@@ -15,8 +15,7 @@ template<
     typename BASE_T,  ///< type of the scaled integer stored in memory
     scaling_t F,      ///< number of fraction bits (precision 2^-F)
     double V_MIN,     ///< minimum real value represented by this type
-    double V_MAX,     ///< maximum real value represented by this type
-    overflow OVF_ACTION = overflow::FORBIDDEN  ///< overflow action when overflow check is positive
+    double V_MAX      ///< maximum real value represented by this type
 >
 class sq final
 {
@@ -28,17 +27,24 @@ public:
     static constexpr BASE_T MIN = v2s<BASE_T, F>(V_MIN);  ///< minimum value of integer value range
     static constexpr BASE_T MAX = v2s<BASE_T, F>(V_MAX);  ///< maximum value of integer value range
 
-    /// Explicit compile-time-only constructor from floating-point value.
-    /// \note Due to consteval it is guaranteed that this will not overflow (would not compile otherwise).
-    explicit consteval sq(double value) noexcept : sq( v2s<BASE_T, F>(value) )
-    {}
+    /// Explicit compile-time-only "constructor" from floating-point value.
+    /// Performs compile-time overflow checks.
+    template< double VALUE >
+    static consteval sq from_real() {
+        constexpr BASE_T scaledValue = v2s<BASE_T, F>(VALUE);  // does not compile if scaled value does not fit BASE_T
+
+        // do not compile if initial value does not fit user-defined value range
+        static_assert(scaledValue >= MIN && scaledValue <= MAX, "value is out of user range");
+
+        return sq(scaledValue);
+    }
 
     /// Destructor.
     constexpr ~sq()
     {}
 
     /// Reveals the integer value stored in the memory.
-    BASE_T Reveal() const {
+    BASE_T reveal() const {
         return value;
     }
 
@@ -46,7 +52,7 @@ public:
     /// \warning Unscaled, real value will be of specified target integer type (no floats at runtime).
     ///          There can be a significant loss of precision.
     template< typename TARGET_T >
-    TARGET_T Unwrap() const noexcept {
+    TARGET_T unwrap() const noexcept {
         return s2s<TARGET_T, F, 0>(value);
     }
 
@@ -56,28 +62,10 @@ private:
 
     /// Explicit, possibly compile-time-only constructor from integer value.
     explicit constexpr sq(BASE_T value) noexcept : value(value)
-    {
-        // // do not compile if constexpr value is out of range
-        // if consteval {
-        //     // static_assert on function argument is not working; use a trick to make this not compile
-        //     value /= (value >= MIN && value <= MAX);  // constexpr value is out of value range if this fails
-        // }
-        // else {
-        //     if constexpr ((value >= MIN && value <= MAX) && overflow::FORBIDDEN == OVF_ACTION) {
-        //         throw();  // make this not compile when it should not
-        //     }
-        //     else if constexpr ((value >= MIN && value <= MAX) && overflow::ASSERT == OVF_ACTION) {
-        //         assert(false);
-        //     }
-        //     else if constexpr ((value >= MIN && value <= MAX) && overflow::SATURATE == OVF_ACTION) {
-        //         // TODO: saturate value properly
-        //     }
-        //     else { /* okay */ }
-        // }
-    }
+    {}
 
     /// scaled integer value that represents a fixed-point value; stored in memory
-    BASE_T value;
+    BASE_T const value;
 };
 
 }

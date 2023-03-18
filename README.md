@@ -71,13 +71,13 @@ using q16f2<...> = q16<2, ..., fpm::overflow::SATURATE>;  // res. 2^-2; overflow
 
 
 /* declaration and initialization */
-qu32f16<> a0(99.9);  // direct initialization; default value range is full possible range
-auto a = qu32f16<>(45678.123);  // construction
-auto b = qu32f16<45.0, 98.2>(66.);  // construction; value range 45.0-98.2 (2949120-6435635);
+qu32f16<> a0::from_real<99.9>();  // direct initialization; default value range is full possible range
+auto a = qu32f16<>::from_real<45678.123>();  // construction
+auto b = qu32f16<45.0, 98.2>::from_real<66.>();  // construction; value range 45.0-98.2 (2949120-6435635);
 // value range specified via scaled integer is not useful because if the value of n is changed
 // all ranges need to be adapted when scaled values are used; this is not needed for real values
 // and lets be honest - this is not intuitive either.
-//auto c = qu32f16<1966080, 3932160>(45.1);
+//auto c = qu32f16<1966080, 3932160>::from_real<45.1>();
 
 // copy: construct from another q value with same base-type; value range can be changed this way;
 // note that copy will perform a range check at runtime when the lhs range is smaller than the rhs range
@@ -86,7 +86,7 @@ qu32f16<40000.0, 50000.0> d2 = a;  // limitation of value range; will perform ra
 // upscale-copy: mem-value increased by 2^4 and checked at runtime; value range implicitly reduced
 qu32f20<> e = a;
 auto e2 = qu32f20<>(a);
-qu32f20<> e3 = qu32f16<>(1.1);  // construct temporary q16 and upscale-move to q20 lvalue
+qu32f20<> e3 = qu32f16<>::from_real<1.1>();  // construct temporary q16 and upscale-move to q20 lvalue
 // downscale-copy: mem-value decreased at runtime without checks; value range implicitly extended
 qu32f16<> f = e;
 auto f2 = qu32f16<>(e);
@@ -133,7 +133,7 @@ auto cast3 = translate_q_cast<q16f2<40., 100.>>(b);
  *     be secure for a given range of input values. As a result, sq values can only live in their
  *     local scope, e.g. a function. For inter-scope transitions q values are needed to carry a value.
  */
-fpm::sq<type, f, v_min, v_max, ovf>;
+fpm::sq<type, f, v_min, v_max>;
 
 // predefined types
 using sq32<...> = fpm::sq<int32_t, ...>;
@@ -153,9 +153,9 @@ using squ16<...> = fpm::sq<uint16_t, ...>;
 using speed_t = q32f16<-100., 100.>;
 using accel_t = q32f16<-10., 10.>;
 using pos_t = q32f16<-10000., 10000.>;
-auto speed = speed_t(50.);
-auto accel = accel_t(5.);
-auto pos = pos_t(1000.);
+auto speed = speed_t::from_real<50.>();
+auto accel = accel_t::from_real<5.>();
+auto pos = pos_t::from_real<1000.>();
 // ...
 
 // sq-calculation, performed safely via sq values. As mentioned above, if only sq values are used
@@ -171,10 +171,10 @@ auto pos = pos_t(1000.);
 //accel_t::sq<> a = accel.as_sq();
 //
 // explicit change of value range: sq value for pos0 with a smaller value range; performs overflow checks!
-pos_t::sq<-5000., 5000., overflow::SATURATE> s0 = pos.as_sq();
+pos_t::sq<-5000., 5000.> s0 = pos.as_sq< overflow::SATURATE >();
 //
 // also given: current time [s]
-auto time = squ16f8<0., 10.>(4.);
+auto time = squ16f8<0., 10.>::from_real<4.>();
 //
 // calculation; for a range of input values; expect an sq value within a given range (can and should
 // be calculated with the real decimal range values given when the types are defined; for example,
@@ -191,7 +191,7 @@ pos_t::sq<-6500., 6500.> s = accel*time*time/2 + speed*time + pos<-5e3, 5e3, ove
 //
 // another calculation step; note that a new variable needs to be defined because s cannot be changed
 // since it is of sq type.
-pos_t::sq<-6500., 7000.> s2 = s + pos_t::sq<0., 500.>(250.);  // add some constant value from a range
+pos_t::sq<-6500., 7000.> s2 = s + pos_t::sq<0., 500.>::from_real<250.>();  // add some constant value from a range
 //
 // now update position in q scaling;
 // performs no check when value of s is assigned to pos this way because of smaller value range of s2
@@ -220,8 +220,8 @@ squ32f20<> i = aa + ee;  // addition performed in q20 (higher precision of e) an
 squ32f16<> j = aa + ee;  // addition performed in q20 (higher precision of e) and stored as q16 (j)
 //
 // remember: no range check performed when R1 * R2 (ranges Ri, * is an operator) cannot go ooR
-auto x = qu32f16<40., 80.>(50.);
-auto y = qu32f16<10., 20.>(15.);
+auto x = qu32f16<40., 80.>::from_real<50.>();
+auto y = qu32f16<10., 20.>::from_real<15.>();
 squ32f16<> sz = x + y;  // no range check performed here
 qu32f16<> z = sz.as_q();  // convert to q-value
 //

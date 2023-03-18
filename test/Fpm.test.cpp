@@ -124,23 +124,17 @@ protected:
 };
 
 TEST_F(SQTest, sq__constexpr_int16_positiveF__reveal_scaled_int16_and_unwrap_int) {
-    using sq_base_t = int16_t;
-    using unwrap_t = int;
-    auto sqValue = fpm::sq<sq_base_t, 4, -2048., 2047.9>(-2047.6);
-    EXPECT_TRUE(( std::is_same< sq_base_t, decltype(sqValue.Reveal()) >::value ));
-    EXPECT_TRUE(( std::is_same< unwrap_t, decltype(sqValue.Unwrap<unwrap_t>()) >::value ));
-    ASSERT_EQ(-32761, sqValue.Reveal());
-    ASSERT_EQ(-2048, sqValue.Unwrap<int>());
+    auto sqValue = fpm::sq<int16_t, 4, -2048., 2047.9>::from_real<-2047.6>();
+    EXPECT_TRUE(( std::is_same< int16_t, decltype(sqValue.reveal()) >::value ));
+    EXPECT_TRUE(( std::is_same< int, decltype(sqValue.unwrap<int>()) >::value ));
+    ASSERT_EQ(-32761, sqValue.reveal());
+    ASSERT_EQ(-2048, sqValue.unwrap<int>());
 }
 
-template< typename BASE_T, fpm::scaling_t F, double V_MIN, double V_MAX, double V >
-concept CanConstructSq = requires {
-    fpm::sq<BASE_T, F, V_MIN, V_MAX>(V);
-};
 TEST_F(SQTest, sq__constexpr_int16_F4_value_ooR__does_not_compile) {
-    //static_assert(!CanConstructSq<int16_t, 4, -20., 20., 21.>);
-    //static_assert(!CanConstructSq<int16_t, 4, -20., 20., -21.>);
-    // TODO: implement this test: value out-of-range should not compile
+    // TODO: are tests like this possible (e.g. with SFINAE, or with concepts)?
+    //static_assert(!CanConstructSq<int16_t, 4, -20., 20., -20.1>);
+    //static_assert(!CanConstructSq<int16_t, 4, -20., 20., +20.1>);
 }
 
 
