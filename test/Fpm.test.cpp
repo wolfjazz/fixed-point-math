@@ -105,6 +105,13 @@ TEST_F(V2STest, v2s__constexpr_double_zeroF__scaled_int) {
     ASSERT_EQ(4897, result);
 }
 
+TEST_F(V2STest, v2s__constexpr_pos_and_neg_double__symmetric_output) {
+    auto resultP = fpm::v2s<int, 4>(36.9999);
+    auto resultN = fpm::v2s<int, 4>(-36.9999);
+    ASSERT_EQ(+591, resultP);
+    ASSERT_EQ(-591, resultN);
+}
+
 TEST_F(V2STest, v2s__dynamic_construction__not_possible) {
     // TODO: use 'concept' and 'requires' to implement this check?
     //fpm::v2s<int, 2>(a);  // this must not compile
