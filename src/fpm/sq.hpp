@@ -22,8 +22,6 @@ class sq final
     static_assert(std::is_integral<BASE_T>::value, "base type must be integral");
 
 public:
-    static constexpr BASE_T T_MIN = std::numeric_limits<BASE_T>::min();  ///< minimum possible value of base type
-    static constexpr BASE_T T_MAX = std::numeric_limits<BASE_T>::max();  ///< maximum possible value of base type
     static constexpr BASE_T MIN = v2s<BASE_T, F>(V_MIN);  ///< minimum value of integer value range
     static constexpr BASE_T MAX = v2s<BASE_T, F>(V_MAX);  ///< maximum value of integer value range
 

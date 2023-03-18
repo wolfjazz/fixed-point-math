@@ -8,6 +8,7 @@
 using namespace std;
 
 #include <fpm/sq.hpp>
+#include <fpm/q.hpp>
 
 
 class S2STest : public ::testing::Test
@@ -75,6 +76,13 @@ TEST_F(S2STest, s2s__constexpr_signed_positiveF__int_sameF) {
     ASSERT_EQ(-512, result);
 }
 
+TEST_F(S2STest, s2s__constexpr_signed__int_symmetric_output) {
+    auto resultP = fpm::s2s<int,8,4>((int16_t)+514);
+    auto resultN = fpm::s2s<int,8,4>((int16_t)-514);
+    ASSERT_EQ(+32, resultP);
+    ASSERT_EQ(-32, resultN);
+}
+
 
 class V2STest : public ::testing::Test
 {
@@ -135,13 +143,34 @@ TEST_F(SQTest, sq__constexpr_int16_positiveF__reveal_scaled_int16_and_unwrap_int
     EXPECT_TRUE(( std::is_same< int16_t, decltype(sqValue.reveal()) >::value ));
     EXPECT_TRUE(( std::is_same< int, decltype(sqValue.unwrap<int>()) >::value ));
     ASSERT_EQ(-32761, sqValue.reveal());
-    ASSERT_EQ(-2048, sqValue.unwrap<int>());
+    ASSERT_EQ(-2047, sqValue.unwrap<int>());
 }
 
 TEST_F(SQTest, sq__constexpr_int16_F4_value_ooR__does_not_compile) {
     // TODO: are tests like this possible (e.g. with SFINAE, or with concepts)?
     //static_assert(!CanConstructSq<int16_t, 4, -20., 20., -20.1>);
     //static_assert(!CanConstructSq<int16_t, 4, -20., 20., +20.1>);
+}
+
+
+class QTest : public ::testing::Test
+{
+protected:
+    void SetUp() override
+    {
+    }
+
+    void TearDown() override
+    {
+    }
+};
+
+TEST_F(QTest, q__constexpr_int16_positiveF__reveal_scaled_int16_and_unwrap_int) {
+    auto qValue = fpm::q<int16_t, 6, -500., 500.>::from_real<-495.1>();
+    EXPECT_TRUE(( std::is_same< int16_t, decltype(qValue.reveal()) >::value ));
+    EXPECT_TRUE(( std::is_same< int, decltype(qValue.unwrap<int>()) >::value ));
+    ASSERT_EQ(-31686, qValue.reveal());
+    ASSERT_EQ(-495, qValue.unwrap<int>());
 }
 
 

@@ -38,19 +38,21 @@ using scaling_t = int8_t;
 
 
 /** Scale-To-Scale scaling function.
- * Used to scale a given integer value to a different scaling factor.
- * \note Shift operations are well defined for C++20 and above (signed integers are Two's Complement). */
+ * Used to scale a given integer value to a different scaling factor using multiplication/division.
+ * \note Shift operations are well defined for C++20 and above (signed integers are Two's Complement),
+ *       however, arithmetic right shift would always round down (e.g. -514 >> 4 is -33, but +514 >> 4 is +32).
+ *       This kind of asymmetry might be unexpected, therefore arithmetic operators are used instead. */
 template< typename TARGET_T, scaling_t FROM, scaling_t TO, typename VALUE_T >
 constexpr TARGET_T s2s(VALUE_T value) noexcept {
     static_assert(std::is_integral<VALUE_T>::value && std::is_integral<TARGET_T>::value, "s2s only supports integers");
 
     if constexpr (FROM > TO) {
-        // first downscale, then cast
-        return static_cast<TARGET_T>(value >> (unsigned)(FROM - TO));
+        // use VALUE_T for operation because TARGET_T might be smaller
+        return static_cast<TARGET_T>(value / (static_cast<VALUE_T>(1) << (unsigned)(FROM - TO)));
     }
     else if constexpr (TO > FROM) {
-        // first cast, then upscale
-        return static_cast<TARGET_T>(value) << (unsigned)(TO - FROM);
+        // use TARGET_T for operation because it might be larger
+        return static_cast<TARGET_T>(value) * (static_cast<TARGET_T>(1) << (unsigned)(TO - FROM));
     }
     else /* FROM == TO */ {
         return static_cast<TARGET_T>(value);
