@@ -19,14 +19,14 @@ template<
 >
 class sq final
 {
-    static_assert(std::is_integral<BASE_T>::value, "base type must be integral");
+    static_assert(std::is_integral_v<BASE_T>, "base type must be integral");
 
 public:
     static constexpr BASE_T MIN = v2s<BASE_T, F>(V_MIN);  ///< minimum value of integer value range
     static constexpr BASE_T MAX = v2s<BASE_T, F>(V_MAX);  ///< maximum value of integer value range
 
-    /// Explicit compile-time-only "constructor" from floating-point value.
-    /// Performs compile-time overflow checks.
+    /// Explicit compile-time-only named "constructor" from a floating-point value.
+    /// \note Performs compile-time overflow checks and does not compile if value is out of (user-) range.
     template< double VALUE >
     static consteval sq from_real() {
         constexpr BASE_T scaledValue = v2s<BASE_T, F>(VALUE);  // does not compile if scaled value does not fit BASE_T
@@ -58,7 +58,7 @@ private:
     // delete default (runtime) constructor
     sq() = delete;
 
-    /// Explicit, possibly compile-time-only constructor from integer value.
+    /// Explicit, possibly compile-time constructor from integer value.
     explicit constexpr sq(BASE_T value) noexcept : value(value)
     {}
 

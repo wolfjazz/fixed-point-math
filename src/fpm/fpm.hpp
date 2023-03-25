@@ -30,6 +30,10 @@ enum overflow : uint8_t {
     /// \note This is the type that should be used in released software when overflow checks cannot
     /// be avoided in the first place.
     SATURATE = 2u,
+
+    /// Do not perform any overflow checks (i.e. overflow is explicitly allowed).
+    /// \warning The value can overflow in this case!
+    ALLOWED = 3u,
 };
 
 
