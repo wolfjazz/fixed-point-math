@@ -33,7 +33,7 @@ In the end, we just want to perform calculations with a predefined value range a
 - conversion to different base types only via explicit casts (static_cast, safe_cast, translate_cast)
 - implementation of the most-common mathematical operators (+, -, \*, /, %, <<, >>, ==, !=, <, >)
 - simple, easy-to-debug, on-point formulas without any obscuring scaling corrections
-- maybe sophisticated operators like pow, sqr, sqrt
+- maybe sophisticated operators like pow, sqr, sqrt -> integral power and roots
 
 ## This Library
 
@@ -165,13 +165,18 @@ auto pos = pos_t::from_real<1000.>();
 // Note: Transitions from q to sq space can be implicit, transitions from sq to q space must be explicit
 //       by design!
 //
+// Note: About conversions between q and sq: the q type knows the corresponding sq type, but the sq
+//       type does NOT know the corresponding sq type. Therefore conversions have to be performed
+//       from q perspective (i.e. q can be constructed from sq and it can be converted to sq, but
+//       sq cannot be converted to q or be constructed from q).
+//
 // not needed: construct sq value from corresponding q value;  -> is done implicitly for operators;
 //             default value range of sq type is that of the q type
-//speed_t::sq<> v0 = speed.as_sq();
-//accel_t::sq<> a = accel.as_sq();
+//speed_t::sq<> v0 = speed.to_sq<>();  // conversion q -> sq
+//accel_t::sq<> a = accel.to_sq<>();
 //
 // explicit change of value range: sq value for pos0 with a smaller value range; performs overflow checks!
-pos_t::sq<-5000., 5000.> s0 = pos.as_sq< overflow::SATURATE >();
+auto s0 = pos.to_sq< -5e3, 5e3, overflow::SATURATE >();
 //
 // also given: current time [s]
 auto time = squ16f8<0., 10.>::from_real<4.>();
@@ -195,7 +200,8 @@ pos_t::sq<-6500., 7000.> s2 = s + pos_t::sq<0., 500.>::from_real<250.>();  // ad
 //
 // now update position in q scaling;
 // performs no check when value of s is assigned to pos this way because of smaller value range of s2
-pos = s2.as_q();  // => calculations in sq scope, storage of runtime values in q scope
+// => calculations via sq, storage at runtime via q
+pos = pos_t::from_sq< ovf_override >(s2);  // conversion sq -> q (via named constructor of q)
 
 // some thoughts about implicit conversion of integers in formulas:
 // - should the following be possible? This is somehow ambiguous (does it mean that the underlying
@@ -222,8 +228,8 @@ squ32f16<> j = aa + ee;  // addition performed in q20 (higher precision of e) an
 // remember: no range check performed when R1 * R2 (ranges Ri, * is an operator) cannot go ooR
 auto x = qu32f16<40., 80.>::from_real<50.>();
 auto y = qu32f16<10., 20.>::from_real<15.>();
-squ32f16<> sz = x + y;  // no range check performed here
-qu32f16<> z = sz.as_q();  // convert to q-value
+squ32f16<> sz = x + y;  // no range check performed here; implicit conversion of x and y to sq type!
+auto z = qu32f16<>::from_sq<>(sz);  // convert to q-value
 //
 //
 /* subtraction */

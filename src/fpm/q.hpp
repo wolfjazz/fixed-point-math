@@ -17,7 +17,7 @@ template<
     scaling_t F,      ///< number of fraction bits (precision 2^-F)
     double V_MIN,     ///< minimum real value represented by this type
     double V_MAX,     ///< maximum real value represented by this type
-    overflow OVF_ACTION = overflow::ASSERT  ///< overflow action performed when overflow check is positive
+    overflow OVF_ACTION = overflow::FORBIDDEN  ///< overflow action performed when overflow check is positive
 >
 class q final
 {
