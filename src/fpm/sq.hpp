@@ -47,8 +47,9 @@ public:
     }
 
     /// Unwraps to the real value. May be used for debugging purposes.
-    /// \warning Unscaled, real value will be of specified target integer type (no floats at runtime).
-    ///          There can be a significant loss of precision.
+    /// \warning This conversion is expensive if the target type is a floating-point type.
+    ///          If the target type is an integral type, there can be a significant loss of precision.
+    ///          Use carefully!
     template< typename TARGET_T >
     TARGET_T unwrap() const noexcept {
         return s2s<TARGET_T, F, 0>(value);

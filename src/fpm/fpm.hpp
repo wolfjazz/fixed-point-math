@@ -42,20 +42,29 @@ using scaling_t = int8_t;
 
 
 /** Scale-To-Scale scaling function.
- * Used to scale a given integer value to a different scaling factor using multiplication/division.
+ * Used to scale a given integer value to a different scaling factor and target type using multiplication/division.
  * \note Shift operations are well defined for C++20 and above (signed integers are Two's Complement),
  *       however, arithmetic right shift would always round down (e.g. -514 >> 4 is -33, but +514 >> 4 is +32).
- *       This kind of asymmetry might be unexpected, therefore arithmetic operators are used instead. */
+ *       This kind of asymmetry might be unexpected, therefore arithmetic multiplication/division is used instead.
+ *       Besides, floating-point target types are also possible this way.
+ * \warning Floating-point target types are possible, however quite expensive at runtime!
+ *          Use carefully! */
 template< typename TARGET_T, scaling_t FROM, scaling_t TO, typename VALUE_T >
 constexpr TARGET_T s2s(VALUE_T value) noexcept {
-    static_assert(std::is_integral<VALUE_T>::value && std::is_integral<TARGET_T>::value, "s2s only supports integers");
+    static_assert(std::is_integral_v<VALUE_T>, "s2s only supports integer values");
 
     if constexpr (FROM > TO) {
-        // use VALUE_T for operation because TARGET_T might be smaller
-        return static_cast<TARGET_T>(value / (static_cast<VALUE_T>(1) << (unsigned)(FROM - TO)));
+        if constexpr (std::is_floating_point_v<TARGET_T>) {
+            // use TARGET_T for operation because it is floating point and consequently more precise
+            return static_cast<TARGET_T>(value) / (static_cast<unsigned int>(1) << (unsigned)(FROM - TO));
+        }
+        else {
+            // use VALUE_T for operation because TARGET_T might be smaller
+            return static_cast<TARGET_T>(value / (static_cast<VALUE_T>(1) << (unsigned)(FROM - TO)));
+        }
     }
     else if constexpr (TO > FROM) {
-        // use TARGET_T for operation because it might be larger
+        // use TARGET_T for operation because it might be larger; this also works if target is float
         return static_cast<TARGET_T>(value) * (static_cast<TARGET_T>(1) << (unsigned)(TO - FROM));
     }
     else /* FROM == TO */ {
@@ -65,20 +74,20 @@ constexpr TARGET_T s2s(VALUE_T value) noexcept {
 
 
 /** Value-To-Scale scaling function.
- * Used to scale a given compile-time floating-point value to a scaled runtime integer value.
- * \note consteval ensures that this evaluates to a compile-time constant expression. */
-template< typename INT_T, scaling_t TO >
-consteval INT_T v2s(double fpValue) noexcept {
-    static_assert(std::is_integral<INT_T>::value, "v2s must return an integer");
-
+ * Used to scale a given compile-time floating-point value to a scaled runtime value of target type.
+ * \note consteval ensures that this evaluates to a compile-time constant expression.
+ * \warning Floating-point target types are possible, however quite expensive at runtime!
+ *          Use carefully! */
+template< typename TARGET_T, scaling_t TO >
+consteval TARGET_T v2s(double fpValue) noexcept {
     if constexpr (TO < 0) {
-        return static_cast<INT_T>(fpValue / (1u << (unsigned)(-TO)));
+        return static_cast<TARGET_T>(fpValue / (1u << (unsigned)(-TO)));
     }
     else if constexpr (TO > 0) {
-        return static_cast<INT_T>(fpValue * (1u << (unsigned)(TO)));
+        return static_cast<TARGET_T>(fpValue * (1u << (unsigned)(TO)));
     }
     else /* TO == 0 */ {
-        return static_cast<INT_T>(fpValue);
+        return static_cast<TARGET_T>(fpValue);
     }
 }
 
