@@ -53,19 +53,42 @@ template< typename TARGET_T, scaling_t FROM, scaling_t TO, typename VALUE_T >
 constexpr TARGET_T s2s(VALUE_T value) noexcept {
     static_assert(std::is_integral_v<VALUE_T>, "s2s only supports integer values");
 
+    // use common type for calculation to avoid loss of precision
+    using COMMON_T = typename std::common_type<VALUE_T, TARGET_T>::type;
+
     if constexpr (FROM > TO) {
-        if constexpr (std::is_floating_point_v<TARGET_T>) {
-            // use TARGET_T for operation because it is floating point and consequently more precise
-            return static_cast<TARGET_T>(value) / (static_cast<unsigned int>(1) << (unsigned)(FROM - TO));
-        }
-        else {
-            // use VALUE_T for operation because TARGET_T might be smaller
-            return static_cast<TARGET_T>(value / (static_cast<VALUE_T>(1) << (unsigned)(FROM - TO)));
-        }
+        return static_cast<TARGET_T>( static_cast<COMMON_T>(value) / (1 << (unsigned)(FROM - TO)) );
     }
     else if constexpr (TO > FROM) {
-        // use TARGET_T for operation because it might be larger; this also works if target is float
-        return static_cast<TARGET_T>(value) * (static_cast<TARGET_T>(1) << (unsigned)(TO - FROM));
+        return static_cast<TARGET_T>( static_cast<COMMON_T>(value) * (1 << (unsigned)(TO - FROM)) );
+    }
+    else /* FROM == TO */ {
+        return static_cast<TARGET_T>(value);
+    }
+}
+
+
+/** Scale-To-Scale-Shift scaling function.
+ * Used to scale a given integer value to a different scaling factor and target type via arithmetic
+ * shift operations.
+ * \note Shift operations are well defined for C++20 and above (signed integers are Two's Complement).
+ * \note Floating-point target types are NOT possible, since shift operators are not defined for such types.
+ *
+ * \warning Be aware that arithmetic right shift always rounds down. Consequently, the scaled result
+ *          is not symmetric for the same value with a different sign
+ *          (e.g. -514 >> 4u is -33, but +514 >> 4u is +32). */
+template< typename TARGET_T, scaling_t FROM, scaling_t TO, typename VALUE_T >
+constexpr TARGET_T s2sh(VALUE_T value) noexcept {
+    static_assert(std::is_integral_v<VALUE_T> && std::is_integral_v<TARGET_T>, "s2sh only supports integer types");
+
+    // use common type for shift to avoid loss of precision
+    using COMMON_T = typename std::common_type<VALUE_T, TARGET_T>::type;
+
+    if constexpr (FROM > TO) {
+        return static_cast<TARGET_T>( static_cast<COMMON_T>(value) >> (unsigned)(FROM - TO) );
+    }
+    else if constexpr (TO > FROM) {
+        return static_cast<TARGET_T>( static_cast<COMMON_T>(value) << (unsigned)(TO - FROM) );
     }
     else /* FROM == TO */ {
         return static_cast<TARGET_T>(value);
@@ -81,10 +104,10 @@ constexpr TARGET_T s2s(VALUE_T value) noexcept {
 template< typename TARGET_T, scaling_t TO >
 consteval TARGET_T v2s(double fpValue) noexcept {
     if constexpr (TO < 0) {
-        return static_cast<TARGET_T>(fpValue / (1u << (unsigned)(-TO)));
+        return static_cast<TARGET_T>(fpValue / (1 << (unsigned)(-TO)));
     }
     else if constexpr (TO > 0) {
-        return static_cast<TARGET_T>(fpValue * (1u << (unsigned)(TO)));
+        return static_cast<TARGET_T>(fpValue * (1 << (unsigned)(TO)));
     }
     else /* TO == 0 */ {
         return static_cast<TARGET_T>(fpValue);
