@@ -28,31 +28,53 @@ public:
     static constexpr BASE_T MAX = v2s<BASE_T, F>(V_MAX);  ///< maximum value of integer value range
     static constexpr double RESOLUTION = v2s<double, -F>(1.);  ///< real resolution of this type
 
-    /// Related sq type.
+    /// Corresponding sq type.
     template< double SQ_V_MIN = V_MIN, double SQ_V_MAX = V_MAX >
     using sq = fpm::sq< BASE_T, F, SQ_V_MIN, SQ_V_MAX >;
 
-    /// Explicit compile-time-only named "constructor" from a floating-point value.
-    /// \note Performs compile-time overflow checks and does not compile if value is out of (user-) range.
-    template< double VALUE >
+    /// Explicit named "constructor" from a floating-point value. This will use v2s to scale the
+    /// given floating-point value at compile-time and then call the construct method with the scaled
+    /// integer value.
+    /// \note When the value is within bounds, no overflow check is included. If it is out or range,
+    ///       an overflow check is performed according to the overflow settings.
+    template< double REAL_VALUE, overflow OVF_ACTION_OVERRIDE = OVF_ACTION >
     static consteval q from_real() {
-        constexpr BASE_T scaledValue = v2s<BASE_T, F>(VALUE);  // does not compile if scaled value does not fit BASE_T
+        // does not compile if scaled value does not fit BASE_T
+        constexpr BASE_T scaledValue = v2s<BASE_T, F>(REAL_VALUE);
 
-        // do not compile if initial value does not fit user-defined value range
-        static_assert(scaledValue >= MIN && scaledValue <= MAX, "value is out of user range");
-
-        return q(scaledValue);
+        constexpr overflow overflowAction = (scaledValue >= MIN && scaledValue <= MAX)
+            ? overflow::NO_CHECK  // value is within bounds; no overflow check needed
+            : OVF_ACTION_OVERRIDE;
+        return q::construct<overflowAction>(scaledValue);
     }
 
-    /// Explicit runtime named "constructor" from a runtime variable (lvalue) or a constant (rvalue).
-    static q construct(BASE_T value) noexcept {
-        static_assert(overflow::FORBIDDEN != OVF_ACTION, "runtime overflow check is not allowed");
-        if constexpr (overflow::ASSERT == OVF_ACTION) {
+    /// Explicit named "constructor" from a scaled integer value. This can be used to construct a
+    /// well-behaved q value at compile-time without a redundant overflow check.
+    /// \note When the value is within bounds, no overflow check is included. If it is out or range,
+    ///       an overflow check is performed according to the overflow settings.
+    template< BASE_T VALUE, overflow OVF_ACTION_OVERRIDE = OVF_ACTION >
+    static consteval q from_scaled() {
+        constexpr overflow overflowAction = (VALUE >= MIN && VALUE <= MAX)
+            ? overflow::NO_CHECK  // value is within bounds; no overflow check needed
+            : OVF_ACTION_OVERRIDE;
+        return q::construct<overflowAction>(VALUE);
+    }
+
+    /// Explicit named "constructor" from a runtime variable (lvalue) or a constant (rvalue).
+    /// \note Overflow check is always included unless explicitly disabled.
+    template< overflow OVF_ACTION_OVERRIDE = OVF_ACTION >
+    static constexpr q construct(BASE_T value) noexcept {
+
+        // if overflow is FORBIDDEN, remind user that overflow setting needs to be changed for this method
+        static_assert(overflow::FORBIDDEN != OVF_ACTION_OVERRIDE,
+            "runtime overflow check is not allowed; allow, or override default overflow action");
+
+        if constexpr (overflow::ASSERT == OVF_ACTION_OVERRIDE) {
             if ( !(value >= MIN && value <= MAX)) {
-                assert(false);  // value is out of user range
+                assert(false);  // value is out of range
             }
         }
-        else if constexpr (overflow::SATURATE == OVF_ACTION) {
+        else if constexpr (overflow::SATURATE == OVF_ACTION_OVERRIDE) {
             if ( !(value >= MIN)) {
                 value = MIN;
             }
@@ -60,7 +82,7 @@ public:
                 value = MAX;
             }
         }
-        else { /* overflow::ALLOWED */ }
+        else { /* overflow::ALLOWED, overflow::NO_CHECK: no checks performed */ }
 
         return q(value);
     }
@@ -81,13 +103,13 @@ public:
         static constexpr bool overflowCheckNeeded = (SQ_V_MIN - V_MIN) > RESOLUTION || (V_MAX - SQ_V_MAX) > RESOLUTION;
         if constexpr (overflowCheckNeeded) {
 
-            // if overflow is FORBIDDEN, remind the user that it needs to be changed for this function
+            // if overflow is FORBIDDEN, remind the user that overflow needs to be changed for this method
             static_assert(!overflowCheckNeeded || overflow::FORBIDDEN != OVF_ACTION_OVERRIDE,
                 "runtime overflow check is not allowed; allow, or override default overflow action");
 
             if constexpr (overflow::ASSERT == OVF_ACTION_OVERRIDE) {
                 if ( !(sqValue >= SQ_MIN && sqValue <= SQ_MAX)) {
-                    assert(false);  // sqValue is out of user range
+                    assert(false);  // sqValue is out of range
                 }
             }
             else if constexpr (overflow::SATURATE == OVF_ACTION_OVERRIDE) {
@@ -98,7 +120,7 @@ public:
                     sqValue = SQ_MAX;
                 }
             }
-            else { /* overflow::ALLOWED */ }
+            else { /* overflow::ALLOWED, overflow::NO_CHECK: no checks performed */ }
         }
 
         return sq<SQ_V_MIN, SQ_V_MAX>(sqValue);

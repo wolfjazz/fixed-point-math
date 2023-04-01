@@ -26,16 +26,23 @@ public:
     static constexpr BASE_T MAX = v2s<BASE_T, F>(V_MAX);  ///< maximum value of integer value range
     static constexpr double RESOLUTION = v2s<double, -F>(1.);  ///< real resolution of this type
 
-    /// Explicit compile-time-only named "constructor" from a floating-point value.
-    /// \note Performs compile-time overflow checks and does not compile if value is out of (user-) range.
-    template< double VALUE >
+    /// Explicit named "constructor" from a floating-point value. This will use v2s to scale the
+    /// given floating-point value at compile-time and then call the sq constructor with the scaled
+    /// integer value.
+    /// \warning Does NOT perform any overflow check with regard to the user-defined value range!
+    template< double REAL_VALUE >
     static consteval sq from_real() {
-        constexpr BASE_T scaledValue = v2s<BASE_T, F>(VALUE);  // does not compile if scaled value does not fit BASE_T
-
-        // do not compile if initial value does not fit user-defined value range
-        static_assert(scaledValue >= MIN && scaledValue <= MAX, "value is out of user range");
+        // does not compile if scaled value does not fit BASE_T
+        constexpr BASE_T scaledValue = v2s<BASE_T, F>(REAL_VALUE);
 
         return sq(scaledValue);
+    }
+
+    /// Explicit named "constructor" from a scaled integer value.
+    /// \note Just calls the sq constructor with the given constexpr value. Exists for consistency reasons.
+    template< BASE_T VALUE >
+    static consteval sq from_scaled() {
+        return sq(VALUE);
     }
 
     /// Explicit, possibly compile-time constructor from scaled integer value.

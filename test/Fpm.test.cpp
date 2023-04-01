@@ -294,7 +294,7 @@ TEST_F(V2STest, v2s__constexpr_pos_and_neg_double__double_output) {
 }
 
 TEST_F(V2STest, v2s__dynamic_construction__not_possible) {
-    // TODO: use 'concept' and 'requires' to implement this check?
+    // TODO: use 'concept' and 'requires' or SFINAE to implement this check?
     //constexpr scaling_t TO = 2;
     //double a = -5897.9841;
     //v2s<int,TO>(a);  // this must not compile
@@ -315,7 +315,6 @@ protected:
 };
 
 TEST_F(SQTest, sq__constexpr_int16_positiveF__reveal_scaled_int16_and_unwrap_int) {
-    // note: from_real named constructor does not compile if value is out of range
     constexpr double REAL_VALUE = -2047.6;
     auto sqValue = sq16f4::from_real<REAL_VALUE>();
 
@@ -329,14 +328,6 @@ TEST_F(SQTest, sq__constexpr_int16_positiveF__reveal_scaled_int16_and_unwrap_int
     ASSERT_NEAR(REAL_VALUE, sqValue.unwrap(), sq16f4::RESOLUTION);
 }
 
-TEST_F(SQTest, sq__constexpr_int16_F4_value_ooR__does_not_compile) {
-    // TODO: are tests like this possible (e.g. with SFINAE, or with concepts)?
-    //       --> value out or range should not be constructible
-    //constexpr scaling_t F = 4;
-    //static_assert(!CanConstructSq<int16_t, F, -20., 20., -20.1>);
-    //static_assert(!CanConstructSq<int16_t, F, -20., 20., +20.1>);
-}
-
 
 
 class QTest : public ::testing::Test {
@@ -345,6 +336,8 @@ protected:
     using q16f6_sat = q<int16_t, 6, -500., 500., overflow::SATURATE>;
     using q16f6_ovf = q<int16_t, 6, -500., 500., overflow::ALLOWED>;
     using q32f20 = q<int32_t, 20, -500., 500.>;
+    using sq16f6 = sq<int16_t, 6, -500., 500.>;
+    using sq16f20 = sq<int16_t, 20, -500., 500.>;
 
     void SetUp() override
     {
@@ -354,10 +347,9 @@ protected:
     }
 };
 
-TEST_F(QTest, q__constexpr_int16_positiveF__reveal_scaled_int16_and_unwrap_int) {
-    // note: from_real named constructor does not compile if value is out of range
+TEST_F(QTest, q_from_real__constexpr_int16_positiveF__reveal_scaled_int16_and_unwrap_int) {
     constexpr double REAL_VALUE = -495.1;
-    auto qValue = q16f6::from_real<REAL_VALUE>();
+    auto qValue = q16f6::from_real<REAL_VALUE>();  // this does not perform overflow checks
 
     EXPECT_TRUE((std::is_same_v<int16_t, decltype(qValue.reveal())>));
     EXPECT_TRUE((std::is_same_v<int, decltype(qValue.unwrap<int>())>));
@@ -369,60 +361,238 @@ TEST_F(QTest, q__constexpr_int16_positiveF__reveal_scaled_int16_and_unwrap_int) 
     ASSERT_NEAR(REAL_VALUE, qValue.unwrap(), q16f6::RESOLUTION);
 }
 
-TEST_F(QTest, q__variable_negative_int16_positiveF_saturate__reveal_scaled_int16_and_unwrap_int) {
+TEST_F(QTest, q_from_real__constexpr_negative_int16_positiveF_saturate__reveal_scaled_int16_and_unwrap_int) {
     constexpr double REAL_VALUE = -511.;
-    int16_t volatile value = v2s<int16_t,6>(REAL_VALUE);
-    auto qValue = q16f6_sat::construct(value);
+    auto qValue = q16f6::from_real<REAL_VALUE, overflow::SATURATE>();
+    auto qValueSat = q16f6_sat::from_real<REAL_VALUE>();
 
     constexpr int16_t RESULT_MEM_VALUE = -32000;
     constexpr double SATURATED_REAL_VALUE = -500.;
     ASSERT_EQ(RESULT_MEM_VALUE, qValue.reveal());
-    ASSERT_NEAR(SATURATED_REAL_VALUE, qValue.unwrap(), q16f6_sat::RESOLUTION);
+    ASSERT_NEAR(SATURATED_REAL_VALUE, qValue.unwrap(), q16f6::RESOLUTION);
+    ASSERT_EQ(RESULT_MEM_VALUE, qValueSat.reveal());
+    ASSERT_NEAR(SATURATED_REAL_VALUE, qValueSat.unwrap(), q16f6_sat::RESOLUTION);
 }
 
-TEST_F(QTest, q__variable_positive_int16_positiveF_saturate__reveal_scaled_int16_and_unwrap_int) {
+TEST_F(QTest, q_from_real__constexpr_positive_int16_positiveF_saturate__reveal_scaled_int16_and_unwrap_int) {
     constexpr double REAL_VALUE = +511.;
-    int16_t volatile value = v2s<int16_t,6>(REAL_VALUE);
-    auto qValue = q16f6_sat::construct(value);
+    auto qValue = q16f6::from_real<REAL_VALUE, overflow::SATURATE>();
+    auto qValueSat = q16f6_sat::from_real<REAL_VALUE>();
 
     constexpr int16_t RESULT_MEM_VALUE = +32000;
     constexpr double SATURATED_REAL_VALUE = +500.;
     ASSERT_EQ(RESULT_MEM_VALUE, qValue.reveal());
-    ASSERT_NEAR(SATURATED_REAL_VALUE, qValue.unwrap(), q16f6_sat::RESOLUTION);
+    ASSERT_NEAR(SATURATED_REAL_VALUE, qValue.unwrap(), q16f6::RESOLUTION);
+    ASSERT_EQ(RESULT_MEM_VALUE, qValueSat.reveal());
+    ASSERT_NEAR(SATURATED_REAL_VALUE, qValueSat.unwrap(), q16f6_sat::RESOLUTION);
 }
 
-TEST_F(QTest, q__variable_negative_int16_positiveF_overflow_allowed__reveal_scaled_int16_and_unwrap_int) {
+TEST_F(QTest, q_from_real__constexpr_negative_int16_positiveF_overflow_allowed__reveal_scaled_int16_and_unwrap_int) {
     constexpr double REAL_VALUE = -511.;
-    int16_t volatile value = v2s<int16_t,6>(REAL_VALUE);
-    auto qValue = q16f6_ovf::construct(value);
+    auto qValue = q16f6::from_real<REAL_VALUE, overflow::ALLOWED>();
+    auto qValueOvf = q16f6_ovf::from_real<REAL_VALUE>();
 
     constexpr int16_t RESULT_MEM_VALUE = -32704;
     ASSERT_EQ(RESULT_MEM_VALUE, qValue.reveal());
     ASSERT_EQ(-511, qValue.unwrap<int>());
-    ASSERT_NEAR(REAL_VALUE, qValue.unwrap(), q16f6_ovf::RESOLUTION);
+    ASSERT_NEAR(REAL_VALUE, qValue.unwrap(), q16f6::RESOLUTION);
+    ASSERT_EQ(RESULT_MEM_VALUE, qValueOvf.reveal());
+    ASSERT_NEAR(REAL_VALUE, qValueOvf.unwrap(), q16f6_ovf::RESOLUTION);
 }
 
-TEST_F(QTest, q__variable_positive_int16_positiveF_overflow_allowed__reveal_scaled_int16_and_unwrap_int) {
+TEST_F(QTest, q_from_real__constexpr_positive_int16_positiveF_overflow_allowed__reveal_scaled_int16_and_unwrap_int) {
     constexpr double REAL_VALUE = +511.;
-    int16_t volatile value = v2s<int16_t,6>(REAL_VALUE);
-    auto qValue = q16f6_ovf::construct(value);
+    auto qValue = q16f6::from_real<REAL_VALUE, overflow::ALLOWED>();
+    auto qValueOvf = q16f6_ovf::from_real<REAL_VALUE>();
 
     constexpr int16_t RESULT_MEM_VALUE = +32704;
     ASSERT_EQ(RESULT_MEM_VALUE, qValue.reveal());
-    ASSERT_NEAR(REAL_VALUE, qValue.unwrap(), q16f6_ovf::RESOLUTION);
+    ASSERT_NEAR(REAL_VALUE, qValue.unwrap(), q16f6::RESOLUTION);
+    ASSERT_EQ(RESULT_MEM_VALUE, qValueOvf.reveal());
+    ASSERT_NEAR(REAL_VALUE, qValueOvf.unwrap(), q16f6_ovf::RESOLUTION);
 }
 
-TEST_F(QTest, q__embedded_sq_from_real__sq_value_is_correct) {
+TEST_F(QTest, q_from_scaled__constexpr_int16_positiveF__reveal_scaled_int16_and_unwrap_int) {
+    constexpr int16_t MEM_VALUE = -31686;
+    auto qValue = q16f6::from_scaled<MEM_VALUE>();  // this does not perform overflow checks
+
+    EXPECT_TRUE((std::is_same_v<int16_t, decltype(qValue.reveal())>));
+    EXPECT_TRUE((std::is_same_v<int, decltype(qValue.unwrap<int>())>));
+    EXPECT_TRUE((std::is_same_v<double, decltype(qValue.unwrap())>));
+
+    constexpr double RESULT_REAL_VALUE = -495.1;
+    ASSERT_EQ(MEM_VALUE, qValue.reveal());
+    ASSERT_EQ(-495, qValue.unwrap<int>());
+    ASSERT_NEAR(RESULT_REAL_VALUE, qValue.unwrap(), q16f6::RESOLUTION);
+}
+
+TEST_F(QTest, q_from_scaled__constexpr_negative_int16_positiveF_saturate__reveal_scaled_int16_and_unwrap_int) {
+    constexpr int16_t MEM_VALUE = -32704;
+    auto qValue = q16f6::from_scaled<MEM_VALUE, overflow::SATURATE>();
+    auto qValueSat = q16f6_sat::from_scaled<MEM_VALUE>();
+
+    constexpr int16_t RESULT_MEM_VALUE = -32000;
+    constexpr double SATURATED_REAL_VALUE = -500.;
+    ASSERT_EQ(RESULT_MEM_VALUE, qValue.reveal());
+    ASSERT_NEAR(SATURATED_REAL_VALUE, qValue.unwrap(), q16f6::RESOLUTION);
+    ASSERT_EQ(RESULT_MEM_VALUE, qValueSat.reveal());
+    ASSERT_NEAR(SATURATED_REAL_VALUE, qValueSat.unwrap(), q16f6_sat::RESOLUTION);
+}
+
+TEST_F(QTest, q_from_scaled__constexpr_positive_int16_positiveF_saturate__reveal_scaled_int16_and_unwrap_int) {
+    constexpr int16_t MEM_VALUE = +32704;
+    auto qValue = q16f6::from_scaled<MEM_VALUE, overflow::SATURATE>();
+    auto qValueSat = q16f6_sat::from_scaled<MEM_VALUE>();
+
+    constexpr int16_t RESULT_MEM_VALUE = +32000;
+    constexpr double SATURATED_REAL_VALUE = +500.;
+    ASSERT_EQ(RESULT_MEM_VALUE, qValue.reveal());
+    ASSERT_NEAR(SATURATED_REAL_VALUE, qValue.unwrap(), q16f6::RESOLUTION);
+    ASSERT_EQ(RESULT_MEM_VALUE, qValueSat.reveal());
+    ASSERT_NEAR(SATURATED_REAL_VALUE, qValueSat.unwrap(), q16f6_sat::RESOLUTION);
+}
+
+TEST_F(QTest, q_from_scaled__constexpr_negative_int16_positiveF_overflow_allowed__reveal_scaled_int16_and_unwrap_int) {
+    constexpr int16_t MEM_VALUE = -32704;
+    auto qValue = q16f6::from_scaled<MEM_VALUE, overflow::ALLOWED>();
+    auto qValueOvf = q16f6_ovf::from_scaled<MEM_VALUE>();
+
+    constexpr double RESULT_REAL_VALUE = -511.;
+    ASSERT_EQ(MEM_VALUE, qValue.reveal());
+    ASSERT_EQ(-511, qValue.unwrap<int>());
+    ASSERT_NEAR(RESULT_REAL_VALUE, qValue.unwrap(), q16f6::RESOLUTION);
+    ASSERT_EQ(MEM_VALUE, qValueOvf.reveal());
+    ASSERT_NEAR(RESULT_REAL_VALUE, qValueOvf.unwrap(), q16f6_ovf::RESOLUTION);
+}
+
+TEST_F(QTest, q_from_scaled__constexpr_positive_int16_positiveF_overflow_allowed__reveal_scaled_int16_and_unwrap_int) {
+    constexpr int16_t MEM_VALUE = +32704;
+    auto qValue = q16f6::from_scaled<MEM_VALUE, overflow::ALLOWED>();
+    auto qValueOvf = q16f6_ovf::from_scaled<MEM_VALUE>();
+
+    constexpr double RESULT_REAL_VALUE = +511.;
+    ASSERT_EQ(MEM_VALUE, qValue.reveal());
+    ASSERT_NEAR(RESULT_REAL_VALUE, qValue.unwrap(), q16f6::RESOLUTION);
+    ASSERT_EQ(MEM_VALUE, qValueOvf.reveal());
+    ASSERT_NEAR(RESULT_REAL_VALUE, qValueOvf.unwrap(), q16f6_ovf::RESOLUTION);
+}
+
+TEST_F(QTest, q_construct__constexpr_negative_int16_positiveF_saturate__reveal_scaled_int16_and_unwrap_int) {
+    constexpr int16_t MEM_VALUE = -32704;
+    auto qValue = q16f6::construct<overflow::SATURATE>(MEM_VALUE);
+    auto qValueSat = q16f6_sat::construct(MEM_VALUE);
+
+    constexpr int16_t RESULT_MEM_VALUE = -32000;
+    constexpr double SATURATED_REAL_VALUE = -500.;
+    ASSERT_EQ(RESULT_MEM_VALUE, qValue.reveal());
+    ASSERT_NEAR(SATURATED_REAL_VALUE, qValue.unwrap(), q16f6::RESOLUTION);
+    ASSERT_EQ(RESULT_MEM_VALUE, qValueSat.reveal());
+    ASSERT_NEAR(SATURATED_REAL_VALUE, qValueSat.unwrap(), q16f6_sat::RESOLUTION);
+}
+
+TEST_F(QTest, q_construct__constexpr_positive_int16_positiveF_saturate__reveal_scaled_int16_and_unwrap_int) {
+    constexpr int16_t MEM_VALUE = 32704;
+    auto qValue = q16f6::construct<overflow::SATURATE>(MEM_VALUE);
+    auto qValueSat = q16f6_sat::construct(MEM_VALUE);
+
+    constexpr int16_t RESULT_MEM_VALUE = +32000;
+    constexpr double SATURATED_REAL_VALUE = +500.;
+    ASSERT_EQ(RESULT_MEM_VALUE, qValue.reveal());
+    ASSERT_NEAR(SATURATED_REAL_VALUE, qValue.unwrap(), q16f6::RESOLUTION);
+    ASSERT_EQ(RESULT_MEM_VALUE, qValueSat.reveal());
+    ASSERT_NEAR(SATURATED_REAL_VALUE, qValueSat.unwrap(), q16f6_sat::RESOLUTION);
+}
+
+TEST_F(QTest, q_construct__constexpr_negative_int16_positiveF_overflow_allowed__reveal_scaled_int16_and_unwrap_int) {
+    constexpr int16_t MEM_VALUE = -32704;
+    auto qValue = q16f6::construct<overflow::ALLOWED>(MEM_VALUE);
+    auto qValueOvf = q16f6_ovf::construct(MEM_VALUE);
+
+    constexpr double RESULT_REAL_VALUE = -511.;
+    ASSERT_EQ(MEM_VALUE, qValue.reveal());
+    ASSERT_EQ(-511, qValue.unwrap<int>());
+    ASSERT_NEAR(RESULT_REAL_VALUE, qValue.unwrap(), q16f6::RESOLUTION);
+    ASSERT_EQ(MEM_VALUE, qValueOvf.reveal());
+    ASSERT_NEAR(RESULT_REAL_VALUE, qValueOvf.unwrap(), q16f6_ovf::RESOLUTION);
+}
+
+TEST_F(QTest, q_construct__constexpr_positive_int16_positiveF_overflow_allowed__reveal_scaled_int16_and_unwrap_int) {
+    constexpr int16_t MEM_VALUE = +32704;
+    auto qValue = q16f6::construct<overflow::ALLOWED>(MEM_VALUE);
+    auto qValueOvf = q16f6_ovf::construct(MEM_VALUE);
+
+    constexpr double RESULT_REAL_VALUE = +511.;
+    ASSERT_EQ(MEM_VALUE, qValue.reveal());
+    ASSERT_NEAR(RESULT_REAL_VALUE, qValue.unwrap(), q16f6::RESOLUTION);
+    ASSERT_EQ(MEM_VALUE, qValueOvf.reveal());
+    ASSERT_NEAR(RESULT_REAL_VALUE, qValueOvf.unwrap(), q16f6_ovf::RESOLUTION);
+}
+
+TEST_F(QTest, q_construct__variable_negative_int16_positiveF_saturate__reveal_scaled_int16_and_unwrap_int) {
+    constexpr double REAL_VALUE = -511.;
+    int16_t volatile value = v2s<int16_t,6>(REAL_VALUE);
+    auto qValue = q16f6::construct<overflow::SATURATE>(value);
+    auto qValueSat = q16f6_sat::construct(value);
+
+    constexpr int16_t RESULT_MEM_VALUE = -32000;
+    constexpr double SATURATED_REAL_VALUE = -500.;
+    ASSERT_EQ(RESULT_MEM_VALUE, qValue.reveal());
+    ASSERT_NEAR(SATURATED_REAL_VALUE, qValue.unwrap(), q16f6::RESOLUTION);
+    ASSERT_EQ(RESULT_MEM_VALUE, qValueSat.reveal());
+    ASSERT_NEAR(SATURATED_REAL_VALUE, qValueSat.unwrap(), q16f6_sat::RESOLUTION);
+}
+
+TEST_F(QTest, q_construct__variable_positive_int16_positiveF_saturate__reveal_scaled_int16_and_unwrap_int) {
+    constexpr double REAL_VALUE = +511.;
+    int16_t volatile value = v2s<int16_t,6>(REAL_VALUE);
+    auto qValue = q16f6::construct<overflow::SATURATE>(value);
+    auto qValueSat = q16f6_sat::construct(value);
+
+    constexpr int16_t RESULT_MEM_VALUE = +32000;
+    constexpr double SATURATED_REAL_VALUE = +500.;
+    ASSERT_EQ(RESULT_MEM_VALUE, qValue.reveal());
+    ASSERT_NEAR(SATURATED_REAL_VALUE, qValue.unwrap(), q16f6::RESOLUTION);
+    ASSERT_EQ(RESULT_MEM_VALUE, qValueSat.reveal());
+    ASSERT_NEAR(SATURATED_REAL_VALUE, qValueSat.unwrap(), q16f6_sat::RESOLUTION);
+}
+
+TEST_F(QTest, q_construct__variable_negative_int16_positiveF_overflow_allowed__reveal_scaled_int16_and_unwrap_int) {
+    constexpr double REAL_VALUE = -511.;
+    int16_t volatile value = v2s<int16_t,6>(REAL_VALUE);
+    auto qValue = q16f6::construct<overflow::ALLOWED>(value);
+    auto qValueOvf = q16f6_ovf::construct(value);
+
+    constexpr int16_t RESULT_MEM_VALUE = -32704;
+    ASSERT_EQ(RESULT_MEM_VALUE, qValue.reveal());
+    ASSERT_EQ(-511, qValue.unwrap<int>());
+    ASSERT_NEAR(REAL_VALUE, qValue.unwrap(), q16f6::RESOLUTION);
+    ASSERT_EQ(RESULT_MEM_VALUE, qValueOvf.reveal());
+    ASSERT_NEAR(REAL_VALUE, qValueOvf.unwrap(), q16f6_ovf::RESOLUTION);
+}
+
+TEST_F(QTest, q_construct__variable_positive_int16_positiveF_overflow_allowed__reveal_scaled_int16_and_unwrap_int) {
+    constexpr double REAL_VALUE = +511.;
+    int16_t volatile value = v2s<int16_t,6>(REAL_VALUE);
+    auto qValue = q16f6::construct<overflow::ALLOWED>(value);
+    auto qValueOvf = q16f6_ovf::construct(value);
+
+    constexpr int16_t RESULT_MEM_VALUE = +32704;
+    ASSERT_EQ(RESULT_MEM_VALUE, qValue.reveal());
+    ASSERT_NEAR(REAL_VALUE, qValue.unwrap(), q16f6::RESOLUTION);
+    ASSERT_EQ(RESULT_MEM_VALUE, qValueOvf.reveal());
+    ASSERT_NEAR(REAL_VALUE, qValueOvf.unwrap(), q16f6_ovf::RESOLUTION);
+}
+
+TEST_F(QTest, q_embedded_sq__from_real__sq_value_is_correct) {
     constexpr double REAL_SQ_VALUE = +356.;
     auto sqValue = q32f20::sq<>::from_real<REAL_SQ_VALUE>();
 
     ASSERT_NEAR(REAL_SQ_VALUE, sqValue.unwrap(), q32f20::RESOLUTION);
 }
 
-TEST_F(QTest, q__embedded_sq_smaller_value_range_from_real__sq_value_is_correct) {
+TEST_F(QTest, q_embedded_sq__smaller_value_range_from_real__sq_value_is_correct) {
     constexpr double REAL_SQ_VALUE = -400.;
     auto sqValue = q32f20::sq<-400., 400.>::from_real<REAL_SQ_VALUE>();
-    // TODO: if possible to test: real value +-401. should not compile!
 
     ASSERT_NEAR(REAL_SQ_VALUE, sqValue.unwrap(), q32f20::RESOLUTION);
 }
@@ -431,7 +601,7 @@ TEST_F(QTest, q_to_sq__same_value_range__no_overflow_check_performed) {
     constexpr double REAL_VALUE = -400.;
     auto sqValue = q32f20::from_real<REAL_VALUE>().to_sq();  // does not include a range check
 
-    ASSERT_NEAR(REAL_VALUE, sqValue.unwrap(), q32f20::sq<>::RESOLUTION);
+    ASSERT_NEAR(REAL_VALUE, sqValue.unwrap(), q32f20::RESOLUTION);
 }
 
 TEST_F(QTest, q_to_sq__different_value_range_overflow_forbidden__does_not_compile) {
@@ -452,8 +622,8 @@ TEST_F(QTest, q_to_sq__different_value_range_overflow_saturated__value_is_satura
     auto sqValueN = q32f20::from_real<-450.>().to_sq<SQ_RANGE_N, SQ_RANGE_P, overflow::SATURATE>();
     auto sqValueP = q32f20::from_real<+450.>().to_sq<SQ_RANGE_N, SQ_RANGE_P, overflow::SATURATE>();
 
-    ASSERT_NEAR(SQ_RANGE_N, sqValueN.unwrap(), q32f20::sq<>::RESOLUTION);
-    ASSERT_NEAR(SQ_RANGE_P, sqValueP.unwrap(), q32f20::sq<>::RESOLUTION);
+    ASSERT_NEAR(SQ_RANGE_N, sqValueN.unwrap(), q32f20::RESOLUTION);
+    ASSERT_NEAR(SQ_RANGE_P, sqValueP.unwrap(), q32f20::RESOLUTION);
 }
 
 TEST_F(QTest, q_to_sq__different_value_range_overflow_allowed__value_can_overflow) {
@@ -461,8 +631,8 @@ TEST_F(QTest, q_to_sq__different_value_range_overflow_allowed__value_can_overflo
     auto sqValueN = q32f20::from_real<-REAL_VALUE>().to_sq<-400., +400., overflow::ALLOWED>();
     auto sqValueP = q32f20::from_real<+REAL_VALUE>().to_sq<-400., +400., overflow::ALLOWED>();
 
-    ASSERT_NEAR(-REAL_VALUE, sqValueN.unwrap(), q32f20::sq<>::RESOLUTION);
-    ASSERT_NEAR(+REAL_VALUE, sqValueP.unwrap(), q32f20::sq<>::RESOLUTION);
+    ASSERT_NEAR(-REAL_VALUE, sqValueN.unwrap(), q32f20::RESOLUTION);
+    ASSERT_NEAR(+REAL_VALUE, sqValueP.unwrap(), q32f20::RESOLUTION);
 }
 
 

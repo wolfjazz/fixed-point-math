@@ -33,7 +33,8 @@ enum overflow : uint8_t {
 
     /// Do not perform any overflow checks (i.e. overflow is explicitly allowed).
     /// \warning The value can overflow in this case!
-    ALLOWED = 3u,
+    NO_CHECK = 3u,
+    ALLOWED = NO_CHECK,
 };
 
 
