@@ -24,6 +24,7 @@ class sq final
 public:
     static constexpr BASE_T MIN = v2s<BASE_T, F>(V_MIN);  ///< minimum value of integer value range
     static constexpr BASE_T MAX = v2s<BASE_T, F>(V_MAX);  ///< maximum value of integer value range
+    static constexpr double RESOLUTION = v2s<double, -F>(1.);  ///< real resolution of this type
 
     /// Explicit compile-time-only named "constructor" from a floating-point value.
     /// \note Performs compile-time overflow checks and does not compile if value is out of (user-) range.
@@ -37,12 +38,16 @@ public:
         return sq(scaledValue);
     }
 
+    /// Explicit, possibly compile-time constructor from scaled integer value.
+    explicit constexpr sq(BASE_T value) noexcept : value(value)
+    {}
+
     /// Destructor.
     constexpr ~sq()
     {}
 
     /// Reveals the integer value stored in the memory.
-    BASE_T reveal() const {
+    BASE_T reveal() const noexcept {
         return value;
     }
 
@@ -50,7 +55,7 @@ public:
     /// \warning This conversion is expensive if the target type is a floating-point type.
     ///          If the target type is an integral type, there can be a significant loss of precision.
     ///          Use carefully!
-    template< typename TARGET_T >
+    template< typename TARGET_T = double >
     TARGET_T unwrap() const noexcept {
         return s2s<TARGET_T, F, 0>(value);
     }
@@ -58,10 +63,6 @@ public:
 private:
     // delete default (runtime) constructor
     sq() = delete;
-
-    /// Explicit, possibly compile-time constructor from integer value.
-    explicit constexpr sq(BASE_T value) noexcept : value(value)
-    {}
 
     /// scaled integer value that represents a fixed-point value; stored in memory
     BASE_T const value;
