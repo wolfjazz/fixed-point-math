@@ -26,7 +26,7 @@ public:
     static constexpr double REAL_V_MAX = v2s<BASE_T, F>(REAL_V_MAX_ARG);  ///< maximum real value
     static constexpr BASE_T V_MIN = v2s<BASE_T, F>(REAL_V_MIN_ARG);  ///< minimum value of integer value range
     static constexpr BASE_T V_MAX = v2s<BASE_T, F>(REAL_V_MAX_ARG);  ///< maximum value of integer value range
-    static constexpr double RESOLUTION = v2s<double, -F>(1.);  ///< real resolution of this type
+    static constexpr double RESOLUTION = v2s<double, -F>(1);  ///< real resolution of this type
 
     /// Named "constructor" from a floating-point value. This will use v2s to scale the
     /// given floating-point value at compile-time and then call the sq constructor with the scaled

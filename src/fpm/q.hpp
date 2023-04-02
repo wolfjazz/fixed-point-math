@@ -28,7 +28,7 @@ public:
     static constexpr double REAL_V_MAX = REAL_V_MAX_ARG;  ///< maximum real value
     static constexpr BASE_T V_MIN = v2s<BASE_T, F>(REAL_V_MIN_ARG);  ///< minimum value of integer value range
     static constexpr BASE_T V_MAX = v2s<BASE_T, F>(REAL_V_MAX_ARG);  ///< maximum value of integer value range
-    static constexpr double RESOLUTION = v2s<double, -F>(1.);  ///< real resolution of this type
+    static constexpr double RESOLUTION = v2s<double, -F>(1);  ///< real resolution of this type
 
     /// Corresponding sq type.
     template< double SQ_REAL_V_MIN = REAL_V_MIN, double SQ_REAL_V_MAX = REAL_V_MAX >
@@ -93,10 +93,13 @@ public:
     /// \note Overflow check is included if the range of the sq type is larger than the range of this q type.
     template< overflow OVF_ACTION_OVERRIDE = OVF_ACTION, double SQ_REAL_V_MIN, double SQ_REAL_V_MAX >
     static constexpr q from_sq(fpm::sq<BASE_T, F, SQ_REAL_V_MIN, SQ_REAL_V_MAX> const &fromSq) noexcept {
+        static constexpr BASE_T SQ_V_MIN = v2s<BASE_T, F>(SQ_REAL_V_MIN);
+        static constexpr BASE_T SQ_V_MAX = v2s<BASE_T, F>(SQ_REAL_V_MAX);
+
         BASE_T qValue = fromSq.reveal();
 
-        // overflow check is only needed if the value range of the sq type is larger
-        static constexpr bool overflowCheckNeeded = (REAL_V_MIN - SQ_REAL_V_MIN) > RESOLUTION || (SQ_REAL_V_MAX - REAL_V_MAX) > RESOLUTION;
+        // include overflow check if value range of q is smaller
+        static constexpr bool overflowCheckNeeded = SQ_V_MIN < V_MIN || V_MAX < SQ_V_MAX;
         if constexpr (overflowCheckNeeded) {
 
             // if overflow is FORBIDDEN, remind the user that overflow needs to be changed for this method
@@ -131,11 +134,11 @@ public:
     sq<SQ_REAL_V_MIN, SQ_REAL_V_MAX> constexpr to_sq() const noexcept {
         static constexpr BASE_T SQ_V_MIN = v2s<BASE_T, F>(SQ_REAL_V_MIN);
         static constexpr BASE_T SQ_V_MAX = v2s<BASE_T, F>(SQ_REAL_V_MAX);
+
         BASE_T sqValue = value;
 
-        // no overflow check is needed if the value range is the same or larger;
-        // do not include a value range check in this case
-        static constexpr bool overflowCheckNeeded = (SQ_REAL_V_MIN - REAL_V_MIN) > RESOLUTION || (REAL_V_MAX - SQ_REAL_V_MAX) > RESOLUTION;
+        // include overflow check if the value range of sq is smaller
+        static constexpr bool overflowCheckNeeded = V_MIN < SQ_V_MIN || SQ_V_MAX < V_MAX;
         if constexpr (overflowCheckNeeded) {
 
             // if overflow is FORBIDDEN, remind the user that overflow needs to be changed for this method
