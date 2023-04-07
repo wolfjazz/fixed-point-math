@@ -65,7 +65,7 @@ public:
     ///          If the target type is an integral type, there can be a significant loss of precision.
     ///          Use carefully!
     template< typename TARGET_T = double >
-    TARGET_T unwrap() const noexcept {
+    TARGET_T to_real() const noexcept {
         return s2s<TARGET_T, F, 0>(value);
     }
 

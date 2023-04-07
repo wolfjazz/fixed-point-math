@@ -98,7 +98,7 @@ public:
 
         BASE_T qValue = fromSq.reveal();
 
-        // include overflow check if value range of q is smaller
+        // include overflow check if the value range of q is smaller
         static constexpr bool overflowCheckNeeded = SQ_V_MIN < V_MIN || V_MAX < SQ_V_MAX;
         if constexpr (overflowCheckNeeded) {
 
@@ -174,7 +174,7 @@ public:
     ///          If the target type is an integral type, there can be a significant loss of precision.
     ///          Use carefully!
     template< typename TARGET_T = double >
-    TARGET_T unwrap() const noexcept {
+    TARGET_T to_real() const noexcept {
         return s2s<TARGET_T, F, 0>(value);
     }
 
