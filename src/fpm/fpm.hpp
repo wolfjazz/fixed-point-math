@@ -43,17 +43,15 @@ using scaling_t = int8_t;
 
 
 /** Scale-To-Scale scaling function.
- * Used to scale a given integer value to a different scaling factor and target type using multiplication/division.
- * \note Shift operations are well defined for C++20 and above (signed integers are Two's Complement),
- *       however, arithmetic right shift would always round down (e.g. -514 >> 4 is -33, but +514 >> 4 is +32).
- *       This kind of asymmetry might be unexpected, therefore arithmetic multiplication/division is used instead.
- *       Besides, floating-point target types are also possible this way.
- * \warning Floating-point target types are possible, however quite expensive at runtime!
+ * Used to scale a given, already scaled (integer) value to a different scaling factor and target type
+ * using multiplication/division.
+ * \note Arithmetic multiplication/division is used here because these operations are symmetric for
+ *       positive and negative values with respect to rounding (e.g. +-514 / 2^4 is +-32).
+ *       Besides, floating-point types are also possible this way.
+ * \warning Floating-point types are possible, however quite expensive at runtime!
  *          Use carefully! */
 template< typename TARGET_T, scaling_t FROM, scaling_t TO, typename VALUE_T >
 constexpr TARGET_T s2s(VALUE_T value) noexcept {
-    static_assert(std::is_integral_v<VALUE_T>, "s2s only supports integer values");
-
     // use common type for calculation to avoid loss of precision
     using COMMON_T = typename std::common_type<VALUE_T, TARGET_T>::type;
 
@@ -73,11 +71,11 @@ constexpr TARGET_T s2s(VALUE_T value) noexcept {
  * Used to scale a given integer value to a different scaling factor and target type via arithmetic
  * shift operations.
  * \note Shift operations are well defined for C++20 and above (signed integers are Two's Complement).
- * \note Floating-point target types are NOT possible, since shift operators are not defined for such types.
+ * \note Floating-point target types are NOT possible, since shift operators are not defined for them.
  *
  * \warning Be aware that arithmetic right shift always rounds down. Consequently, the scaled result
  *          is not symmetric for the same value with a different sign
- *          (e.g. -514 >> 4u is -33, but +514 >> 4u is +32). */
+ *          (e.g. -514 >> 4u is -33 but +514 >> 4u is +32). */
 template< typename TARGET_T, scaling_t FROM, scaling_t TO, typename VALUE_T >
 constexpr TARGET_T s2sh(VALUE_T value) noexcept {
     static_assert(std::is_integral_v<VALUE_T> && std::is_integral_v<TARGET_T>, "s2sh only supports integer types");

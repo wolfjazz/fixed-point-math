@@ -11,6 +11,8 @@ set(CMAKE_BUILD_TYPE Debug)
 
 set(Sources
     Fpm.test.cpp
+    Q.test.cpp
+    Sq.test.cpp
 )
 set(Headers
 )
