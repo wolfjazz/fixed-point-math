@@ -68,8 +68,8 @@ TEST_F(SQTest, sq_upscale_copy_constructor__int16_someF__int16_largerF) {
     auto b = i32sq8(a);  // explicit upscale-copy construction
     i32sq8 c = a;  // implicit upscale-copy construction
 
-    // note: the error of the real value (due to rounding) is determined by the initial q4 type
-    //       and does not change if the value is scaled to another q type
+    // note: the representation error due to rounding is determined by the resolution of the initial
+    //       sq4 type and does not change if the value is up-scaled to another sq type
     ASSERT_NEAR(REAL_VALUE_A, b.to_real(), i32sq4::RESOLUTION);
     ASSERT_NEAR(REAL_VALUE_A, c.to_real(), i32sq4::RESOLUTION);
 }
@@ -80,6 +80,8 @@ TEST_F(SQTest, sq_downscale_copy_constructor__int16_someF__int16_smallerF) {
     auto b = i32sqm2(a);  // explicit downscale-copy construction
     i32sqm2 c = a;  // implicit downscale-copy construction
 
+    // note: for down-scaling, the representation error is at most the sum of the two resolutions
+    //       before and after the scaling operation
     ASSERT_NEAR(REAL_VALUE_A, b.to_real(), i32sq4::RESOLUTION + i32sqm2::RESOLUTION);
     ASSERT_NEAR(REAL_VALUE_A, c.to_real(), i32sq4::RESOLUTION + i32sqm2::RESOLUTION);
 }

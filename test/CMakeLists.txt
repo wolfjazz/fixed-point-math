@@ -10,9 +10,9 @@ set(CMAKE_BUILD_TYPE Debug)
 #[[set(CMAKE_BUILD_TYPE RelWithDebInfo)]]
 
 set(Sources
-    Fpm.test.cpp
-    Q.test.cpp
-    Sq.test.cpp
+    fpm.test.cpp
+    q.test.cpp
+    sq.test.cpp
 )
 set(Headers
 )

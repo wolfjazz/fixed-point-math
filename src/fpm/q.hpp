@@ -22,6 +22,7 @@ template<
 class q final
 {
     static_assert(std::is_integral_v<BASE_T>, "base type must be integral");
+    static_assert(REAL_V_MIN_ <= REAL_V_MAX_, "minimum value of value range must be less than or equal to maximum value");
 
 public:
     static constexpr double REAL_V_MIN = REAL_V_MIN_;  ///< minimum real value
@@ -36,9 +37,13 @@ public:
 
     /// Named compile-time-only "constructor" from a floating-point value. This will use v2s to scale
     /// the given floating-point value at compile-time and then call the construct method with the
-    /// scaled integer value.
+    /// scaled integer value at runtime.
     /// \note When the value is within bounds, no overflow check is included. If it is out of range,
     ///       an overflow check is performed according to the overflow settings.
+    /// \note: When a real value is wrapped into a q value, there is an inherent rounding error due
+    /// to the limited resolution. This error is called 'representation error' and it refers to the
+    /// deviation from the initial real value when the q value is unscaled to a real value again.
+    /// Usually the scaling error is in the order of the resolution of the q type.
     template< double REAL_VALUE, overflow OVF_ACTION_OVERRIDE = OVF_ACTION >
     static consteval q from_real() {
         // does not compile if scaled value does not fit BASE_T
@@ -89,6 +94,76 @@ public:
         return q(value);
     }
 
+    /// Copy-Constructor from the same type.
+    q(q const &) noexcept = default;
+
+    /// Copy-Assignment from the same type.
+    q& operator=(q const &) noexcept = default;
+
+    /// Move-Constructor from the same type.
+    q(q&&) noexcept = default;
+
+    /// Move-Assignment from the same type.
+    q& operator=(q&&) noexcept = default;
+
+    /// Destructor.
+    constexpr ~q()
+    {}
+
+    /// Named "Copy-Constructor" from a different q type with the same base type.
+    /// \note When a q value is up-scaled to a larger resolution, the initial representation error
+    /// will not change because the underlying integer value is just multiplied by some integral power
+    /// of two factor. However, if the q value is down-scaled to a smaller resolution, the resulting
+    /// representation error may become larger since the underlying integer is divided and the result
+    /// rounded towards zero to the next integer. The resulting representation error is at most the
+    /// sum of the two resolutions before and after a down-scaling operation.
+    template< overflow OVF_ACTION_OVERRIDE = OVF_ACTION,
+        double REAL_V_MIN_FROM, double REAL_V_MAX_FROM, scaling_t F_FROM, overflow OVF_FROM >
+    requires (
+        F_FROM != F
+    )
+    static constexpr q from_q(q<BASE_T, F_FROM, REAL_V_MIN_FROM, REAL_V_MAX_FROM, OVF_FROM> const &from) noexcept {
+        BASE_T fromValueScaled = s2s<BASE_T, F_FROM, F>(from.reveal());
+
+        // include overflow check if value range of this type is smaller than range of from-type;
+        // note: real limits are compared because scaled integers with different q's cannot be compared so easily
+        constexpr bool overflowCheckNeeded = REAL_V_MIN_FROM < REAL_V_MIN || REAL_V_MAX < REAL_V_MAX_FROM
+            || overflow::ALLOWED == OVF_FROM;
+        if constexpr (overflowCheckNeeded) {
+
+            // if overflow is FORBIDDEN, remind the user that overflow needs to be changed for this method
+            static_assert(!overflowCheckNeeded || overflow::FORBIDDEN != OVF_ACTION_OVERRIDE,
+                "runtime overflow check is not allowed; allow, or override default overflow action");
+
+            if constexpr (overflow::ASSERT == OVF_ACTION_OVERRIDE) {
+                if ( !(fromValueScaled >= V_MIN && fromValueScaled <= V_MAX)) {
+                    assert(false);  // from-value is out of range
+                }
+            }
+            else if constexpr (overflow::SATURATE == OVF_ACTION_OVERRIDE) {
+                if ( !(fromValueScaled >= V_MIN)) {
+                    fromValueScaled = V_MIN;
+                }
+                if ( !(fromValueScaled <= V_MAX)) {
+                    fromValueScaled = V_MAX;
+                }
+            }
+            else { /* overflow::ALLOWED, overflow::NO_CHECK: no checks performed */ }
+        }
+
+        return q(fromValueScaled);
+    }
+
+    /// Copy-Constructor from a different q type with the same base type.
+    /// \note Use named constructor from_q() to override the default overflow type of this class.
+    template< double REAL_V_MIN_FROM, double REAL_V_MAX_FROM, scaling_t F_FROM, overflow OVF_FROM >
+    requires (
+        F_FROM != F
+    )
+    q(q<BASE_T, F_FROM, REAL_V_MIN_FROM, REAL_V_MAX_FROM, OVF_FROM> const &from) noexcept
+        : q(q::from_q(from))  // delegate construction to static from_q() named constructor
+    {}
+
     /// Named "constructor" from a related sq variable.
     /// \note Overflow check is included if the range of the sq type is larger than the range of this q type.
     template< overflow OVF_ACTION_OVERRIDE = OVF_ACTION, double SQ_REAL_V_MIN, double SQ_REAL_V_MAX >
@@ -125,23 +200,7 @@ public:
         return q(qValue);
     }
 
-    // Copy-Construct from the same type.
-    q(q const &) noexcept = default;
-
-    // Copy-Assignment from the same type.
-    q& operator=(q const &) noexcept = default;
-
-    // Move-Construct from the same type.
-    q(q&&) noexcept = default;
-
-    // Move-Assignment from the same type.
-    q& operator=(q&&) noexcept = default;
-
-    /// Destructor.
-    constexpr ~q()
-    {}
-
-    /// Conversion to related sq type.
+    /// Conversion to the related sq type.
     template< double SQ_REAL_V_MIN = REAL_V_MIN, double SQ_REAL_V_MAX = REAL_V_MAX, overflow OVF_ACTION_OVERRIDE = OVF_ACTION >
     sq<SQ_REAL_V_MIN, SQ_REAL_V_MAX> constexpr to_sq() const noexcept {
         static constexpr BASE_T SQ_V_MIN = v2s<BASE_T, F>(SQ_REAL_V_MIN);

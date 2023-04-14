@@ -21,6 +21,7 @@ template<
 class sq final
 {
     static_assert(std::is_integral_v<BASE_T>, "base type must be integral");
+    static_assert(REAL_V_MIN_ <= REAL_V_MAX_, "minimum value of value range must be less than or equal to maximum value");
 
 public:
     static constexpr double REAL_V_MIN = REAL_V_MIN_;  ///< minimum real value
@@ -31,7 +32,11 @@ public:
 
     /// Named compile-time-only "constructor" from a floating-point value. This will use v2s to scale
     /// the given floating-point value at compile-time and then call the sq constructor with the
-    /// scaled integer value.
+    /// scaled integer value at runtime.
+    /// \note: When a real value is wrapped into an sq value, there is an inherent rounding error due
+    /// to the limited resolution. This error is called 'representation error' and it refers to the
+    /// deviation from the initial real value when an sq value is unscaled to a real value again.
+    /// Usually the scaling error is in the order of the resolution of the sq type.
     /// \warning Does NOT perform any overflow check with regard to the user-defined value range!
     template< double REAL_VALUE >
     static consteval sq from_real() {
@@ -62,7 +67,13 @@ public:
     constexpr ~sq()
     {}
 
-    /// Copy-Constructor from a different q type with the same base type.
+    /// Copy-Constructor from a different sq type with the same base type.
+    /// \note When an sq value is up-scaled to a larger resolution, the initial representation error
+    /// will not change because the underlying integer value is just multiplied by some integral power
+    /// of two factor. However, if the sq value is down-scaled to a smaller resolution, the resulting
+    /// representation error may become larger since the underlying integer is divided and the result
+    /// rounded towards zero to the next integer. The resulting representation error is at most the
+    /// sum of the two resolutions before and after a down-scaling operation.
     template< double REAL_V_MIN_FROM, double REAL_V_MAX_FROM, scaling_t F_FROM >
     requires (
         F_FROM != F
