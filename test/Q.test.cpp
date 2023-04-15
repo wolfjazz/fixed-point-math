@@ -396,9 +396,8 @@ TEST_F(QTest, q_upscale_copy_constructor_saturate__int16_someF__int16_largerF) {
     auto b = i32q8_sat(a);  // explicit upscale-copy construction
     i32q8_sat c = a;  // implicit upscale-copy construction
 
-    constexpr double EXPECTED_VALUE = -2048.1;
-    ASSERT_NEAR(EXPECTED_VALUE, b.to_real(), i32q4_ovf::RESOLUTION);
-    ASSERT_NEAR(EXPECTED_VALUE, c.to_real(), i32q4_ovf::RESOLUTION);
+    ASSERT_NEAR(i32q8_sat::REAL_V_MIN, b.to_real(), i32q4_ovf::RESOLUTION);
+    ASSERT_NEAR(i32q8_sat::REAL_V_MIN, c.to_real(), i32q4_ovf::RESOLUTION);
 }
 
 TEST_F(QTest, q_upscale_copy_constructor_overflow_allowed__int16_someF__int16_largerF) {
@@ -429,9 +428,8 @@ TEST_F(QTest, q_downscale_copy_constructor_saturate__int16_someF__int16_smallerF
     auto b = i32qm2_sat::from_q(a);  // explicit downscale-copy construction
     i32qm2_sat c = a;  // implicit downscale-copy construction
 
-    constexpr double EXPECTED_VALUE = -2048.1;
-    ASSERT_NEAR(EXPECTED_VALUE, b.to_real(), i32q4_ovf::RESOLUTION + i32qm2_sat::RESOLUTION);
-    ASSERT_NEAR(EXPECTED_VALUE, c.to_real(), i32q4_ovf::RESOLUTION + i32qm2_sat::RESOLUTION);
+    ASSERT_NEAR(i32qm2_sat::REAL_V_MIN, b.to_real(), i32q4_ovf::RESOLUTION + i32qm2_sat::RESOLUTION);
+    ASSERT_NEAR(i32qm2_sat::REAL_V_MIN, c.to_real(), i32q4_ovf::RESOLUTION + i32qm2_sat::RESOLUTION);
 }
 
 TEST_F(QTest, q_downscale_copy_constructor_overflow_allowed__int16_someF__int16_smallerF) {
@@ -442,6 +440,42 @@ TEST_F(QTest, q_downscale_copy_constructor_overflow_allowed__int16_someF__int16_
 
     ASSERT_NEAR(REAL_VALUE_A, b.to_real(), i32q4_ovf::RESOLUTION + i32qm2_ovf::RESOLUTION);
     ASSERT_NEAR(REAL_VALUE_A, c.to_real(), i32q4_ovf::RESOLUTION + i32qm2_ovf::RESOLUTION);
+}
+
+TEST_F(QTest, q_assignment__different_q_type__value_is_scaled_and_assigned) {
+    constexpr double REAL_VALUE_A = -1024.2;
+    auto a = i32q4::from_real<REAL_VALUE_A>();
+    auto b = i32qm2::from_scaled<0>();
+    auto c = i32q8::from_scaled<0>();
+    b = a;  // assignment from different type
+    c = a;
+
+    ASSERT_NEAR(REAL_VALUE_A, b.to_real(), i32q4::RESOLUTION + i32qm2::RESOLUTION);  // downscale decreases resolution
+    ASSERT_NEAR(REAL_VALUE_A, c.to_real(), i32q4::RESOLUTION);  // upscale does not change initial resolution
+}
+
+TEST_F(QTest, q_assignment_saturate__different_q_type__value_is_scaled_and_assigned) {
+    constexpr double REAL_VALUE_A = -2060.;
+    auto a = i32q4_ovf::from_real<REAL_VALUE_A>();
+    auto b = i32qm2_sat::from_scaled<0>();
+    auto c = i32q8_sat::from_scaled<0>();
+    b = a;  // assignment from different type
+    c = a;
+
+    ASSERT_NEAR(i32qm2_sat::REAL_V_MIN, b.to_real(), i32q4_ovf::RESOLUTION + i32qm2_sat::RESOLUTION);
+    ASSERT_NEAR(i32q8_sat::REAL_V_MIN, c.to_real(), i32q4_ovf::RESOLUTION);
+}
+
+TEST_F(QTest, q_assignment_overflow__different_q_type__value_is_scaled_and_assigned) {
+    constexpr double REAL_VALUE_A = -2060.;
+    auto a = i32q4_ovf::from_real<REAL_VALUE_A>();
+    auto b = i32qm2_ovf::from_scaled<0>();
+    auto c = i32q8_ovf::from_scaled<0>();
+    b = a;  // assignment from different type
+    c = a;
+
+    ASSERT_NEAR(REAL_VALUE_A, b.to_real(), i32q4_ovf::RESOLUTION + i32qm2_ovf::RESOLUTION);
+    ASSERT_NEAR(REAL_VALUE_A, c.to_real(), i32q4_ovf::RESOLUTION);
 }
 
 // EOF

@@ -164,6 +164,16 @@ public:
         : q(q::from_q(from))  // delegate construction to static from_q() named constructor
     {}
 
+    /// Copy-Assignment from a different q type with the same base type.
+    template< double REAL_V_MIN_RHS, double REAL_V_MAX_RHS, scaling_t F_RHS, overflow OVF_RHS >
+    requires (
+        F_RHS != F
+    )
+    q& operator=(q<BASE_T, F_RHS, REAL_V_MIN_RHS, REAL_V_MAX_RHS, OVF_RHS> const &rhs) noexcept {
+        value = q::from_q(rhs).reveal();
+        return *this;
+    }
+
     /// Named "constructor" from a related sq variable.
     /// \note Overflow check is included if the range of the sq type is larger than the range of this q type.
     template< overflow OVF_ACTION_OVERRIDE = OVF_ACTION, double SQ_REAL_V_MIN, double SQ_REAL_V_MAX >
