@@ -13,27 +13,31 @@ Negative numbers are usually expressed as signed integers in two's complement re
 What sounds reasonable so far is actually one of the most underestimated sources for bugs:
 
 - Mathematical operations like multiplications and especially more complex formulas tend to exceed the value range of the underlying base type quite fast. When no overflow check is performed and the values are not saturated, the integers will quietly overflow and the calculations will return completely wrong values with unpredictable consequences.
-- Calculations with scaled values are quite complicated when done manually because scaling corrections are needed for many operators. As a result complex formulas are often hard to read and correcting factors can easily be forgotten because they are not intuitive.
+- Calculations with scaled values are quite complicated when done manually because scaling corrections are needed for many operators. As a result complex formulas are often hard to read and correcting factors can easily be forgotten since they are not intuitive.
 
 In the end, we just want to perform calculations with a predefined value range and precision without having to worry about things like overflow too much. So let's define a list of expectations what a fixed-point library with overflow protection should provide:
 
 - predefined fixed-point types based on signed and unsigned integer types (8, 16, 32 and 64 bits)
 - user-defined precision and value range (at compile-time)
 - ability to specify the value range via floats (= unscaled values) at compile-time
-- ability to change the precision and/or the value range later in code (only at compile-time)
+- ability to change the precision and/or the value range later in code (at compile-time, via types)
 - no implicit construction from floating-point types (safety, to avoid confusion)
 - implicit construction from static integers only when unambiguous (e.g. when used as a factor)
-- explicit construction from static integers and floating-point types at compile time
-- explicit construction from integer-based variables at runtime
-- no runtime construction from floating-point types (because we don't want floats at runtime)
+- explicit construction from static, scaled integers and real floating-point values at compile time
+- explicit construction from integer-based variables with scaled integer values at runtime
+- no runtime construction from floating-point variables (we don't want floats at runtime)
 - compile-time overflow checks where possible, runtime-checks only when really needed
-- different types of runtime overflow actions (overflow::saturate, overflow::assert, overflow::forbidden)
+- different types of runtime overflow actions (overflow: forbidden, assert, saturate, allowed/no-check)
 - implicit conversion between fixed-point types of same base type only to higher precision (no losses)
 - explicit conversion to fixed-point type with same base type but different precision via up/downscale-copy
 - conversion to different base types only via explicit casts (static_cast, safe_cast, translate_cast)
-- implementation of the most-common mathematical operators (+, -, \*, /, %, <<, >>, ==, !=, <, >)
 - simple, easy-to-debug, on-point formulas without any obscuring scaling corrections
-- maybe sophisticated operators like pow, sqr, sqrt -> integral power and roots
+- implementation of the most-common mathematical operators (+, -, \*, /, %, <<, >>, ==, !=, <, >)
+- some sophisticated operators like pow, sqr, sqrt -> integral powers and roots
+  - pow: &ensp; x<sup>y</sup> = [ (x\*2<sup>d</sup>)<sup>y</sup> \* 2<sup>d - d\*y</sup> ]<sub>d</sub> &emsp; x: real, y: int, d: int
+    - sqr: &ensp; x<sup>2</sup> = [ (x\*2<sup>d</sup>)<sup>2</sup> / 2<sup>d</sup> ]<sub>d</sub>
+  - root: &ensp; x<sup>1/y</sup> = [ (x\*2<sup>d</sup>)<sup>1/y</sup> \* 2<sup>d - d/y</sup> ]<sub>d</sub>
+    - sqrt: &ensp; x<sup>1/2</sup> = [ (x\*2<sup>d</sup>)<sup>1/2</sup> \* (2<sup>d</sup>)<sup>1/2</sup> ]<sub>d</sub>
 
 ## This Library
 
