@@ -129,7 +129,7 @@ auto cast3 = construe_q_cast<i16q2<40., 100.>>(b);
  * modified and checked against overflow at compile-time. Runtime checks are not included as long as
  * only sq values are used in the formula. This guarantees that the formula compiles into an efficient
  * calculation.
- * Note: By design, sq values cannot be changed. For each operator a new sq value is constructed. 
+ * Note: By design, sq values cannot be changed. For each operator a new sq value is constructed.
  *  => q values are dynamic and can be changed, but they do not implement mathematical operations.
  *     For formulas sq values are needed; they are static so that formulas can be guaranteed to
  *     be secure for a given range of input values. As a result, sq values can only live in their
@@ -192,9 +192,9 @@ auto time = u16sq8<0., 10.>::from_real<4.>();
 // s = 1/2*a*t^2 + v0*t + s0
 pos_t::sq<-6500., 6500.> s = accel*time*time/2 + speed*time + s0;
 //
-// think about (if possible): explicit conversion in situ:
-pos_t::sq<-6500., 6500.> s = accel*time*time/2 + speed*time + pos<-5e3, 5e3, overflow::SATURATE>;
-//                                                            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+// alternative: explicit conversion in situ:
+pos_t::sq<-6500., 6500.> s = accel*time*time/2 + speed*time + pos.to_sq<-5e3, 5e3, overflow::SATURATE>();
+//                                                            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 //
 // another calculation step; note that a new variable needs to be defined because s cannot be changed
 // since it is of sq type.
@@ -207,7 +207,7 @@ pos = pos_t::from_sq< ovf_override >(s2);  // conversion sq -> q (via named cons
 
 // some thoughts about implicit conversion of integers in formulas:
 // - should the following be possible? This is somehow ambiguous (does it mean that the underlying
-//   base integer is increased by one or that the value that is represented by s is increased by 1).
+//   base integer is increased by one or that the value that is represented by s is increased by 1?).
 //   --> no!
 pos_t::sq<> s3 = s + 1;  // same problem for minus operator
 // - the following definitely makes sense though (because it is not ambiguous):

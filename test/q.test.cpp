@@ -5,6 +5,7 @@
 #include <gtest/gtest.h>
 
 #include <iostream>
+#include <limits>
 using namespace std;
 
 #include <fpm/q.hpp>
@@ -37,6 +38,16 @@ protected:
     using i32q8 = q<int32_t, 8, -2048.1, 2048.1>;
     using i32q8_sat = q<int32_t, 8, -2048.1, 2048.1, overflow::SATURATE>;
     using i32q8_ovf = q<int32_t, 8, -2048.1, 2048.1, overflow::ALLOWED>;
+
+    using u16q6 = q<uint16_t, 6, 0., 500.>;
+    using u16q6_sat = q<uint16_t, 6, 0., 500., overflow::SATURATE>;
+    using u16q6_ovf = q<uint16_t, 6, 0., 500., overflow::ALLOWED>;
+    using u32qm2 = q<uint32_t, -2, 0., 2048.>;
+    using u32qm2_sat = q<uint32_t, -2, 0., 2048., overflow::SATURATE>;
+    using u32qm2_ovf = q<uint32_t, -2, 0., 2048., overflow::ALLOWED>;
+    using u32q8 = q<uint32_t, 8, 0., 2048.1>;
+    using u32q8_sat = q<uint32_t, 8, 0., 2048.1, overflow::SATURATE>;
+    using u32q8_ovf = q<uint32_t, 8, 0., 2048.1, overflow::ALLOWED>;
 
     void SetUp() override
     {
@@ -476,6 +487,55 @@ TEST_F(QTest, q_assignment_overflow__different_q_type__value_is_scaled_and_assig
 
     ASSERT_NEAR(REAL_VALUE_A, b.to_real(), i32q4_ovf::RESOLUTION + i32qm2_ovf::RESOLUTION);
     ASSERT_NEAR(REAL_VALUE_A, c.to_real(), i32q4_ovf::RESOLUTION);
+}
+
+TEST_F(QTest, q_static_cast__positive_real_value_signed__unsigned_type_smallerF_same_value) {
+    constexpr double REAL_VALUE_A = 1024.2;
+    auto a = i32q4::from_real<REAL_VALUE_A>();
+    auto b = static_cast<u32qm2_sat>(a);
+
+    ASSERT_NEAR(REAL_VALUE_A, b.to_real(), i32q4::RESOLUTION + u32qm2_sat::RESOLUTION);
+}
+
+TEST_F(QTest, q_static_cast__positive_real_value_signed__smaller_unsigned_type_largerF_same_value) {
+    constexpr double REAL_VALUE_A = 498.7;
+    auto a = u16q6::from_real<REAL_VALUE_A>();
+    auto b = static_cast<i32q20_sat>(a);
+
+    ASSERT_NEAR(REAL_VALUE_A, b.to_real(), u16q6::RESOLUTION);
+}
+
+TEST_F(QTest, q_static_cast__positive_real_value_unsigned__signed_type_smallerF_same_value) {
+    constexpr double REAL_VALUE_A = 498.7;
+    auto a = u16q6::from_real<REAL_VALUE_A>();
+    auto b = static_cast<i32qm2_sat>(a);
+
+    ASSERT_NEAR(REAL_VALUE_A, b.to_real(), u16q6::RESOLUTION + i32qm2_sat::RESOLUTION);
+}
+
+TEST_F(QTest, q_static_cast__positive_real_value_unsigned__smaller_signed_type_largerF_same_value) {
+    constexpr double REAL_VALUE_A = 498.7;
+    auto a = i32q4::from_real<REAL_VALUE_A>();
+    auto b = static_cast<u16q6_sat>(a);
+
+    ASSERT_NEAR(REAL_VALUE_A, b.to_real(), u16q6_sat::RESOLUTION);
+}
+
+TEST_F(QTest, q_static_cast__negative_real_value__smaller_unsigned_type_largerF_saturated_value) {
+    constexpr double REAL_VALUE_A = -498.7;
+    auto a = i32q4::from_real<REAL_VALUE_A>();
+    auto b = static_cast<u16q6_sat>(a);
+
+    ASSERT_NEAR(u16q6_sat::REAL_V_MAX, b.to_real(), u16q6_sat::RESOLUTION);
+}
+
+TEST_F(QTest, q_static_cast__negative_real_value__smaller_unsigned_type_largerF_value_overflow) {
+    constexpr double REAL_VALUE_A = -498.7;
+    auto a = i32q4::from_real<REAL_VALUE_A>();
+    auto b = static_cast<u16q6_ovf>(a);
+
+    constexpr double EXPECTED_VALUE = 525.3125;
+    ASSERT_NEAR(EXPECTED_VALUE, b.to_real(), u16q6_ovf::RESOLUTION);
 }
 
 // EOF

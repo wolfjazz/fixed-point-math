@@ -8,6 +8,8 @@
 #include "sq.hpp"
 #include <cassert>
 #include <algorithm>
+#include <limits>
+#include <type_traits>
 
 
 namespace fpm {
@@ -23,8 +25,10 @@ class q final
 {
     static_assert(std::is_integral_v<BASE_T>, "base type must be integral");
     static_assert(REAL_V_MIN_ <= REAL_V_MAX_, "minimum value of value range must be less than or equal to maximum value");
+    static_assert(std::is_signed_v<BASE_T> || REAL_V_MIN_ >= 0., "minimum value of value range must be larger than or equal to 0");
 
 public:
+    using base_t = BASE_T;
     static constexpr double REAL_V_MIN = REAL_V_MIN_;  ///< minimum real value
     static constexpr double REAL_V_MAX = REAL_V_MAX_;  ///< maximum real value
     static constexpr BASE_T V_MIN = v2s<BASE_T, F>(REAL_V_MIN_);  ///< minimum value of integer value range
@@ -123,12 +127,15 @@ public:
         F_FROM != F
     )
     static constexpr q from_q(q<BASE_T, F_FROM, REAL_V_MIN_FROM, REAL_V_MAX_FROM, OVF_FROM> const &from) noexcept {
-        BASE_T fromValueScaled = s2s<BASE_T, F_FROM, F>(from.reveal());
+        using interm_t = std::conditional_t<std::is_signed_v<BASE_T>, int64_t, uint64_t>;
 
-        // include overflow check if value range of this type is smaller than range of from-type;
+        interm_t fromValueScaled = s2s<interm_t, F_FROM, F>(from.reveal());
+
+        // include overflow check if value range of this type is smaller than range of from-type,
+        // or if scaling of this type is larger
         // note: real limits are compared because scaled integers with different q's cannot be compared so easily
         constexpr bool overflowCheckNeeded = REAL_V_MIN_FROM < REAL_V_MIN || REAL_V_MAX < REAL_V_MAX_FROM
-            || overflow::ALLOWED == OVF_FROM;
+            || overflow::ALLOWED == OVF_FROM;  // todo: enable checks also when F gets larger
         if constexpr (overflowCheckNeeded) {
 
             // if overflow is FORBIDDEN, remind the user that overflow needs to be changed for this method
@@ -142,16 +149,16 @@ public:
             }
             else if constexpr (overflow::SATURATE == OVF_ACTION_OVERRIDE) {
                 if ( !(fromValueScaled >= V_MIN)) {
-                    fromValueScaled = V_MIN;
+                    fromValueScaled = static_cast<interm_t>(V_MIN);
                 }
                 if ( !(fromValueScaled <= V_MAX)) {
-                    fromValueScaled = V_MAX;
+                    fromValueScaled = static_cast<interm_t>(V_MAX);
                 }
             }
             else { /* overflow::ALLOWED, overflow::NO_CHECK: no checks performed */ }
         }
 
-        return q(fromValueScaled);
+        return q(static_cast<BASE_T>(fromValueScaled));
     }
 
     /// Copy-Constructor from a different q type with the same base type.
@@ -172,6 +179,52 @@ public:
     q& operator=(q<BASE_T, F_RHS, REAL_V_MIN_RHS, REAL_V_MAX_RHS, OVF_RHS> const &rhs) noexcept {
         value = q::from_q(rhs).reveal();
         return *this;
+    }
+
+    /// Explicit cast to a different q type with a different base type.
+    template< typename BASE_T_C, scaling_t F_C, double REAL_V_MIN_C, double REAL_V_MAX_C, overflow OVF_C >
+    requires (
+        !std::is_same_v<BASE_T, BASE_T_C>
+    )
+    operator q<BASE_T_C, F_C, REAL_V_MIN_C, REAL_V_MAX_C, OVF_C> () const {
+        using target_q = q<BASE_T_C, F_C, REAL_V_MIN_C, REAL_V_MAX_C, OVF_C>;
+        using interm_t = std::conditional_t<std::is_signed_v<BASE_T_C>, int64_t, uint64_t>;
+
+        // first cast, then scale value
+        interm_t cValue = s2s<interm_t, F, F_C>(static_cast<BASE_T_C>(value));
+
+        // include overflow check if value range of cast-type is smaller than range of this type,
+        // or if scaling of cast-type is larger
+        // note: real limits are compared because scaled integers with different base types and q's
+        //       cannot be compared so easily
+        constexpr bool overflowCheckNeeded = REAL_V_MIN < REAL_V_MIN_C || REAL_V_MAX_C < REAL_V_MAX
+            || overflow::ALLOWED == OVF_ACTION;  // todo: enable checks also when F gets larger
+        if constexpr (overflowCheckNeeded) {
+
+            // if overflow is FORBIDDEN, remind the user that overflow needs to be changed for this cast
+            static_assert(!overflowCheckNeeded || overflow::FORBIDDEN != OVF_C,
+                "runtime overflow check is not allowed; allow for target type to use cast");
+
+            if constexpr (overflow::ASSERT == OVF_C) {
+                if ( !(cValue >= target_q::V_MIN && cValue <= target_q::V_MAX)) {
+                    assert(false);  // from-value is out of range
+                }
+            }
+            else if constexpr (overflow::SATURATE == OVF_C) {
+                if ( !(cValue >= target_q::V_MIN)) {
+                    cValue = static_cast<interm_t>(target_q::V_MIN);
+                }
+                if ( !(cValue <= target_q::V_MAX)) {
+                    cValue = static_cast<interm_t>(target_q::V_MAX);
+                }
+            }
+            else { /* overflow::ALLOWED, overflow::NO_CHECK: no checks performed */ }
+        }
+
+        cout << "cast: " << (int)cValue << endl;
+
+        // create target value; disable overflow check to avoid that value is checked again
+        return target_q::template construct<overflow::NO_CHECK>(static_cast<BASE_T_C>(cValue));
     }
 
     /// Named "constructor" from a related sq variable.

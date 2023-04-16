@@ -6,8 +6,9 @@
 #define _FPM_SQ_HPP_
 
 #include "fpm.hpp"
-#include <limits>
 #include <cmath>
+#include <limits>
+#include <type_traits>
 
 
 namespace fpm {
@@ -22,6 +23,7 @@ class sq final
 {
     static_assert(std::is_integral_v<BASE_T>, "base type must be integral");
     static_assert(REAL_V_MIN_ <= REAL_V_MAX_, "minimum value of value range must be less than or equal to maximum value");
+    static_assert(std::is_signed_v<BASE_T> || REAL_V_MIN_ >= 0., "minimum value of value range must be larger than or equal to 0");
 
 public:
     static constexpr double REAL_V_MIN = REAL_V_MIN_;  ///< minimum real value
