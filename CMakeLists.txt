@@ -8,7 +8,6 @@ set(CMAKE_C_STANDARD 17)
 set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
-
 enable_testing()
 
 add_subdirectory(googletest)
@@ -24,6 +23,7 @@ set(Sources
     src/fpm/fpm.cpp
 )
 
+add_compile_options(-Wall -Wextra -pedantic -Werror)
 
 add_library(${ThisShort} STATIC ${Headers} ${Sources})
 set_target_properties(${ThisShort} PROPERTIES LINKER_LANGUAGE CXX)

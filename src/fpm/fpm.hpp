@@ -5,8 +5,8 @@
 #ifndef _FPM_FPM_HPP_
 #define _FPM_FPM_HPP_
 
-#include <type_traits>
 #include <cstdint>
+#include <type_traits>
 
 
 /** Fixed-Point Math Namespace. */

@@ -4,5 +4,8 @@
     "C_Cpp.default.cppStandard": "c++23",
     "C_Cpp.default.cStandard": "c23",
     "cmake.cmakePath": "C:/msys64/mingw64/bin/cmake.exe",
-    "cmake.configureOnOpen": true
+    "cmake.configureOnOpen": true,
+    "search.exclude": {
+        "**/googletest": true
+    }
 }

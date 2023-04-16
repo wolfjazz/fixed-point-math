@@ -221,8 +221,6 @@ public:
             else { /* overflow::ALLOWED, overflow::NO_CHECK: no checks performed */ }
         }
 
-        cout << "cast: " << (int)cValue << endl;
-
         // create target value; disable overflow check to avoid that value is checked again
         return target_q::template construct<overflow::NO_CHECK>(static_cast<BASE_T_C>(cValue));
     }

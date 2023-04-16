@@ -207,7 +207,7 @@ pos = pos_t::from_sq< ovf_override >(s2);  // conversion sq -> q (via named cons
 
 // some thoughts about implicit conversion of integers in formulas:
 // - should the following be possible? This is somehow ambiguous (does it mean that the underlying
-//   base integer is increased by one or that the value that is represented by s is increased by 1?).
+//   base integer is increased by one, or that the value represented by s is increased by one?).
 //   --> no!
 pos_t::sq<> s3 = s + 1;  // same problem for minus operator
 // - the following definitely makes sense though (because it is not ambiguous):
