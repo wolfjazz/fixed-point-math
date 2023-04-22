@@ -9,6 +9,7 @@
 #include <cmath>
 #include <limits>
 #include <type_traits>
+#include <utility>
 
 
 namespace fpm {
@@ -25,6 +26,11 @@ template<
 class sq final
 {
     static_assert(std::is_integral_v<BASE_T>, "base type must be integral");
+    static_assert(sizeof(BASE_T) <= 4u, "base type larger than 32 bits is not supported");
+
+    using interm_t = std::conditional_t<std::is_signed_v<BASE_T>, int64_t, uint64_t>;
+    static_assert(std::in_range<BASE_T>(v2s<interm_t, F>(REAL_V_MIN_)), "scaled minimum value exceeds value range of base type");
+    static_assert(std::in_range<BASE_T>(v2s<interm_t, F>(REAL_V_MAX_)), "scaled maximum value exceeds value range of base type");
     static_assert(REAL_V_MIN_ <= REAL_V_MAX_, "minimum value of value range must be less than or equal to maximum value");
     static_assert(std::is_signed_v<BASE_T> || REAL_V_MIN_ >= 0., "minimum value of value range must be larger than or equal to 0");
 
