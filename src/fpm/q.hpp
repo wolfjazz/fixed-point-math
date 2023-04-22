@@ -20,10 +20,8 @@ template<
     scaling_t F,      ///< number of fraction bits (precision 2^-F)
     double REAL_V_MIN_,  ///< minimum real value represented by this type
     double REAL_V_MAX_,  ///< maximum real value represented by this type
-    overflow OVF_ACTION = overflow::FORBIDDEN  ///< overflow action performed when overflow check is positive
->
-class q final
-{
+    overflow OVF_ACTION = overflow::FORBIDDEN >  ///< overflow action performed when overflow check is positive
+class q final {
     static_assert(std::is_integral_v<BASE_T>, "base type must be integral");
     static_assert(sizeof(BASE_T) <= 4u, "base type larger than 32 bits is not supported");
 

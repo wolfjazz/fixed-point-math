@@ -21,10 +21,8 @@ template<
     typename BASE_T,  ///< type of the scaled integer stored in memory
     scaling_t F,      ///< number of fraction bits (precision 2^-F)
     double REAL_V_MIN_,  ///< minimum real value represented by this type
-    double REAL_V_MAX_   ///< maximum real value represented by this type
->
-class sq final
-{
+    double REAL_V_MAX_ >  ///< maximum real value represented by this type
+class sq final {
     static_assert(std::is_integral_v<BASE_T>, "base type must be integral");
     static_assert(sizeof(BASE_T) <= 4u, "base type larger than 32 bits is not supported");
 
