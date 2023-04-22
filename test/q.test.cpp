@@ -251,8 +251,7 @@ protected:
     using i32q20 = q<int32_t, 20, -500., 500.>;
     using i32q20_sat = q<int32_t, 20, -500., 500., overflow::SATURATE>;
     using i32q20_ovf = q<int32_t, 20, -500., 500., overflow::ALLOWED>;
-    using i32sq20 = sq<int32_t, 20, -500., 500.>;
-    using i32sq20_l = sq<int32_t, 20, -1000., 1000.>;
+    using i32q20_l = q<int32_t, 20, -1000., 1000.>;
 
     void SetUp() override
     {
@@ -264,14 +263,14 @@ protected:
 
 TEST_F(QTest_Sq, q_embedded_sq__from_real__sq_value_is_correct) {
     constexpr double REAL_SQ_VALUE = +356.;
-    auto sqValue = i32q20::sq<>::from_real<REAL_SQ_VALUE>();
+    auto sqValue = i32q20::from_real<REAL_SQ_VALUE>().to_sq();
 
     ASSERT_NEAR(REAL_SQ_VALUE, sqValue.to_real(), i32q20::RESOLUTION);
 }
 
 TEST_F(QTest_Sq, q_embedded_sq__smaller_value_range_from_real__sq_value_is_correct) {
     constexpr double REAL_SQ_VALUE = -400.;
-    auto sqValue = i32q20::sq<-400., 400.>::from_real<REAL_SQ_VALUE>();
+    auto sqValue = i32q20::from_real<REAL_SQ_VALUE>().to_sq<-400., 400., overflow::SATURATE>();
 
     ASSERT_NEAR(REAL_SQ_VALUE, sqValue.to_real(), i32q20::RESOLUTION);
 }
@@ -297,11 +296,12 @@ TEST_F(QTest_Sq, q_to_sq__different_value_range_overflow_asserted__does_not_comp
 }
 
 TEST_F(QTest_Sq, q_to_sq__different_value_range_overflow_saturated__value_is_saturated) {
+    constexpr double REAL_VALUE = 450.;
     constexpr double SQ_RANGE_N = -400., SQ_RANGE_P = +400.;
-    auto sqValueN = i32q20::from_real<-450.>().to_sq<SQ_RANGE_N, SQ_RANGE_P, overflow::SATURATE>();
-    auto sqValueP = i32q20::from_real<+450.>().to_sq<SQ_RANGE_N, SQ_RANGE_P, overflow::SATURATE>();
-    auto sqValueNSat = i32q20_sat::from_real<-450.>().to_sq<SQ_RANGE_N, SQ_RANGE_P>();
-    auto sqValuePSat = i32q20_sat::from_real<+450.>().to_sq<SQ_RANGE_N, SQ_RANGE_P>();
+    auto sqValueN = i32q20::from_real<-REAL_VALUE>().to_sq<SQ_RANGE_N, SQ_RANGE_P, overflow::SATURATE>();
+    auto sqValueP = i32q20::from_real<+REAL_VALUE>().to_sq<SQ_RANGE_N, SQ_RANGE_P, overflow::SATURATE>();
+    auto sqValueNSat = i32q20_sat::from_real<-REAL_VALUE>().to_sq<SQ_RANGE_N, SQ_RANGE_P>();
+    auto sqValuePSat = i32q20_sat::from_real<+REAL_VALUE>().to_sq<SQ_RANGE_N, SQ_RANGE_P>();
 
     ASSERT_NEAR(SQ_RANGE_N, sqValueN.to_real(), i32q20::RESOLUTION);
     ASSERT_NEAR(SQ_RANGE_P, sqValueP.to_real(), i32q20::RESOLUTION);
@@ -324,7 +324,7 @@ TEST_F(QTest_Sq, q_to_sq__different_value_range_overflow_allowed__value_can_over
 
 TEST_F(QTest_Sq, q_from_sq__same_value_range_value_within_limits__q_value_equal_no_overflow_check) {
     constexpr double REAL_VALUE = -234.5;
-    auto sqValue = i32sq20::from_real<REAL_VALUE>();
+    auto sqValue = i32q20::from_real<REAL_VALUE>().to_sq();
     auto qValue = i32q20::from_sq(sqValue);  // does not perform overflow checks in this case
 
     ASSERT_NEAR(REAL_VALUE, qValue.to_real(), i32q20::RESOLUTION);
@@ -337,8 +337,9 @@ TEST_F(QTest_Sq, q_from_sq__different_value_range_default__does_not_compile) {
 }
 
 TEST_F(QTest_Sq, q_from_sq__different_value_range_saturate__q_value_is_saturated) {
-    auto sqValueN = i32sq20_l::from_real<-654.>();
-    auto sqValueP = i32sq20_l::from_real<+654.>();
+    constexpr double REAL_VALUE = 654.;
+    auto sqValueN = i32q20_l::from_real<-REAL_VALUE>().to_sq();
+    auto sqValueP = i32q20_l::from_real<+REAL_VALUE>().to_sq();
     auto qValueN = i32q20::from_sq<overflow::SATURATE>(sqValueN);
     auto qValueP = i32q20::from_sq<overflow::SATURATE>(sqValueP);
     auto qValueNSat = i32q20_sat::from_sq(sqValueN);
@@ -352,8 +353,8 @@ TEST_F(QTest_Sq, q_from_sq__different_value_range_saturate__q_value_is_saturated
 
 TEST_F(QTest_Sq, q_from_sq__different_value_range_overflow_allowed__q_value_can_overflow) {
     constexpr double REAL_VALUE = 654.;
-    auto sqValueN = i32sq20_l::from_real<-REAL_VALUE>();
-    auto sqValueP = i32sq20_l::from_real<+REAL_VALUE>();
+    auto sqValueN = i32q20_l::from_real<-REAL_VALUE>().to_sq();
+    auto sqValueP = i32q20_l::from_real<+REAL_VALUE>().to_sq();
     auto qValueN = i32q20::from_sq<overflow::ALLOWED>(sqValueN);
     auto qValueP = i32q20::from_sq<overflow::ALLOWED>(sqValueP);
     auto qValueNOvf = i32q20_ovf::from_sq(sqValueN);

@@ -219,7 +219,7 @@ public:
         static constexpr BASE_T SQ_V_MIN = v2s<BASE_T, F>(SQ_REAL_V_MIN);
         static constexpr BASE_T SQ_V_MAX = v2s<BASE_T, F>(SQ_REAL_V_MAX);
 
-        BASE_T qValue = fromSq.reveal();
+        BASE_T qValue = fromSq.value;
 
         // include overflow check if the value range of q is smaller
         static constexpr bool overflowCheckNeeded = SQ_V_MIN < V_MIN || V_MAX < SQ_V_MAX;
