@@ -114,7 +114,7 @@ public:
     constexpr ~q()
     {}
 
-    /// Named "Copy-Constructor" from a different q type with the same base type.
+    /// Named "Copy-Constructor" from another q type with the same base type.
     /// \note When a q value is up-scaled to a larger resolution, the initial representation error
     /// will not change because the underlying integer value is just multiplied by some integral power
     /// of two factor. However, if the q value is down-scaled to a smaller resolution, the resulting
@@ -123,9 +123,6 @@ public:
     /// sum of the two resolutions before and after a down-scaling operation.
     template< overflow OVF_ACTION_OVERRIDE = OVF_ACTION,
         double REAL_V_MIN_FROM, double REAL_V_MAX_FROM, scaling_t F_FROM, overflow OVF_FROM >
-    requires (
-        F_FROM != F
-    )
     static constexpr q from_q(q<BASE_T, F_FROM, REAL_V_MIN_FROM, REAL_V_MAX_FROM, OVF_FROM> const &from) noexcept {
         using interm_t = std::conditional_t<std::is_signed_v<BASE_T>, int64_t, uint64_t>;
 
@@ -135,7 +132,7 @@ public:
         // or if scaling of this type is larger
         // note: real limits are compared because scaled integers with different q's cannot be compared so easily
         constexpr bool overflowCheckNeeded = REAL_V_MIN_FROM < REAL_V_MIN || REAL_V_MAX < REAL_V_MAX_FROM
-            || overflow::ALLOWED == OVF_FROM;  // todo: enable checks also when F gets larger
+            || overflow::ALLOWED == OVF_FROM || F > F_FROM;
         if constexpr (overflowCheckNeeded) {
 
             // if overflow is FORBIDDEN, remind the user that overflow needs to be changed for this method
@@ -160,16 +157,6 @@ public:
 
         return q(static_cast<BASE_T>(fromValueScaled));
     }
-
-    /// Copy-Constructor from a different q type with the same base type.
-    /// \note Use named constructor from_q() to override the default overflow type of this class.
-    template< double REAL_V_MIN_FROM, double REAL_V_MAX_FROM, scaling_t F_FROM, overflow OVF_FROM >
-    requires (
-        F_FROM != F
-    )
-    q(q<BASE_T, F_FROM, REAL_V_MIN_FROM, REAL_V_MAX_FROM, OVF_FROM> const &from) noexcept
-        : q(q::from_q(from))  // delegate construction to static from_q() named constructor
-    {}
 
     /// Copy-Assignment from a different q type with the same base type.
     template< double REAL_V_MIN_RHS, double REAL_V_MAX_RHS, scaling_t F_RHS, overflow OVF_RHS >
@@ -198,7 +185,7 @@ public:
         // note: real limits are compared because scaled integers with different base types and q's
         //       cannot be compared so easily
         constexpr bool overflowCheckNeeded = REAL_V_MIN < REAL_V_MIN_C || REAL_V_MAX_C < REAL_V_MAX
-            || overflow::ALLOWED == OVF_ACTION;  // todo: enable checks also when F gets larger
+            || overflow::ALLOWED == OVF_ACTION || F_C > F;
         if constexpr (overflowCheckNeeded) {
 
             // if overflow is FORBIDDEN, remind the user that overflow needs to be changed for this cast

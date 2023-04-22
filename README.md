@@ -83,21 +83,21 @@ auto b = u32q16<45.0, 98.2>::from_real<66.>();  // construction; value range 45.
 // and lets be honest - this is not intuitive either.
 //auto c = u32q16<1966080, 3932160>::from_real<45.1>();
 
-// copy: construct from another q value with same base-type; value range can be changed this way;
+// copy: construct from another q value with same base-type; value range and overflow action can be changed this way;
 // note that copy will perform a range check at runtime when the lhs range is smaller than the rhs range
-u32q16<> d1 = b;
-u32q16<40000.0, 50000.0> d2 = a;  // limitation of value range; will perform range check at runtime
+auto d1 = u32q16<>::from_q<fpm::overflow::ASSERT>(b);
+auto d2 = u32q16<40000.0, 50000.0>::from_q(a);  // limitation of value range; will perform range check at runtime
 // upscale-copy: mem-value increased by 2^4 and checked at runtime; value range implicitly reduced
-u32q20<> e = a;
-auto e2 = u32q20<>(a);
-u32q20<> e3 = u32q16<>::from_real<1.1>();  // construct temporary q16 and upscale-move to q20 lvalue
+auto e = u32q20<>::from_q(a);
+auto e2 = u32q20<>::from_q( u32q16<>::from_real<1.1>() );  // construct temporary q16 and upscale-move to q20 lvalue
 // downscale-copy: mem-value decreased at runtime without checks; value range implicitly extended
-u32q16<> f = e;
-auto f2 = u32q16<>(e);
+auto f = u32q16<>::from_q(e);
 
 
 /* assignment operator */
-f = a;  // assigns value of a to f; performs runtime checks when lhs range is smaller than rhs range
+// assigns value of a to f; performs runtime checks when lhs range is smaller than rhs range;
+// note: when overflow checks are not allowed for lhs type, this operation will not compile!
+f = a;
 
 
 /* casting */
