@@ -45,12 +45,6 @@ public:
     requires( std::is_same_v<BASE_T, BASE_T_FR> && F_FR == F )
     friend class q;
 
-    /// Copy-Constructor from the same type.
-    constexpr sq(sq const &) noexcept = default;
-
-    /// Move-Constructor from the same type.
-    constexpr sq(sq&&) noexcept = default;
-
     /// Named "Copy-Constructor" from another sq type value with the same base type and scaling.
     /// \note When an sq value is up-scaled to a larger resolution, the initial representation error
     /// will not change because the underlying integer value is just multiplied by some integral power
@@ -67,6 +61,12 @@ public:
     static constexpr sq from_sq(sq<BASE_T, F_FROM, REAL_V_MIN_FROM, REAL_V_MAX_FROM> const &from) noexcept {
         return sq( s2s<BASE_T, F_FROM, F>(from.reveal()) );
     }
+
+    /// Copy-Constructor from the same type.
+    constexpr sq(sq const &) noexcept = default;
+
+    /// Move-Constructor from the same type.
+    constexpr sq(sq&&) noexcept = default;
 
     /// Destructor.
     constexpr ~sq()
