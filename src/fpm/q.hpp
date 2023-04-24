@@ -10,7 +10,6 @@
 #include <algorithm>
 #include <limits>
 #include <type_traits>
-#include <utility>
 
 
 namespace fpm {
@@ -21,16 +20,11 @@ template<
     double REAL_V_MIN_,  ///< minimum real value represented by this type
     double REAL_V_MAX_,  ///< maximum real value represented by this type
     overflow OVF_ACTION = overflow::FORBIDDEN >  ///< overflow action performed when overflow check is positive
+requires (
+       ValidBaseType<BASE_T>
+    && RealLimitsInRangeOfBaseType<BASE_T, F, REAL_V_MIN_, REAL_V_MAX_>
+)
 class q final {
-    static_assert(std::is_integral_v<BASE_T>, "base type must be integral");
-    static_assert(sizeof(BASE_T) <= 4u, "base type larger than 32 bits is not supported");
-
-    using interm_t = std::conditional_t<std::is_signed_v<BASE_T>, int64_t, uint64_t>;
-    static_assert(std::in_range<BASE_T>(v2s<interm_t, F>(REAL_V_MIN_)), "scaled minimum value exceeds value range of base type");
-    static_assert(std::in_range<BASE_T>(v2s<interm_t, F>(REAL_V_MAX_)), "scaled maximum value exceeds value range of base type");
-    static_assert(REAL_V_MIN_ <= REAL_V_MAX_, "minimum value of value range must be less than or equal to maximum value");
-    static_assert(std::is_signed_v<BASE_T> || REAL_V_MIN_ >= 0., "minimum value of value range must be larger than or equal to 0");
-
 public:
     using base_t = BASE_T;
     static constexpr double REAL_V_MIN = REAL_V_MIN_;  ///< minimum real value
@@ -46,11 +40,8 @@ public:
     /// Named "constructor" from a runtime variable (lvalue) or a constant (rvalue).
     /// \note Overflow check is always included unless explicitly disabled.
     template< overflow OVF_ACTION_OVERRIDE = OVF_ACTION >
+    requires ( RuntimeCheckAllowedWhenNeeded<OVF_ACTION_OVERRIDE> )
     static constexpr q construct(BASE_T value) noexcept {
-
-        // if overflow is FORBIDDEN, remind user that overflow setting needs to be changed for this method
-        static_assert(overflow::FORBIDDEN != OVF_ACTION_OVERRIDE,
-            "runtime overflow check is not allowed; allow, or override default overflow action");
 
         if constexpr (overflow::ASSERT == OVF_ACTION_OVERRIDE) {
             if ( !(value >= V_MIN && value <= V_MAX)) {
@@ -80,9 +71,8 @@ public:
     /// deviation from the initial real value when the q value is unscaled to a real value again.
     /// Usually the scaling error is in the order of the resolution of the q type.
     template< double REAL_VALUE, overflow OVF_ACTION_OVERRIDE = OVF_ACTION >
-    requires( std::in_range<BASE_T>(v2s<interm_t, F>(REAL_VALUE)) )
+    requires ( RealValueScaledFitsBaseType<BASE_T, F, REAL_VALUE> )
     static consteval q from_real() {
-        // does not compile if scaled value does not fit BASE_T
         constexpr BASE_T scaledValue = v2s<BASE_T, F>(REAL_VALUE);
 
         constexpr overflow overflowAction = (scaledValue >= V_MIN && scaledValue <= V_MAX)
@@ -111,21 +101,18 @@ public:
     /// rounded towards zero to the next integer. The resulting representation error is at most the
     /// sum of the two resolutions before and after a down-scaling operation.
     template< overflow OVF_ACTION_OVERRIDE = OVF_ACTION,
-        double REAL_V_MIN_FROM, double REAL_V_MAX_FROM, scaling_t F_FROM, overflow OVF_FROM >
-    static constexpr q from_q(q<BASE_T, F_FROM, REAL_V_MIN_FROM, REAL_V_MAX_FROM, OVF_FROM> const &from) noexcept {
-        interm_t fromValueScaled = s2s<interm_t, F_FROM, F>(from.reveal());
-
+        double _REAL_V_MIN_FROM, double _REAL_V_MAX_FROM, scaling_t _F_FROM, overflow _OVF_FROM,
         // include overflow check if value range of this type is smaller than range of from-type,
-        // or if scaling of this type is larger
+        // or if scaling of this type is larger;
         // note: real limits are compared because scaled integers with different q's cannot be compared so easily
-        constexpr bool overflowCheckNeeded = REAL_V_MIN_FROM < REAL_V_MIN || REAL_V_MAX < REAL_V_MAX_FROM
-            || overflow::ALLOWED == OVF_FROM || F > F_FROM;
-        if constexpr (overflowCheckNeeded) {
+        bool _OVF_CHECK_NEEDED = (_REAL_V_MIN_FROM < REAL_V_MIN || REAL_V_MAX < _REAL_V_MAX_FROM
+                                  || is_ovf_stricter(OVF_ACTION_OVERRIDE, _OVF_FROM) || F > _F_FROM) >
+    requires ( RuntimeCheckAllowedWhenNeeded<OVF_ACTION_OVERRIDE, _OVF_CHECK_NEEDED> )
+    static constexpr q from_q(q<BASE_T, _F_FROM, _REAL_V_MIN_FROM, _REAL_V_MAX_FROM, _OVF_FROM> const &from) noexcept {
+        using interm_b_t = interm_t<BASE_T>;
+        interm_b_t fromValueScaled = s2s<interm_b_t, _F_FROM, F>(from.reveal());
 
-            // if overflow is FORBIDDEN, remind the user that overflow needs to be changed for this method
-            static_assert(!overflowCheckNeeded || overflow::FORBIDDEN != OVF_ACTION_OVERRIDE,
-                "runtime overflow check is not allowed; allow, or override default overflow action");
-
+        if constexpr (_OVF_CHECK_NEEDED) {
             if constexpr (overflow::ASSERT == OVF_ACTION_OVERRIDE) {
                 if ( !(fromValueScaled >= V_MIN && fromValueScaled <= V_MAX)) {
                     assert(false);  // from-value is out of range
@@ -133,10 +120,10 @@ public:
             }
             else if constexpr (overflow::SATURATE == OVF_ACTION_OVERRIDE) {
                 if ( !(fromValueScaled >= V_MIN)) {
-                    fromValueScaled = static_cast<interm_t>(V_MIN);
+                    fromValueScaled = static_cast<interm_b_t>(V_MIN);
                 }
                 if ( !(fromValueScaled <= V_MAX)) {
-                    fromValueScaled = static_cast<interm_t>(V_MAX);
+                    fromValueScaled = static_cast<interm_b_t>(V_MAX);
                 }
             }
             else { /* overflow::ALLOWED, overflow::NO_CHECK: no checks performed */ }
@@ -147,21 +134,16 @@ public:
 
     /// Named "constructor" from a related sq variable.
     /// \note Overflow check is included if the range of the sq type is larger than the range of this q type.
-    template< overflow OVF_ACTION_OVERRIDE = OVF_ACTION, double SQ_REAL_V_MIN, double SQ_REAL_V_MAX >
-    static constexpr q from_sq(fpm::sq<BASE_T, F, SQ_REAL_V_MIN, SQ_REAL_V_MAX> const &fromSq) noexcept {
-        static constexpr BASE_T SQ_V_MIN = v2s<BASE_T, F>(SQ_REAL_V_MIN);
-        static constexpr BASE_T SQ_V_MAX = v2s<BASE_T, F>(SQ_REAL_V_MAX);
-
+    template< overflow OVF_ACTION_OVERRIDE = OVF_ACTION,
+        double _SQ_REAL_V_MIN, double _SQ_REAL_V_MAX,
+        BASE_T _SQ_V_MIN = v2s<BASE_T, F>(_SQ_REAL_V_MIN), BASE_T _SQ_V_MAX = v2s<BASE_T, F>(_SQ_REAL_V_MAX),
+        // include overflow check if the value range of q is smaller
+        bool _OVF_CHECK_NEEDED = (_SQ_V_MIN < V_MIN || V_MAX < _SQ_V_MAX) >
+    requires ( RuntimeCheckAllowedWhenNeeded<OVF_ACTION_OVERRIDE, _OVF_CHECK_NEEDED> )
+    static constexpr q from_sq(fpm::sq<BASE_T, F, _SQ_REAL_V_MIN, _SQ_REAL_V_MAX> const &fromSq) noexcept {
         BASE_T qValue = fromSq.value;
 
-        // include overflow check if the value range of q is smaller
-        static constexpr bool overflowCheckNeeded = SQ_V_MIN < V_MIN || V_MAX < SQ_V_MAX;
-        if constexpr (overflowCheckNeeded) {
-
-            // if overflow is FORBIDDEN, remind the user that overflow needs to be changed for this method
-            static_assert(!overflowCheckNeeded || overflow::FORBIDDEN != OVF_ACTION_OVERRIDE,
-                "runtime overflow check is not allowed; allow, or override default overflow action");
-
+        if constexpr (_OVF_CHECK_NEEDED) {
             if constexpr (overflow::ASSERT == OVF_ACTION_OVERRIDE) {
                 if ( !(qValue >= V_MIN && qValue <= V_MAX)) {
                     assert(false);  // sqValue is out of range
@@ -198,86 +180,76 @@ public:
     {}
 
     /// Copy-Assignment from a different q type with the same base type.
-    template< double REAL_V_MIN_RHS, double REAL_V_MAX_RHS, scaling_t F_RHS, overflow OVF_RHS >
+    template< double _REAL_V_MIN_RHS, double _REAL_V_MAX_RHS, scaling_t _F_RHS, overflow _OVF_RHS >
     requires (
-        F_RHS != F
+        _F_RHS != F
     )
-    q& operator=(q<BASE_T, F_RHS, REAL_V_MIN_RHS, REAL_V_MAX_RHS, OVF_RHS> const &rhs) noexcept {
-        value = q::from_q(rhs).reveal();
+    q& operator=(q<BASE_T, _F_RHS, _REAL_V_MIN_RHS, _REAL_V_MAX_RHS, _OVF_RHS> const &rhs) noexcept {
+        value = q::from_q(rhs).value;
         return *this;
     }
 
     /// Explicit cast to a different q type with a different base type.
-    template< typename BASE_T_C, scaling_t F_C, double REAL_V_MIN_C, double REAL_V_MAX_C, overflow OVF_C >
-    requires (
-        !std::is_same_v<BASE_T, BASE_T_C>
-    )
-    operator q<BASE_T_C, F_C, REAL_V_MIN_C, REAL_V_MAX_C, OVF_C> () const {
-        using target_q = q<BASE_T_C, F_C, REAL_V_MIN_C, REAL_V_MAX_C, OVF_C>;
-        using interm_t = std::conditional_t<std::is_signed_v<BASE_T_C>, int64_t, uint64_t>;
-
-        // first cast, then scale value
-        interm_t cValue = s2s<interm_t, F, F_C>(static_cast<BASE_T_C>(value));
-
+    template< typename _BASE_T_C, scaling_t _F_C, double _REAL_V_MIN_C, double _REAL_V_MAX_C, overflow _OVF_C,
         // include overflow check if value range of cast-type is smaller than range of this type,
-        // or if scaling of cast-type is larger
+        // or if scaling of cast-type is larger;
         // note: real limits are compared because scaled integers with different base types and q's
         //       cannot be compared so easily
-        constexpr bool overflowCheckNeeded = REAL_V_MIN < REAL_V_MIN_C || REAL_V_MAX_C < REAL_V_MAX
-            || overflow::ALLOWED == OVF_ACTION || F_C > F;
-        if constexpr (overflowCheckNeeded) {
+        bool _OVF_CHECK_NEEDED = (REAL_V_MIN < _REAL_V_MIN_C || _REAL_V_MAX_C < REAL_V_MAX
+                                  || is_ovf_stricter(_OVF_C, OVF_ACTION) || _F_C > F) >
+    requires (
+        !std::is_same_v<BASE_T, _BASE_T_C>
+        && RuntimeCheckAllowedWhenNeeded<_OVF_C, _OVF_CHECK_NEEDED>
+    )
+    operator q<_BASE_T_C, _F_C, _REAL_V_MIN_C, _REAL_V_MAX_C, _OVF_C> () const {
+        using target_q = q<_BASE_T_C, _F_C, _REAL_V_MIN_C, _REAL_V_MAX_C, _OVF_C>;
+        using interm_c_t = interm_t<_BASE_T_C>;
 
-            // if overflow is FORBIDDEN, remind the user that overflow needs to be changed for this cast
-            static_assert(!overflowCheckNeeded || overflow::FORBIDDEN != OVF_C,
-                "runtime overflow check is not allowed; allow for target type to use cast");
+        // first cast, then scale value
+        auto cValue = s2s<interm_c_t, F, _F_C>(static_cast<_BASE_T_C>(value));
 
-            if constexpr (overflow::ASSERT == OVF_C) {
+        if constexpr (_OVF_CHECK_NEEDED) {
+            if constexpr (overflow::ASSERT == _OVF_C) {
                 if ( !(cValue >= target_q::V_MIN && cValue <= target_q::V_MAX)) {
                     assert(false);  // from-value is out of range
                 }
             }
-            else if constexpr (overflow::SATURATE == OVF_C) {
+            else if constexpr (overflow::SATURATE == _OVF_C) {
                 if ( !(cValue >= target_q::V_MIN)) {
-                    cValue = static_cast<interm_t>(target_q::V_MIN);
+                    cValue = static_cast<interm_c_t>(target_q::V_MIN);
                 }
                 if ( !(cValue <= target_q::V_MAX)) {
-                    cValue = static_cast<interm_t>(target_q::V_MAX);
+                    cValue = static_cast<interm_c_t>(target_q::V_MAX);
                 }
             }
             else { /* overflow::ALLOWED, overflow::NO_CHECK: no checks performed */ }
         }
 
         // create target value; disable overflow check to avoid that value is checked again
-        return target_q::template construct<overflow::NO_CHECK>(static_cast<BASE_T_C>(cValue));
+        return target_q::template construct<overflow::NO_CHECK>(static_cast<_BASE_T_C>(cValue));
     }
 
     /// Conversion to the related sq type.
-    template< double SQ_REAL_V_MIN = REAL_V_MIN, double SQ_REAL_V_MAX = REAL_V_MAX, overflow OVF_ACTION_OVERRIDE = OVF_ACTION >
+    template< double SQ_REAL_V_MIN = REAL_V_MIN, double SQ_REAL_V_MAX = REAL_V_MAX, overflow OVF_ACTION_OVERRIDE = OVF_ACTION,
+        BASE_T _SQ_V_MIN = v2s<BASE_T, F>(SQ_REAL_V_MIN), BASE_T _SQ_V_MAX = v2s<BASE_T, F>(SQ_REAL_V_MAX),
+        // include overflow check if the value range of sq is smaller
+        bool _OVF_CHECK_NEEDED = (V_MIN < _SQ_V_MIN || _SQ_V_MAX < V_MAX) >
+    requires ( RuntimeCheckAllowedWhenNeeded<OVF_ACTION_OVERRIDE, _OVF_CHECK_NEEDED> )
     sq<SQ_REAL_V_MIN, SQ_REAL_V_MAX> constexpr to_sq() const noexcept {
-        static constexpr BASE_T SQ_V_MIN = v2s<BASE_T, F>(SQ_REAL_V_MIN);
-        static constexpr BASE_T SQ_V_MAX = v2s<BASE_T, F>(SQ_REAL_V_MAX);
-
         BASE_T sqValue = value;
 
-        // include overflow check if the value range of sq is smaller
-        static constexpr bool overflowCheckNeeded = V_MIN < SQ_V_MIN || SQ_V_MAX < V_MAX;
-        if constexpr (overflowCheckNeeded) {
-
-            // if overflow is FORBIDDEN, remind the user that overflow needs to be changed for this method
-            static_assert(!overflowCheckNeeded || overflow::FORBIDDEN != OVF_ACTION_OVERRIDE,
-                "runtime overflow check is not allowed; allow, or override default overflow action");
-
+        if constexpr (_OVF_CHECK_NEEDED) {
             if constexpr (overflow::ASSERT == OVF_ACTION_OVERRIDE) {
-                if ( !(sqValue >= SQ_V_MIN && sqValue <= SQ_V_MAX)) {
+                if ( !(sqValue >= _SQ_V_MIN && sqValue <= _SQ_V_MAX)) {
                     assert(false);  // sqValue is out of range
                 }
             }
             else if constexpr (overflow::SATURATE == OVF_ACTION_OVERRIDE) {
-                if ( !(sqValue >= SQ_V_MIN)) {
-                    sqValue = SQ_V_MIN;
+                if ( !(sqValue >= _SQ_V_MIN)) {
+                    sqValue = _SQ_V_MIN;
                 }
-                if ( !(sqValue <= SQ_V_MAX)) {
-                    sqValue = SQ_V_MAX;
+                if ( !(sqValue <= _SQ_V_MAX)) {
+                    sqValue = _SQ_V_MAX;
                 }
             }
             else { /* overflow::ALLOWED, overflow::NO_CHECK: no checks performed */ }

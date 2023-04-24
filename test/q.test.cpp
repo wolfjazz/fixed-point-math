@@ -263,14 +263,14 @@ protected:
 
 TEST_F(QTest_Sq, q_embedded_sq__from_real__sq_value_is_correct) {
     constexpr double REAL_SQ_VALUE = +356.;
-    auto sqValue = i32q20::from_real<REAL_SQ_VALUE>().to_sq();
+    auto sqValue = i32q20::sq<>::from_real<REAL_SQ_VALUE>();
 
-    ASSERT_NEAR(REAL_SQ_VALUE, sqValue.to_real(), i32q20::RESOLUTION);
+    ASSERT_NEAR(REAL_SQ_VALUE, sqValue.to_real(), i32q20::sq<>::RESOLUTION);
 }
 
 TEST_F(QTest_Sq, q_embedded_sq__smaller_value_range_from_real__sq_value_is_correct) {
     constexpr double REAL_SQ_VALUE = -400.;
-    auto sqValue = i32q20::from_real<REAL_SQ_VALUE>().to_sq<-400., 400., overflow::SATURATE>();
+    auto sqValue = i32q20::sq<-400., 400.>::from_real<REAL_SQ_VALUE>();
 
     ASSERT_NEAR(REAL_SQ_VALUE, sqValue.to_real(), i32q20::RESOLUTION);
 }

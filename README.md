@@ -125,16 +125,15 @@ auto cast3 = construe_q_cast<i16q2<40., 100.>>(b);
 /* static Q-type for static formulas that have to be used to guarantee at compile time that a calculation
  * works for a range of input values. Runtime checks are only needed when a q value is transformed
  * into an sq value (and vice versa) when the value range gets smaller.
- * sq-only formulas are guaranteed to be safe at runtime, because for each operator the value range is
- * modified and checked against overflow at compile-time. Runtime checks are not included as long as
- * only sq values are used in the formula. This guarantees that the formula compiles into an efficient
- * calculation.
+ * sq-only formulas are guaranteed to be safe at runtime, because for each operator the value range
+ * is modified and checked against overflow at compile-time. Runtime checks are not included as long
+ * as only sq values are used in the formula. This guarantees that the formula compiles into an
+ * efficient calculation.
  * Note: By design, sq values cannot be changed. For each operator a new sq value is constructed.
  *  => q values are dynamic and can be changed, but they do not implement mathematical operations.
- *     For formulas sq values are needed; they are static so that formulas can be guaranteed to
- *     be secure for a given range of input values. As a result, sq values can only live in their
- *     local scope, e.g. a function. For inter-scope transitions q values are needed to carry a value.
- */
+ *     For formulas sq values are needed; they are static so that formulas can be guaranteed to be
+ *     secure for a given range of input values. Results are usually transformed back into q values.
+ *  => q values store dynamic values, sq values are used for calculations. */
 fpm::sq<type, f, v_min, v_max>;
 
 // predefined types

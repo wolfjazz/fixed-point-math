@@ -7,13 +7,15 @@
 
 #include <cstdint>
 #include <type_traits>
+#include <utility>
 
 
 /** Fixed-Point Math Namespace. */
 namespace fpm {
 
-/** Overflow actions. */
-enum overflow : uint8_t {
+/** Overflow actions.
+ * \note Prioritized order: highest priority at top, lowest at bottom. */
+enum class overflow : uint8_t {
     /// Default. Code must not compile if an overflow check is required.
     /// \note: It is best practice to keep this default action when possible, because this way the
     /// compiler will complain if an overflow check is required at some point, and the developer can
@@ -37,9 +39,19 @@ enum overflow : uint8_t {
     ALLOWED = NO_CHECK,
 };
 
+/** \returns whether overflow action a is stricter than overflow action b. */
+consteval bool is_ovf_stricter(overflow a, overflow b) {
+    return a < b;
+}
+
 
 /** Scaling factor type. */
 using scaling_t = int8_t;
+
+
+/** Intermediate type used for compile-time and runtime calculations with (s)q values. */
+template< typename BASE_T >
+using interm_t = std::conditional_t<std::is_signed_v<BASE_T>, int64_t, uint64_t>;
 
 
 /** Scale-To-Scale scaling function.
@@ -113,8 +125,38 @@ consteval TARGET_T v2s(double fpValue) noexcept {
     }
 }
 
-}
 
+// ////////////////////////////////////////////////////////////////////////////////////////////// //
+// ----------------------------------------- Concepts ------------------------------------------- //
+// ////////////////////////////////////////////////////////////////////////////////////////////// //
+
+/** Concept of a valid (s)q base-type. */
+template< typename BASE_T >
+concept ValidBaseType = (
+       std::is_integral_v<BASE_T>
+    && sizeof(BASE_T) <= 4u
+);
+
+/** Concept of a valid (s)q type value range that fits the specified base type. */
+template< typename BASE_T, scaling_t F, double REAL_V_MIN, double REAL_V_MAX >
+concept RealLimitsInRangeOfBaseType = (
+       std::in_range<BASE_T>(v2s<interm_t<BASE_T>, F>(REAL_V_MIN))
+    && std::in_range<BASE_T>(v2s<interm_t<BASE_T>, F>(REAL_V_MAX))
+    && REAL_V_MIN <= REAL_V_MAX
+    && (std::is_signed_v<BASE_T> || REAL_V_MIN >= 0.)
+);
+
+/** Concept of a valid value that fits the specified base type. */
+template< typename BASE_T, scaling_t F, double REAL_VALUE >
+concept RealValueScaledFitsBaseType = ( std::in_range<BASE_T>(v2s<interm_t<BASE_T>, F>(REAL_VALUE)) );
+
+/** Concept: Runtime overflow check required when needed.
+ * \note If this fails, runtime overflow check is needed but not allowed for desired q type.
+ *       Allow for type, or specify the action-override template argument (to be preferred). */
+template< overflow OVF_ACTION, bool CHECK_NEEDED = true >
+concept RuntimeCheckAllowedWhenNeeded = ( !CHECK_NEEDED || overflow::FORBIDDEN != OVF_ACTION );
+
+}
 
 #endif
 // EOF
