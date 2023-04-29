@@ -392,6 +392,28 @@ protected:
     }
 };
 
+TEST_F(QTest_CopyScale, q_restrict__some_q_type__restricted_q_type) {
+    constexpr double RESTRICTED_LIMIT = 1024.;
+    using restricted_q_t = i32q4::restrict<-RESTRICTED_LIMIT, +RESTRICTED_LIMIT, overflow::SATURATE>;
+    using restricted_l_q_t = i32q4::restrict<-RESTRICTED_LIMIT, i32q4::REAL_V_MAX, overflow::SATURATE>;
+    using restricted_r_q_t = i32q4::restrict<i32q4::REAL_V_MIN, +RESTRICTED_LIMIT, overflow::SATURATE>;
+
+    ASSERT_TRUE((std::is_same_v< q<int32_t, 4, -RESTRICTED_LIMIT, +RESTRICTED_LIMIT, overflow::SATURATE>, restricted_q_t >));
+    ASSERT_TRUE((std::is_same_v< q<int32_t, 4, -RESTRICTED_LIMIT, i32q4::REAL_V_MAX, overflow::SATURATE>, restricted_l_q_t >));
+    ASSERT_TRUE((std::is_same_v< q<int32_t, 4, i32q4::REAL_V_MIN, +RESTRICTED_LIMIT, overflow::SATURATE>, restricted_r_q_t >));
+}
+
+TEST_F(QTest_CopyScale, q_extend__some_q_type__extend_q_type) {
+    constexpr double EXTENDED_LIMIT = 4096.;
+    using extended_q_t = i32q4::extend<-EXTENDED_LIMIT, +EXTENDED_LIMIT, overflow::SATURATE>;
+    using extended_l_q_t = i32q4::extend<-EXTENDED_LIMIT, i32q4::REAL_V_MAX, overflow::SATURATE>;
+    using extended_r_q_t = i32q4::extend<i32q4::REAL_V_MIN, +EXTENDED_LIMIT, overflow::SATURATE>;
+
+    ASSERT_TRUE((std::is_same_v< q<int32_t, 4, -EXTENDED_LIMIT, +EXTENDED_LIMIT, overflow::SATURATE>, extended_q_t >));
+    ASSERT_TRUE((std::is_same_v< q<int32_t, 4, -EXTENDED_LIMIT, i32q4::REAL_V_MAX, overflow::SATURATE>, extended_l_q_t >));
+    ASSERT_TRUE((std::is_same_v< q<int32_t, 4, i32q4::REAL_V_MIN, +EXTENDED_LIMIT, overflow::SATURATE>, extended_r_q_t >));
+}
+
 TEST_F(QTest_CopyScale, q_copy_constructor__int16_someF__int16_sameF) {
     constexpr double REAL_VALUE_A = -1024.2;
     auto a = i16q4::from_real<REAL_VALUE_A>();

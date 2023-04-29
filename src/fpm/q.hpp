@@ -37,6 +37,16 @@ public:
     template< double SQ_REAL_V_MIN = REAL_V_MIN, double SQ_REAL_V_MAX = REAL_V_MAX >
     using sq = fpm::sq< BASE_T, F, SQ_REAL_V_MIN, SQ_REAL_V_MAX >;
 
+    /// Create a new q type with the same base type and scaling but a narrower real value range.
+    template< double RQ_REAL_V_MIN, double RQ_REAL_V_MAX, overflow OVF_ACTION_OVERRIDE = OVF_ACTION >
+    requires ( REAL_V_MIN <= RQ_REAL_V_MIN && RQ_REAL_V_MAX <= REAL_V_MAX )
+    using restrict = q< BASE_T, F, RQ_REAL_V_MIN, RQ_REAL_V_MAX, OVF_ACTION_OVERRIDE >;
+
+    /// Create a new q type with the same base type and scaling but a larger real value range.
+    template< double EQ_REAL_V_MIN, double EQ_REAL_V_MAX, overflow OVF_ACTION_OVERRIDE = OVF_ACTION >
+    requires ( EQ_REAL_V_MIN <= REAL_V_MIN && REAL_V_MAX <= EQ_REAL_V_MAX )
+    using extend = q< BASE_T, F, EQ_REAL_V_MIN, EQ_REAL_V_MAX, OVF_ACTION_OVERRIDE >;
+
     /// Named "constructor" from a runtime variable (lvalue) or a constant (rvalue).
     /// \note Overflow check is always included unless explicitly disabled.
     template< overflow OVF_ACTION_OVERRIDE = OVF_ACTION >

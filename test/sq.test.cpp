@@ -93,4 +93,26 @@ TEST_F(SQTest_Construct, sq_downscale_copy_constructor__int16_someF__int16_small
     ASSERT_NEAR(REAL_VALUE_A, b.to_real(), i32sq4::RESOLUTION + i32sqm2::RESOLUTION);
 }
 
+TEST_F(SQTest_Construct, sq_restrict__some_sq_type__restricted_sq_type) {
+    constexpr double RESTRICTED_LIMIT = 1024.;
+    using restricted_q_t = i32sq4::restrict<-RESTRICTED_LIMIT, +RESTRICTED_LIMIT>;
+    using restricted_l_q_t = i32sq4::restrict<-RESTRICTED_LIMIT, i32sq4::REAL_V_MAX>;
+    using restricted_r_q_t = i32sq4::restrict<i32sq4::REAL_V_MIN, +RESTRICTED_LIMIT>;
+
+    ASSERT_TRUE((std::is_same_v< sq<int32_t, 4, -RESTRICTED_LIMIT, +RESTRICTED_LIMIT>, restricted_q_t >));
+    ASSERT_TRUE((std::is_same_v< sq<int32_t, 4, -RESTRICTED_LIMIT, i32sq4::REAL_V_MAX>, restricted_l_q_t >));
+    ASSERT_TRUE((std::is_same_v< sq<int32_t, 4, i32sq4::REAL_V_MIN, +RESTRICTED_LIMIT>, restricted_r_q_t >));
+}
+
+TEST_F(SQTest_Construct, sq_extend__some_sq_type__extend_sq_type) {
+    constexpr double EXTENDED_LIMIT = 4096.;
+    using extended_q_t = i32sq4::extend<-EXTENDED_LIMIT, +EXTENDED_LIMIT>;
+    using extended_l_q_t = i32sq4::extend<-EXTENDED_LIMIT, i32sq4::REAL_V_MAX>;
+    using extended_r_q_t = i32sq4::extend<i32sq4::REAL_V_MIN, +EXTENDED_LIMIT>;
+
+    ASSERT_TRUE((std::is_same_v< sq<int32_t, 4, -EXTENDED_LIMIT, +EXTENDED_LIMIT>, extended_q_t >));
+    ASSERT_TRUE((std::is_same_v< sq<int32_t, 4, -EXTENDED_LIMIT, i32sq4::REAL_V_MAX>, extended_l_q_t >));
+    ASSERT_TRUE((std::is_same_v< sq<int32_t, 4, i32sq4::REAL_V_MIN, +EXTENDED_LIMIT>, extended_r_q_t >));
+}
+
 // EOF
