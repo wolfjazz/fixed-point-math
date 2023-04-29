@@ -102,11 +102,10 @@ public:
     /// sum of the two resolutions before and after a down-scaling operation.
     template< overflow OVF_ACTION_OVERRIDE = OVF_ACTION,
         double _REAL_V_MIN_FROM, double _REAL_V_MAX_FROM, scaling_t _F_FROM, overflow _OVF_FROM,
-        // include overflow check if value range of this type is smaller than range of from-type,
-        // or if scaling of this type is larger;
+        // include overflow check if value range of this type is smaller than range of from-type
         // note: real limits are compared because scaled integers with different q's cannot be compared so easily
         bool _OVF_CHECK_NEEDED = (_REAL_V_MIN_FROM < REAL_V_MIN || REAL_V_MAX < _REAL_V_MAX_FROM
-                                  || is_ovf_stricter(OVF_ACTION_OVERRIDE, _OVF_FROM) || F > _F_FROM) >
+                                  || is_ovf_stricter(OVF_ACTION_OVERRIDE, _OVF_FROM)) >
     requires ( RuntimeCheckAllowedWhenNeeded<OVF_ACTION_OVERRIDE, _OVF_CHECK_NEEDED> )
     static constexpr q from_q(q<BASE_T, _F_FROM, _REAL_V_MIN_FROM, _REAL_V_MAX_FROM, _OVF_FROM> const &from) noexcept {
         using interm_b_t = interm_t<BASE_T>;
@@ -191,12 +190,11 @@ public:
 
     /// Explicit cast to a different q type with a different base type.
     template< typename _BASE_T_C, scaling_t _F_C, double _REAL_V_MIN_C, double _REAL_V_MAX_C, overflow _OVF_C,
-        // include overflow check if value range of cast-type is smaller than range of this type,
-        // or if scaling of cast-type is larger;
+        // include overflow check if value range of cast-type is smaller than range of this type
         // note: real limits are compared because scaled integers with different base types and q's
         //       cannot be compared so easily
         bool _OVF_CHECK_NEEDED = (REAL_V_MIN < _REAL_V_MIN_C || _REAL_V_MAX_C < REAL_V_MAX
-                                  || is_ovf_stricter(_OVF_C, OVF_ACTION) || _F_C > F) >
+                                  || is_ovf_stricter(_OVF_C, OVF_ACTION)) >
     requires (
         !std::is_same_v<BASE_T, _BASE_T_C>
         && RuntimeCheckAllowedWhenNeeded<_OVF_C, _OVF_CHECK_NEEDED>

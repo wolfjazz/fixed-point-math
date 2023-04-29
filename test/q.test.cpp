@@ -415,13 +415,11 @@ TEST_F(QTest_CopyScale, q_move_constructor__int16_someF__int16_sameF) {
 TEST_F(QTest_CopyScale, q_upscale_copy_constructor__int16_someF__int16_largerF) {
     constexpr double REAL_VALUE_A = -1024.2;
     auto a = i32q4::from_real<REAL_VALUE_A>();
-    auto b = i32q8::from_q<overflow::SATURATE>(a);
-    auto c = i32q8_sat::from_q(a);
+    auto b = i32q8::from_q(a);  // no overflow check needed here
 
     // note: the representation error due to rounding is determined by the resolution of the initial
     //       q4 type and does not change if the value is up-scaled to another q type
     ASSERT_NEAR(REAL_VALUE_A, b.to_real(), i32q4::RESOLUTION);
-    ASSERT_NEAR(REAL_VALUE_A, c.to_real(), i32q4::RESOLUTION);
 }
 
 TEST_F(QTest_CopyScale, q_upscale_copy_constructor_saturate__int16_someF__int16_largerF) {
@@ -447,7 +445,7 @@ TEST_F(QTest_CopyScale, q_upscale_copy_constructor_overflow_allowed__int16_someF
 TEST_F(QTest_CopyScale, q_downscale_copy_constructor__int16_someF__int16_smallerF) {
     constexpr double REAL_VALUE_A = -1024.2;
     auto a = i32q4::from_real<REAL_VALUE_A>();
-    auto b = i32qm2::from_q(a);
+    auto b = i32qm2::from_q(a);  // no overflow check needed here
 
     // note: for down-scaling, the representation error is at most the sum of the two resolutions
     //       before and after the scaling operation
@@ -478,9 +476,9 @@ TEST_F(QTest_CopyScale, q_assignment__different_q_type__value_is_scaled_and_assi
     constexpr double REAL_VALUE_A = -1024.2;
     auto a = i32q4::from_real<REAL_VALUE_A>();
     auto b = i32qm2::from_scaled<0>();
-    auto c = i32q8_sat::from_scaled<0>();
-    b = a;  // downscale-assignment
-    c = a;  // upscale-assignment does not work without overflow check
+    auto c = i32q8::from_scaled<0>();
+    b = a;  // downscale-assignment (no runtime checks needed here)
+    c = a;  // upscale-assignment (no runtime checks needed here)
 
     ASSERT_NEAR(REAL_VALUE_A, b.to_real(), i32q4::RESOLUTION + i32qm2::RESOLUTION);  // downscale decreases resolution
     ASSERT_NEAR(REAL_VALUE_A, c.to_real(), i32q4::RESOLUTION);  // upscale does not change initial resolution
