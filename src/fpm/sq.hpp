@@ -40,15 +40,9 @@ public:
     requires ( std::is_same_v<BASE_T, _BASE_T_FR> && _F_FR == F )
     friend class q;
 
-    /// Create a new sq type with the same base type and scaling but a narrower real value range.
-    template< double RQ_REAL_V_MIN, double RQ_REAL_V_MAX >
-    requires ( REAL_V_MIN <= RQ_REAL_V_MIN && RQ_REAL_V_MAX <= REAL_V_MAX )
-    using restrict = sq< BASE_T, F, RQ_REAL_V_MIN, RQ_REAL_V_MAX >;
-
-    /// Create a new sq type with the same base type and scaling but a larger real value range.
-    template< double EQ_REAL_V_MIN, double EQ_REAL_V_MAX >
-    requires ( EQ_REAL_V_MIN <= REAL_V_MIN && REAL_V_MAX <= EQ_REAL_V_MAX )
-    using extend = sq< BASE_T, F, EQ_REAL_V_MIN, EQ_REAL_V_MAX >;
+    /// Create a new sq type with the same base type and scaling but a different real value range.
+    template< double NEW_REAL_V_MIN, double NEW_REAL_V_MAX >
+    using delimit = sq< BASE_T, F, NEW_REAL_V_MIN, NEW_REAL_V_MAX >;
 
     /// Named compile-time-only "constructor" from a floating-point value. This will use v2s to scale
     /// the given floating-point value at compile-time and then call the sq constructor with the
