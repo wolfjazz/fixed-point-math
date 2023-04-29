@@ -99,7 +99,11 @@ public:
     /// \warning This conversion is expensive if the target type is a floating-point type.
     ///          If the target type is an integral type, there can be a significant loss of precision.
     ///          Use carefully!
+#   if defined FPM_USE_S2SH
+    template< typename TARGET_T = int >
+#   else
     template< typename TARGET_T = double >
+#   endif
     TARGET_T to_real() const noexcept {
         return s2s<TARGET_T, F, 0>(value);
     }

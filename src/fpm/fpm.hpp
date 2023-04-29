@@ -63,7 +63,7 @@ using interm_t = std::conditional_t<std::is_signed_v<BASE_T>, int64_t, uint64_t>
  * \warning Floating-point types are possible, however quite expensive at runtime!
  *          Use carefully! */
 template< typename TARGET_T, scaling_t FROM, scaling_t TO, typename VALUE_T >
-constexpr TARGET_T s2s(VALUE_T value) noexcept {
+constexpr TARGET_T s2smd(VALUE_T value) noexcept {
     // use common type for calculation to avoid loss of precision
     using COMMON_T = typename std::common_type<VALUE_T, TARGET_T>::type;
 
@@ -77,7 +77,6 @@ constexpr TARGET_T s2s(VALUE_T value) noexcept {
         return static_cast<TARGET_T>(value);
     }
 }
-
 
 /** Scale-To-Scale-Shift scaling function.
  * Used to scale a given integer value to a different scaling factor and target type via arithmetic
@@ -105,6 +104,17 @@ constexpr TARGET_T s2sh(VALUE_T value) noexcept {
         return static_cast<TARGET_T>(value);
     }
 }
+
+/// Scale-To-Scale function used in the implementations of the (s)q types.
+/// Proxy for the s2sx function pre-selected by the user.
+/// \note FPM_USE_S2SH can be predefined before this header is included into a source file.
+#if !defined FPM_USE_S2SH
+template< typename TARGET_T, scaling_t FROM, scaling_t TO, typename VALUE_T >
+constexpr inline TARGET_T s2s(VALUE_T value) noexcept { return s2smd<TARGET_T, FROM, TO>(value); }
+#else
+template< typename TARGET_T, scaling_t FROM, scaling_t TO, typename VALUE_T >
+constexpr inline TARGET_T s2s(VALUE_T value) noexcept { return s2sh<TARGET_T, FROM, TO>(value); }
+#endif
 
 
 /** Value-To-Scale scaling function.
