@@ -20,10 +20,11 @@ namespace fpm {
 template<
     typename BASE_T_,  ///< type of the scaled integer stored in memory
     scaling_t F_,      ///< number of fraction bits (precision 2^-F)
-    double REAL_V_MIN_ = v2s<double, -F_>((double)std::numeric_limits<BASE_T_>::min()),   ///< minimum real value represented by this type
-    double REAL_V_MAX_ = v2s<double, -F_>((double)std::numeric_limits<BASE_T_>::max()) >  ///< maximum real value represented by this type
+    double REAL_V_MIN_ = v2s<double, -F_>((double)std::numeric_limits<BASE_T_>::min()),  ///< minimum real value represented by this type
+    double REAL_V_MAX_ = v2s<double, -F_>((double)std::numeric_limits<BASE_T_>::max())   ///< maximum real value represented by this type
+>
 requires (
-       ValidBaseType<BASE_T_>
+    ValidBaseType<BASE_T_>
     && ValidScaling<F_>
     && RealLimitsInRangeOfBaseType<BASE_T_, F_, REAL_V_MIN_, REAL_V_MAX_>
 )
@@ -37,9 +38,14 @@ public:
     static constexpr base_t V_MAX = v2s<base_t, F>(REAL_V_MAX_);  ///< maximum value of integer value range
     static constexpr double RESOLUTION = v2s<double, -F>(1);  ///< real resolution of this type
 
-    // friend related q type so that it can access the private members of this type to construct it
-    template<typename _BASE_T_FR, scaling_t _F_FR, double, double, overflow>
-    requires ( std::is_same_v<base_t, _BASE_T_FR> && _F_FR == F )
+    // friend q type so that it can access the private members of this type to construct it
+    // Note: As of May 2023, partial specializations cannot be friended, so we friend q in general.
+    template< typename _BASE_T_Q, scaling_t _F_Q, double _REAL_V_MIN_Q, double _REAL_V_MAX_Q, overflow _OVF_Q >
+    requires (
+        ValidBaseType<_BASE_T_Q>
+        && ValidScaling<_F_Q>
+        && RealLimitsInRangeOfBaseType<_BASE_T_Q, _F_Q, _REAL_V_MIN_Q, _REAL_V_MAX_Q>
+    )
     friend class q;
 
     /// Create a new sq type with the same base type and scaling but a different real value range.

@@ -47,34 +47,71 @@ consteval bool is_ovf_stricter(overflow a, overflow b) noexcept {
 }
 
 
-/** Scaling factor type. */
+/// Scaling factor type.
 using scaling_t = int8_t;
 
-/** Intermediate type used for compile-time and runtime calculations with (s)q values. */
+/// Intermediate type used for compile-time and runtime calculations with (s)q values.
 template< typename BASE_T >
 using interm_t = std::conditional_t<std::is_signed_v<BASE_T>, int64_t, uint64_t>;
 
-/** Maximal size of q type base type supported. */
+/// Maximal size of q type base type supported.
 constexpr size_t MAX_BASETYPE_SIZE = sizeof(uint32_t);
 
-/** Maximum possible value of F to support correct scaling of floating-point types with
- * double precision. */
+/// Maximum possible value of F to support correct scaling of floating-point types with double precision.
 constexpr scaling_t MAX_F = 30;
 
-/** Returns the absolute value of the given input value.
- * \note C++23 already has constexpr abs(), but VSCode does not like it (yet) :( */
-template< typename VALUE_T, typename _TARGET_T = typename std::make_unsigned<VALUE_T>::type >
-requires ( std::is_signed_v<VALUE_T> && std::is_integral_v<VALUE_T> )
-consteval _TARGET_T abs(VALUE_T const input) noexcept {
-    return static_cast<_TARGET_T>( input >= 0 ? input : -input );
+
+/// Internal implementations.
+namespace _i {
+
+    /** Returns the absolute value of the given input value.
+     * \note Shadows cmath::abs() as it is not declared constexpr, therefore VSCode would squiggle it here :( */
+    template< typename VALUE_T, typename _TARGET_T = typename std::make_unsigned<VALUE_T>::type >
+    requires ( std::is_signed_v<VALUE_T> && std::is_integral_v<VALUE_T> )
+    consteval _TARGET_T abs(VALUE_T const input) noexcept {
+        return static_cast<_TARGET_T>( input >= 0 ? input : -input );
+    }
+
+    /** Overflow check function.
+     * \note Works for signed and unsigned value type. */
+    template< overflow OVF_ACTION, typename VALUE_T >
+    constexpr void check_overflow(VALUE_T &value, VALUE_T const MIN, VALUE_T const MAX) noexcept {
+        if constexpr (overflow::ASSERT == OVF_ACTION) {
+            if ( !(value >= MIN && value <= MAX)) {
+                assert(false);  // value is out of range
+            }
+        }
+        else if constexpr (overflow::SATURATE == OVF_ACTION) {
+            if ( !(value >= MIN)) {
+                value = MIN;
+            }
+            else if ( !(value <= MAX)) {
+                value = MAX;
+            }
+            else { /* okay */ }
+        }
+        else { /* overflow::ALLOWED, overflow::NO_CHECK: no checks performed */ }
+    }
+
+    /// Functions defined for testing purposes.
+    namespace testing {
+        /** Returns the minimum distance between doubles (epsilon) for numbers of the magnitude
+         * of the given value.
+         * \warning Expensive at runtime! */
+        constexpr double fp_epsilon_for(double value) noexcept {
+            double epsilon = nextafter(value, std::numeric_limits<double>::infinity()) - value;
+            return epsilon;
+        }
+    }
 }
+
 
 /** Concept of a valid difference between two types and two scaling factors to support scaling
  * without overflow or significant loss of precision. */
 template< typename from_t, scaling_t F_FROM, typename to_t, scaling_t F_TO >
 concept ScalingIsPossible = (
-    ( ( sizeof(from_t) == sizeof(to_t) && abs(F_TO - F_FROM) <= (sizeof(from_t) * 8u) )
-      || abs(F_TO - F_FROM) <= (abs((int)sizeof(from_t) - (int)sizeof(to_t)) * 8u) )
+    ( ( sizeof(from_t) == sizeof(to_t) && _i::abs(F_TO - F_FROM) <= std::numeric_limits<to_t>::digits )
+      || _i::abs(F_TO - F_FROM) <= (std::numeric_limits<from_t>::digits - std::numeric_limits<to_t>::digits) )
 );
 
 
@@ -198,37 +235,6 @@ constexpr TARGET_T v2s(VALUE_T value) noexcept { return v2smd<TARGET_T, TO>(valu
 template< typename TARGET_T, scaling_t TO, typename VALUE_T >
 constexpr TARGET_T v2s(VALUE_T value) noexcept { return v2sh<TARGET_T, TO>(value); }
 #endif
-
-
-/** Overflow check function.
- * \note Works for signed and unsigned value type. */
-template< overflow OVF_ACTION, typename VALUE_T >
-constexpr void check_overflow(VALUE_T &value, VALUE_T const MIN, VALUE_T const MAX) noexcept {
-    if constexpr (overflow::ASSERT == OVF_ACTION) {
-        if ( !(value >= MIN && value <= MAX)) {
-            assert(false);  // value is out of range
-        }
-    }
-    else if constexpr (overflow::SATURATE == OVF_ACTION) {
-        if ( !(value >= MIN)) {
-            value = MIN;
-        }
-        else if ( !(value <= MAX)) {
-            value = MAX;
-        }
-        else { /* okay */ }
-    }
-    else { /* overflow::ALLOWED, overflow::NO_CHECK: no checks performed */ }
-}
-
-
-/** Returns the minimum distance between doubles (epsilon) for numbers of the magnitude
- * of the given value.
- * \warning Expensive at runtime! */
-constexpr double fp_epsilon_for(double value) noexcept {
-    double epsilon = nextafter(value, std::numeric_limits<double>::infinity()) - value;
-    return epsilon;
-}
 
 
 /** Concept of a valid (s)q base-type. */

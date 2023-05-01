@@ -675,11 +675,11 @@ TEST_F(QTest_Casting, q_static_cast__signed_user_range__unsigned_different_range
     auto dc = static_q_cast<u32q14, overflow::SATURATE>(d);
     auto ec = static_q_cast<u32q14, overflow::SATURATE>(e);
 
-    ASSERT_NEAR(152144., ac.to_real(), fp_epsilon_for(152144.));  // (u32::max - 110000*2^14) / 2^14
-    ASSERT_NEAR(160000., bc.to_real(), fp_epsilon_for(160000.));  // (u32::max - 100000*2^14) / 2^14 saturated
-    ASSERT_NEAR( 80000., cc.to_real(), fp_epsilon_for( 80000.));
-    ASSERT_NEAR(100000., dc.to_real(), fp_epsilon_for(100000.));
-    ASSERT_NEAR(110000., ec.to_real(), fp_epsilon_for(110000.));
+    ASSERT_NEAR(152144., ac.to_real(), i16qm2::RESOLUTION);  // (u32::max - 110000*2^14) / 2^14
+    ASSERT_NEAR(160000., bc.to_real(), i16qm2::RESOLUTION);  // (u32::max - 100000*2^14) / 2^14 saturated to u32q14::REAL_V_MAX
+    ASSERT_NEAR( 80000., cc.to_real(), i16qm2::RESOLUTION);  // 50000 saturated to u32q14::REAL_V_MIN
+    ASSERT_NEAR(100000., dc.to_real(), i16qm2::RESOLUTION);
+    ASSERT_NEAR(110000., ec.to_real(), i16qm2::RESOLUTION);
 }
 
 TEST_F(QTest_Casting, q_static_cast__unsigned_user_range__signed_different_range__saturated_value) {
@@ -707,11 +707,11 @@ TEST_F(QTest_Casting, q_static_cast__unsigned_user_range__signed_different_range
     auto dc = static_q_cast<i32q12, overflow::SATURATE>(d);
     auto ec = static_q_cast<i32q12, overflow::SATURATE>(e);
 
-    ASSERT_NEAR(     0., ac.to_real(), fp_epsilon_for(     0.));
-    ASSERT_NEAR( 50000., bc.to_real(), fp_epsilon_for( 50000.));
-    ASSERT_NEAR(100000., cc.to_real(), fp_epsilon_for(100000.));
-    ASSERT_NEAR(110000., dc.to_real(), fp_epsilon_for(110000.));
-    ASSERT_NEAR(160000., ec.to_real(), fp_epsilon_for(160000.));
+    ASSERT_NEAR(     0., ac.to_real(), u16qm4::RESOLUTION);
+    ASSERT_NEAR( 50000., bc.to_real(), u16qm4::RESOLUTION);
+    ASSERT_NEAR(100000., cc.to_real(), u16qm4::RESOLUTION);
+    ASSERT_NEAR(110000., dc.to_real(), u16qm4::RESOLUTION);
+    ASSERT_NEAR(160000., ec.to_real(), u16qm4::RESOLUTION);  // 200000 saturated to i32q12::REAL_V_MAX
 }
 
 TEST_F(QTest_Casting, q_safe_cast__positive_real_value_signed__unsigned_type_smallerF_same_value) {
