@@ -30,7 +30,7 @@ In the end, we just want to perform calculations with a predefined value range a
 - different types of runtime overflow actions (overflow: forbidden, assert, saturate, allowed/no-check)
 - implicit conversion between fixed-point types of same base type only to higher precision (no losses)
 - explicit conversion to fixed-point type with same base type but different precision via up/downscale-copy
-- conversion to different base types only via explicit casts (static_q_cast, safe_q_cast, construe_q_cast)
+- conversion to different base types only via explicit casts (static_q_cast, safe_q_cast, force_q_cast)
 - simple, easy-to-debug, on-point formulas without any obscuring scaling corrections
 - implementation of the most-common mathematical operators (+, -, \*, /, %, <<, >>, ==, !=, <, >)
 - some sophisticated operators like pow, sqr, sqrt -> integral powers and roots
@@ -107,11 +107,11 @@ f = a;
 
 // whether or not runtime checks are performed, depends on the type of the cast:
 auto cast1 = static_cast<i16q2<>>(b);  // Performs checks if needed (decided at compile-time).
-auto cast1b = static_q_cast<i16q2<>>(b);  // Same as static_cast; Provided for consistency.
-auto cast2 = safe_q_cast<i16q2<>>(a);  // Safe cast will always perform checks.
-// construe-cast doesn't perform checks in the cast! Value is simply reused.
+auto cast1b = static_q_cast<i16q2<>, overflow::SATURATE>(b);  // Same as static_cast but with overflow override.
+auto cast2 = safe_q_cast<i16q2<>, overflow::ASSERT>(a);  // Safe cast will always perform checks. overflow:NO_CHECK is not permitted.
+// force-cast doesn't perform any scaling or overflow checks! Value is simply reused.
 // Can overflow! (E.g. useful if an overflow is required as part of an algorithm.)
-auto cast3 = construe_q_cast<i16q2<40., 100.>>(b);
+auto cast3 = force_q_cast<i16q2<40., 100.>>(b);
 
 // copy constructors can be used to cast when the base type is the same but the precision is different
 

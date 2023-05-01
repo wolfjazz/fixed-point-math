@@ -17,7 +17,7 @@ set(Sources
 set(Headers
 )
 
-add_compile_options(-Wall -Wextra -pedantic -Werror)
+add_compile_options(-Wall -Wextra -pedantic -Werror -fconcepts-diagnostics-depth=2)
 
 add_executable(${This} ${Sources} ${Headers})
 target_link_libraries(${This} PUBLIC ${CMAKE_THREAD_LIBS_INIT}

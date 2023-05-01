@@ -5,6 +5,8 @@
 #ifndef _FPM_FPM_HPP_
 #define _FPM_FPM_HPP_
 
+#include <cassert>
+#include <cmath>
 #include <cstdint>
 #include <type_traits>
 #include <utility>
@@ -40,7 +42,7 @@ enum class overflow : uint8_t {
 };
 
 /** \returns whether overflow action a is stricter than overflow action b. */
-consteval bool is_ovf_stricter(overflow a, overflow b) {
+consteval bool is_ovf_stricter(overflow a, overflow b) noexcept {
     return a < b;
 }
 
@@ -48,10 +50,32 @@ consteval bool is_ovf_stricter(overflow a, overflow b) {
 /** Scaling factor type. */
 using scaling_t = int8_t;
 
-
 /** Intermediate type used for compile-time and runtime calculations with (s)q values. */
 template< typename BASE_T >
 using interm_t = std::conditional_t<std::is_signed_v<BASE_T>, int64_t, uint64_t>;
+
+/** Maximal size of q type base type supported. */
+constexpr size_t MAX_BASETYPE_SIZE = sizeof(uint32_t);
+
+/** Maximum possible value of F to support correct scaling of floating-point types with
+ * double precision. */
+constexpr scaling_t MAX_F = 30;
+
+/** Returns the absolute value of the given input value.
+ * \note C++23 already has constexpr abs(), but VSCode does not like it (yet) :( */
+template< typename VALUE_T, typename _TARGET_T = typename std::make_unsigned<VALUE_T>::type >
+requires ( std::is_signed_v<VALUE_T> && std::is_integral_v<VALUE_T> )
+consteval _TARGET_T abs(VALUE_T const input) noexcept {
+    return static_cast<_TARGET_T>( input >= 0 ? input : -input );
+}
+
+/** Concept of a valid difference between two types and two scaling factors to support scaling
+ * without overflow or significant loss of precision. */
+template< typename from_t, scaling_t F_FROM, typename to_t, scaling_t F_TO >
+concept ScalingIsPossible = (
+    ( ( sizeof(from_t) == sizeof(to_t) && abs(F_TO - F_FROM) <= (sizeof(from_t) * 8u) )
+      || abs(F_TO - F_FROM) <= (abs((int)sizeof(from_t) - (int)sizeof(to_t)) * 8u) )
+);
 
 
 /** Scale-To-Scale scaling function.
@@ -107,44 +131,117 @@ constexpr TARGET_T s2sh(VALUE_T value) noexcept {
 
 /// Scale-To-Scale function used in the implementations of the (s)q types.
 /// Proxy for the s2sx function pre-selected by the user.
-/// \note FPM_USE_S2SH can be predefined before this header is included into a source file.
-#if !defined FPM_USE_S2SH
+/// \note FPM_USE_SH can be predefined before this header is included into a source file.
+/// \note constexpr implies inline.
+#if !defined FPM_USE_SH
 template< typename TARGET_T, scaling_t FROM, scaling_t TO, typename VALUE_T >
-constexpr inline TARGET_T s2s(VALUE_T value) noexcept { return s2smd<TARGET_T, FROM, TO>(value); }
+constexpr TARGET_T s2s(VALUE_T value) noexcept { return s2smd<TARGET_T, FROM, TO>(value); }
 #else
 template< typename TARGET_T, scaling_t FROM, scaling_t TO, typename VALUE_T >
-constexpr inline TARGET_T s2s(VALUE_T value) noexcept { return s2sh<TARGET_T, FROM, TO>(value); }
+constexpr TARGET_T s2s(VALUE_T value) noexcept { return s2sh<TARGET_T, FROM, TO>(value); }
 #endif
 
 
-/** Value-To-Scale scaling function.
+/** Value-To-Scale scaling function. Uses multiplication/division for the conversion.
  * Used to scale a given compile-time floating-point value to a scaled runtime value of target type.
- * \note consteval ensures that this evaluates to a compile-time constant expression.
  * \warning Floating-point target types are possible, however quite expensive at runtime!
  *          Use carefully! */
-template< typename TARGET_T, scaling_t TO >
-consteval TARGET_T v2s(double fpValue) noexcept {
+template< typename TARGET_T, scaling_t TO, typename VALUE_T >
+constexpr TARGET_T v2smd(VALUE_T value) noexcept {
+    // use common type for shift to avoid loss of precision
+    using COMMON_T = typename std::common_type<VALUE_T, TARGET_T>::type;
+
     if constexpr (TO < 0) {
-        return static_cast<TARGET_T>(fpValue / (1 << (unsigned)(-TO)));
+        return static_cast<TARGET_T>( static_cast<COMMON_T>(value) / (1 << (unsigned)(-TO)) );
     }
     else if constexpr (TO > 0) {
-        return static_cast<TARGET_T>(fpValue * (1 << (unsigned)(TO)));
+        return static_cast<TARGET_T>( static_cast<COMMON_T>(value) * (1 << (unsigned)TO) );
     }
     else /* TO == 0 */ {
-        return static_cast<TARGET_T>(fpValue);
+        return static_cast<TARGET_T>(value);
     }
 }
 
+/** Value-To-Scale scaling function. Uses arithmetic shifts for the conversion.
+ * \note Shift operations are well defined for C++20 and above (signed integers are Two's Complement).
+ * \note Floating-point target types are NOT possible, since shift operators are not defined for them.
+ *
+ * \warning Be aware that arithmetic right shift always rounds down. Consequently, the scaled result
+ *          is not symmetric for the same value with a different sign
+ *          (e.g. -514 >> 4u is -33 but +514 >> 4u is +32). */
+template< typename TARGET_T, scaling_t TO, typename VALUE_T >
+constexpr TARGET_T v2sh(VALUE_T value) noexcept {
+    static_assert(std::is_integral_v<VALUE_T> && std::is_integral_v<TARGET_T>, "v2sh only supports integer types");
 
-// ////////////////////////////////////////////////////////////////////////////////////////////// //
-// ----------------------------------------- Concepts ------------------------------------------- //
-// ////////////////////////////////////////////////////////////////////////////////////////////// //
+    // use common type for calculation to avoid loss of precision
+    using COMMON_T = typename std::common_type<VALUE_T, TARGET_T>::type;
+
+    if constexpr (TO < 0) {
+        return static_cast<TARGET_T>( static_cast<COMMON_T>(value) >> (unsigned)(-TO) );
+    }
+    else if constexpr (TO > 0) {
+        return static_cast<TARGET_T>( static_cast<COMMON_T>(value) << (unsigned)TO );
+    }
+    else /* TO == 0 */ {
+        return static_cast<TARGET_T>(value);
+    }
+}
+
+/// Value-To-Scale function used in the implementations of the (s)q types.
+/// Proxy for the v2sx function pre-selected by the user.
+/// \note FPM_USE_SH can be predefined before this header is included into a source file.
+/// \note constexpr implies inline.
+#if !defined FPM_USE_SH
+template< typename TARGET_T, scaling_t TO, typename VALUE_T >
+constexpr TARGET_T v2s(VALUE_T value) noexcept { return v2smd<TARGET_T, TO>(value); }
+#else
+template< typename TARGET_T, scaling_t TO, typename VALUE_T >
+constexpr TARGET_T v2s(VALUE_T value) noexcept { return v2sh<TARGET_T, TO>(value); }
+#endif
+
+
+/** Overflow check function.
+ * \note Works for signed and unsigned value type. */
+template< overflow OVF_ACTION, typename VALUE_T >
+constexpr void check_overflow(VALUE_T &value, VALUE_T const MIN, VALUE_T const MAX) noexcept {
+    if constexpr (overflow::ASSERT == OVF_ACTION) {
+        if ( !(value >= MIN && value <= MAX)) {
+            assert(false);  // value is out of range
+        }
+    }
+    else if constexpr (overflow::SATURATE == OVF_ACTION) {
+        if ( !(value >= MIN)) {
+            value = MIN;
+        }
+        else if ( !(value <= MAX)) {
+            value = MAX;
+        }
+        else { /* okay */ }
+    }
+    else { /* overflow::ALLOWED, overflow::NO_CHECK: no checks performed */ }
+}
+
+
+/** Returns the minimum distance between doubles (epsilon) for numbers of the magnitude
+ * of the given value.
+ * \warning Expensive at runtime! */
+constexpr double fp_epsilon_for(double value) noexcept {
+    double epsilon = nextafter(value, std::numeric_limits<double>::infinity()) - value;
+    return epsilon;
+}
+
 
 /** Concept of a valid (s)q base-type. */
 template< typename BASE_T >
 concept ValidBaseType = (
        std::is_integral_v<BASE_T>
-    && sizeof(BASE_T) <= 4u
+    && sizeof(BASE_T) <= MAX_BASETYPE_SIZE
+);
+
+/** Concept of a valid (s)q scaling value. */
+template< scaling_t SCALING >
+concept ValidScaling = (
+    SCALING <= MAX_F
 );
 
 /** Concept of a valid (s)q type value range that fits the specified base type. */

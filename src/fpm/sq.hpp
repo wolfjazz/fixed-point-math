@@ -18,31 +18,33 @@ namespace fpm {
 /// \note sq values cannot be constructed directly at runtime; only indirect construction via q types
 ///       is possible in this case.
 template<
-    typename BASE_T,  ///< type of the scaled integer stored in memory
-    scaling_t F,      ///< number of fraction bits (precision 2^-F)
-    double REAL_V_MIN_,  ///< minimum real value represented by this type
-    double REAL_V_MAX_ >  ///< maximum real value represented by this type
+    typename BASE_T_,  ///< type of the scaled integer stored in memory
+    scaling_t F_,      ///< number of fraction bits (precision 2^-F)
+    double REAL_V_MIN_ = v2s<double, -F_>((double)std::numeric_limits<BASE_T_>::min()),   ///< minimum real value represented by this type
+    double REAL_V_MAX_ = v2s<double, -F_>((double)std::numeric_limits<BASE_T_>::max()) >  ///< maximum real value represented by this type
 requires (
-       ValidBaseType<BASE_T>
-    && RealLimitsInRangeOfBaseType<BASE_T, F, REAL_V_MIN_, REAL_V_MAX_>
+       ValidBaseType<BASE_T_>
+    && ValidScaling<F_>
+    && RealLimitsInRangeOfBaseType<BASE_T_, F_, REAL_V_MIN_, REAL_V_MAX_>
 )
 class sq final {
 public:
-    using base_t = BASE_T;
+    using base_t = BASE_T_;  /// integral base type
+    static constexpr scaling_t F = F_;  ///< number of fraction bits
     static constexpr double REAL_V_MIN = REAL_V_MIN_;  ///< minimum real value
     static constexpr double REAL_V_MAX = REAL_V_MAX_;  ///< maximum real value
-    static constexpr BASE_T V_MIN = v2s<BASE_T, F>(REAL_V_MIN_);  ///< minimum value of integer value range
-    static constexpr BASE_T V_MAX = v2s<BASE_T, F>(REAL_V_MAX_);  ///< maximum value of integer value range
+    static constexpr base_t V_MIN = v2s<base_t, F>(REAL_V_MIN_);  ///< minimum value of integer value range
+    static constexpr base_t V_MAX = v2s<base_t, F>(REAL_V_MAX_);  ///< maximum value of integer value range
     static constexpr double RESOLUTION = v2s<double, -F>(1);  ///< real resolution of this type
 
     // friend related q type so that it can access the private members of this type to construct it
     template<typename _BASE_T_FR, scaling_t _F_FR, double, double, overflow>
-    requires ( std::is_same_v<BASE_T, _BASE_T_FR> && _F_FR == F )
+    requires ( std::is_same_v<base_t, _BASE_T_FR> && _F_FR == F )
     friend class q;
 
     /// Create a new sq type with the same base type and scaling but a different real value range.
     template< double NEW_REAL_V_MIN, double NEW_REAL_V_MAX >
-    using delimit = sq< BASE_T, F, NEW_REAL_V_MIN, NEW_REAL_V_MAX >;
+    using delimit = sq< base_t, F, NEW_REAL_V_MIN, NEW_REAL_V_MAX >;
 
     /// Named compile-time-only "constructor" from a floating-point value. This will use v2s to scale
     /// the given floating-point value at compile-time and then call the sq constructor with the
@@ -55,13 +57,13 @@ public:
     template< double REAL_VALUE >
     requires ( REAL_V_MIN <= REAL_VALUE && REAL_VALUE <= REAL_V_MAX )  // must not overflow
     static consteval sq from_real() {
-        constexpr BASE_T scaledValue = v2s<BASE_T, F>(REAL_VALUE);
+        constexpr base_t scaledValue = v2s<base_t, F>(REAL_VALUE);
         return sq(scaledValue);
     }
 
     /// Named "constructor" from a scaled integer value.
     /// \note Does not compile if the value is outside the value range.
-    template< BASE_T VALUE >
+    template< base_t VALUE >
     requires ( V_MIN <= VALUE && VALUE <= V_MAX )  // must not overflow
     static consteval sq from_scaled() {
         return sq(VALUE);
@@ -80,8 +82,8 @@ public:
         REAL_V_MIN <= _REAL_V_MIN_FROM
         && REAL_V_MAX >= _REAL_V_MAX_FROM
     )
-    static constexpr sq from_sq(sq<BASE_T, _F_FROM, _REAL_V_MIN_FROM, _REAL_V_MAX_FROM> const &from) noexcept {
-        return sq( s2s<BASE_T, _F_FROM, F>(from.reveal()) );
+    static constexpr sq from_sq(sq<base_t, _F_FROM, _REAL_V_MIN_FROM, _REAL_V_MAX_FROM> const &from) noexcept {
+        return sq( s2s<base_t, _F_FROM, F>(from.reveal()) );
     }
 
     /// Copy-Constructor from the same type.
@@ -95,7 +97,7 @@ public:
     {}
 
     /// Reveals the integer value stored in the memory.
-    BASE_T reveal() const noexcept {
+    base_t reveal() const noexcept {
         return value;
     }
 
@@ -103,13 +105,13 @@ public:
     /// \warning This conversion is expensive if the target type is a floating-point type.
     ///          If the target type is an integral type, there can be a significant loss of precision.
     ///          Use carefully!
-#   if defined FPM_USE_S2SH
+#   if defined FPM_USE_SH
     template< typename TARGET_T = int >
 #   else
     template< typename TARGET_T = double >
 #   endif
     TARGET_T to_real() const noexcept {
-        return s2s<TARGET_T, F, 0>(value);
+        return v2s<TARGET_T, -F>(value);
     }
 
 private:
@@ -119,11 +121,11 @@ private:
     sq& operator=(sq&&) = delete;  // move-assignment
 
     /// Explicit, possibly compile-time constructor from scaled integer value.
-    explicit constexpr sq(BASE_T value) noexcept : value(value)
+    explicit constexpr sq(base_t value) noexcept : value(value)
     {}
 
     /// scaled integer value that represents a fixed-point value; stored in memory
-    BASE_T const value;
+    base_t const value;
 };
 
 }

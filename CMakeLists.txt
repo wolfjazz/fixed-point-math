@@ -23,7 +23,7 @@ set(Sources
     src/fpm/fpm.cpp
 )
 
-add_compile_options(-Wall -Wextra -pedantic -Werror)
+add_compile_options(-Wall -Wextra -pedantic -Werror -fconcepts-diagnostics-depth=2)
 
 add_library(${ThisShort} STATIC ${Headers} ${Sources})
 set_target_properties(${ThisShort} PROPERTIES LINKER_LANGUAGE CXX)
