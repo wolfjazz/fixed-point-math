@@ -276,7 +276,7 @@ constexpr Q_C static_q_cast(q<_BASE_T, _F, _REAL_V_MIN, _REAL_V_MAX, _OVF_ACTION
     using interm_f_t = interm_t<_BASE_T>;
     using interm_c_t = interm_t<_BASE_T_C>;
 
-    // static_cast can be used if overflow is not overwritten
+    // static_cast can be reused if overflow is not overwritten
     if constexpr (OVF_ACTION_OVERRIDE == _OVF_ACTION_C) {
         return static_cast<target_q>(from);
     }
@@ -315,6 +315,7 @@ constexpr Q_C safe_q_cast(q<_BASE_T, _F, _REAL_V_MIN, _REAL_V_MAX, _OVF_ACTION> 
     // scale source value and cast it to the intermediate type with the sign of the target type
     auto cValue = s2s<interm_c_t, from_q::F, target_q::F>(from.reveal());
 
+    // always perform overflow checks
     _i::check_overflow<OVF_ACTION_OVERRIDE, interm_c_t, interm_f_t>(cValue, target_q::V_MIN, target_q::V_MAX);
 
     // finally, create target value; disable overflow check to avoid that value is checked again
