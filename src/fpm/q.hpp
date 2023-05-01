@@ -53,7 +53,7 @@ public:
     )
     static constexpr q construct(base_t value) noexcept {
         // perform overflow check
-        _i::check_overflow<OVF_ACTION_OVERRIDE>(value, V_MIN, V_MAX);
+        _i::check_overflow<OVF_ACTION_OVERRIDE, base_t>(value, V_MIN, V_MAX);
 
         return q(value);
     }
@@ -116,11 +116,7 @@ public:
 
         // perform overflow check if needed
         if constexpr (_OVF_CHECK_NEEDED) {
-            // cast target limits to the intermediate type with the sign of the target type
-            constexpr auto V_MIN_I = static_cast<interm_b_t>(V_MIN);
-            constexpr auto V_MAX_I = static_cast<interm_b_t>(V_MAX);
-
-            _i::check_overflow<OVF_ACTION_OVERRIDE>(fromValueScaled, V_MIN_I, V_MAX_I);
+            _i::check_overflow<OVF_ACTION_OVERRIDE, interm_b_t>(fromValueScaled, V_MIN, V_MAX);
         }
 
         return q(static_cast<base_t>(fromValueScaled));
@@ -141,7 +137,7 @@ public:
 
         // perform overflow check if needed
         if constexpr (_OVF_CHECK_NEEDED) {
-            _i::check_overflow<OVF_ACTION_OVERRIDE>(qValue, V_MIN, V_MAX);
+            _i::check_overflow<OVF_ACTION_OVERRIDE, base_t>(qValue, V_MIN, V_MAX);
         }
 
         return q(qValue);
@@ -191,18 +187,15 @@ public:
     )
     operator q<_BASE_T_C, _F_C, _REAL_V_MIN_C, _REAL_V_MAX_C, _OVF_C>() const {
         using target_q = q<_BASE_T_C, _F_C, _REAL_V_MIN_C, _REAL_V_MAX_C, _OVF_C>;
-        using interm_c_t = interm_t<typename target_q::base_t>;
+        using interm_b_t = interm_t<base_t>;
+        using interm_c_t = interm_t<_BASE_T_C>;
 
         // first cast, then scale value
-        auto cValue = s2s<interm_c_t, F, target_q::F>( static_cast<target_q::base_t>(value) );
+        auto cValue = s2s<interm_c_t, F, target_q::F>(value);
 
         // perform overflow check if needed
         if constexpr (_OVF_CHECK_NEEDED) {
-            // cast target limits to the intermediate type with the sign of the target type
-            constexpr auto C_V_MIN_I = static_cast<interm_c_t>(target_q::V_MIN);
-            constexpr auto C_V_MAX_I = static_cast<interm_c_t>(target_q::V_MAX);
-
-            _i::check_overflow<target_q::OVF_ACTION>(cValue, C_V_MIN_I, C_V_MAX_I);
+            _i::check_overflow<target_q::OVF_ACTION, interm_c_t, interm_b_t>(cValue, target_q::V_MIN, target_q::V_MAX);
         }
 
         // create target value; disable overflow check to avoid that value is checked again
@@ -223,7 +216,7 @@ public:
 
         // perform overflow check if needed
         if constexpr (_OVF_CHECK_NEEDED) {
-            _i::check_overflow<OVF_ACTION_OVERRIDE>(sqValue, target_sq::V_MIN, target_sq::V_MAX);
+            _i::check_overflow<OVF_ACTION_OVERRIDE, base_t>(sqValue, target_sq::V_MIN, target_sq::V_MAX);
         }
 
         return target_sq(sqValue);
@@ -280,6 +273,8 @@ requires (
 constexpr Q_C static_q_cast(q<_BASE_T, _F, _REAL_V_MIN, _REAL_V_MAX, _OVF_ACTION> from) noexcept {
     using from_q = q<_BASE_T, _F, _REAL_V_MIN, _REAL_V_MAX, _OVF_ACTION>;
     using target_q = Q_C;
+    using interm_f_t = interm_t<_BASE_T>;
+    using interm_c_t = interm_t<_BASE_T_C>;
 
     // static_cast can be used if overflow is not overwritten
     if constexpr (OVF_ACTION_OVERRIDE == _OVF_ACTION_C) {
@@ -288,11 +283,11 @@ constexpr Q_C static_q_cast(q<_BASE_T, _F, _REAL_V_MIN, _REAL_V_MAX, _OVF_ACTION
     // if overflow override is specified, compile overflow checks
     else {
         // scale source value and cast it to the intermediate type with the sign of the target type
-        auto cValue = s2s<typename target_q::base_t, from_q::F, target_q::F>(from.reveal());
+        auto cValue = s2s<interm_c_t, from_q::F, target_q::F>(from.reveal());
 
         // perform overflow check if needed
         if constexpr (_OVF_CHECK_NEEDED) {
-            _i::check_overflow<OVF_ACTION_OVERRIDE>(cValue, target_q::V_MIN, target_q::V_MAX);
+            _i::check_overflow<OVF_ACTION_OVERRIDE, interm_c_t, interm_f_t>(cValue, target_q::V_MIN, target_q::V_MAX);
         }
 
         // create target value; disable overflow check to avoid that value is checked again
@@ -314,12 +309,13 @@ requires (
 constexpr Q_C safe_q_cast(q<_BASE_T, _F, _REAL_V_MIN, _REAL_V_MAX, _OVF_ACTION> from) noexcept {
     using from_q = q<_BASE_T, _F, _REAL_V_MIN, _REAL_V_MAX, _OVF_ACTION>;
     using target_q = Q_C;
+    using interm_f_t = interm_t<_BASE_T>;
+    using interm_c_t = interm_t<_BASE_T_C>;
 
     // scale source value and cast it to the intermediate type with the sign of the target type
-    auto cValue = s2s<typename target_q::base_t, from_q::F, target_q::F>(from.reveal());
+    auto cValue = s2s<interm_c_t, from_q::F, target_q::F>(from.reveal());
 
-    // always perform overflow checks
-    _i::check_overflow<OVF_ACTION_OVERRIDE>(cValue, target_q::V_MIN, target_q::V_MAX);
+    _i::check_overflow<OVF_ACTION_OVERRIDE, interm_c_t, interm_f_t>(cValue, target_q::V_MIN, target_q::V_MAX);
 
     // finally, create target value; disable overflow check to avoid that value is checked again
     return target_q::template construct<overflow::NO_CHECK>( static_cast<typename target_q::base_t>(cValue) );

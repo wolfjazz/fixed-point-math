@@ -6,6 +6,7 @@
 #define _FPM_FPM_HPP_
 
 #include <cassert>
+#include <climits>
 #include <cmath>
 #include <cstdint>
 #include <type_traits>
@@ -72,9 +73,31 @@ namespace _i {
         return static_cast<_TARGET_T>( input >= 0 ? input : -input );
     }
 
+    /// Overflow check types.
+    enum overflow_checktype : uint8_t {
+        CHECKTYPE_SIGN_UNCHANGED = 0u,  ///< default check type
+        CHECKTYPE_SIGNED_TO_UNSIGNED = 1u,  ///< sign has changed from signed to unsigned
+        CHECKTYPE_UNSIGNED_TO_SIGNED = 2u,  ///< sign has changed from unsigned to signed
+    };
+
+    /** Returns the check-type based on the two types before and after a casting operation. */
+    template< typename BEFORE_T, typename AFTER_T >
+    struct determine_checktype {
+        static constexpr overflow_checktype checktype = (std::is_signed_v<BEFORE_T> && std::is_unsigned_v<AFTER_T>)
+            ? CHECKTYPE_SIGNED_TO_UNSIGNED
+            : (std::is_unsigned_v<BEFORE_T> && std::is_signed_v<AFTER_T>)
+                ? CHECKTYPE_UNSIGNED_TO_SIGNED
+                : CHECKTYPE_SIGN_UNCHANGED;
+    };
+
     /** Overflow check function.
      * \note Works for signed and unsigned value type. */
-    template< overflow OVF_ACTION, typename VALUE_T >
+    template<
+        overflow OVF_ACTION,  ///< overflow action
+        typename VALUE_T,     ///< type of the value to check (after a scaling/casting operation)
+        typename SRC_V_T = VALUE_T  ///< type of the value before scaling/casting operation; required if different
+    >
+    requires ( std::is_integral_v<VALUE_T> && std::is_integral_v<SRC_V_T> )
     constexpr void check_overflow(VALUE_T &value, VALUE_T const MIN, VALUE_T const MAX) noexcept {
         if constexpr (overflow::ASSERT == OVF_ACTION) {
             if ( !(value >= MIN && value <= MAX)) {
@@ -82,13 +105,45 @@ namespace _i {
             }
         }
         else if constexpr (overflow::SATURATE == OVF_ACTION) {
-            if ( !(value >= MIN)) {
-                value = MIN;
+            // determine check type
+            constexpr auto CHECKTYPE = _i::determine_checktype<SRC_V_T, VALUE_T>::checktype;
+
+            // if value was casted from a signed to unsigned type, and is in the upper half of the
+            // unsigned value range, the value was negative before; saturate it to lower limit
+            if constexpr (CHECKTYPE_SIGNED_TO_UNSIGNED == CHECKTYPE) {
+                constexpr VALUE_T CENTER = static_cast<VALUE_T>(std::numeric_limits<std::make_signed_t<VALUE_T>>::max());
+                if ( !(value >= MIN && value < CENTER)) {
+                    value = MIN;
+                }
+                else if ( !(value <= MAX)) {
+                    value = MAX;
+                }
+                else { /* okay */ }
             }
-            else if ( !(value <= MAX)) {
-                value = MAX;
+            // if value was casted from an unsigned to signed type, and is negative, the value was
+            // positive before; saturate it to upper limit
+            else if constexpr (CHECKTYPE_UNSIGNED_TO_SIGNED == CHECKTYPE) {
+                if ( !(value >= 0)) {
+                    // this cannot be combined with check for MAX because MAX can be negative
+                    value = MAX;
+                }
+                else if ( !(value >= MIN)) {
+                    value = MIN;
+                }
+                else if ( !(value <= MAX)) {
+                    value = MAX;
+                }
+                else { /* okay */ }
             }
-            else { /* okay */ }
+            else /* checktype sign unchanged */ {
+                if ( !(value >= MIN)) {
+                    value = MIN;
+                }
+                else if ( !(value <= MAX)) {
+                    value = MAX;
+                }
+                else { /* okay */ }
+            }
         }
         else { /* overflow::ALLOWED, overflow::NO_CHECK: no checks performed */ }
     }
@@ -107,11 +162,17 @@ namespace _i {
 
 
 /** Concept of a valid difference between two types and two scaling factors to support scaling
- * without overflow or significant loss of precision. */
+ * without overflow or significant loss of precision.
+ * Scaling is possible if:
+ *  - target and source type are of equal size and the effective target value range is not outshifted, or
+ *  - target and source type are of different size and the effective size difference is not outshifted, or
+ *  - both types are equal and the number of shifted bits is at most the number of bits in the types */
 template< typename from_t, scaling_t F_FROM, typename to_t, scaling_t F_TO >
 concept ScalingIsPossible = (
-    ( ( sizeof(from_t) == sizeof(to_t) && _i::abs(F_TO - F_FROM) <= std::numeric_limits<to_t>::digits )
-      || _i::abs(F_TO - F_FROM) <= (std::numeric_limits<from_t>::digits - std::numeric_limits<to_t>::digits) )
+    ( sizeof(from_t) == sizeof(to_t) && _i::abs(F_TO - F_FROM) <= std::numeric_limits<to_t>::digits )
+    || ( sizeof(from_t) != sizeof(to_t)
+         && _i::abs(F_TO - F_FROM) <= _i::abs(std::numeric_limits<to_t>::digits - std::numeric_limits<from_t>::digits) )
+    || ( std::is_same_v<from_t, to_t> && _i::abs(F_TO - F_FROM) <= sizeof(to_t) * CHAR_BIT )
 );
 
 
