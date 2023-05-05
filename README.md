@@ -27,7 +27,7 @@ In the end, we just want to perform calculations with a predefined value range a
 - explicit construction from integer-based variables with scaled integer values at runtime
 - no runtime construction from floating-point variables (we don't want floats at runtime)
 - compile-time overflow checks where possible, runtime-checks only when really needed
-- different types of runtime overflow actions (overflow: forbidden, assert, saturate, allowed/no-check)
+- different types of (runtime) overflow behaviors (overflow: forbidden, assert, saturate, allowed/no-check)
 - implicit conversion between fixed-point types of same base type only to higher precision (no losses)
 - explicit conversion to fixed-point type with same base type but different precision via up/downscale-copy
 - conversion to different base types only via explicit casts (static_q_cast, safe_q_cast, force_q_cast)
@@ -63,8 +63,8 @@ using u16q<...> = fpm::q<uint16_t, ...>;
 // ...
 
 // user-defined types
-// note: overflow actions are examples here; best practice is to use the default, FORBIDDEN, and
-//       to change the overflow action explicitly when needed/desired (so that a dev has control when
+// note: overflow behaviors are examples here; best practice is to use the default, FORBIDDEN, and
+//       to change the overflow behavior explicitly when needed/desired (so that a dev has control when
 //       the compiler should add overflow checks; code does not compile if a check is needed -> this
 //       way a dev can add a check explicitly, or fix the bug if the check should not be needed)
 using u32q16<...> = u32q<16, ..., fpm::overflow::SATURATE>;  // res. 2^-16; overflow: saturation
@@ -83,7 +83,7 @@ auto b = u32q16<45.0, 98.2>::from_real<66.>();  // construction; value range 45.
 // and lets be honest - this is not intuitive either.
 //auto c = u32q16<1966080, 3932160>::from_real<45.1>();
 
-// copy: construct from another q value with same base-type; value range and overflow action can be changed this way;
+// copy: construct from another q value with same base-type; value range and overflow behavior can be changed this way;
 // note that copy will perform a range check at runtime when the lhs range is smaller than the rhs range
 auto d1 = u32q16<>::from_q<fpm::overflow::ASSERT>(b);
 auto d2 = u32q16<40000.0, 50000.0>::from_q(a);  // limitation of value range; will perform range check at runtime

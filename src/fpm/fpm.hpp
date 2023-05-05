@@ -16,22 +16,22 @@
 /** Fixed-Point Math Namespace. */
 namespace fpm {
 
-/** Overflow actions.
- * \note Prioritized order: highest priority at top, lowest at bottom. */
+/** Overflow behavior.
+ * \note Prioritized order: highest priority at top (forbidden), lowest at bottom (no_check). */
 enum class overflow : uint8_t {
     /// Default. Code must not compile if an overflow check is required.
-    /// \note: It is best practice to keep this default action when possible, because this way the
+    /// \note: It is best practice to keep this default behavior when possible, because this way the
     /// compiler will complain if an overflow check is required at some point, and the developer can
-    /// then decide which overflow action fits best, or change the implementation if an overflow check
-    /// is not desired at all. -> It will be noticed when the compiler adds overflow checks!
+    /// then decide which overflow behavior fits best, or change the implementation if an overflow
+    /// check is not desired at all.
     FORBIDDEN = 0u,
 
-    /// If an overflow check is needed, it will be included. In case of an overflow the assert function
-    /// will be called.
+    /// If an overflow check is needed, it will be included. In case of an overflow the assert
+    /// function will be called.
     /// \note This can be used e.g. for debug builds, on types where FORBIDDEN is not possible by design.
     ASSERT = 1u,
 
-    /// In case of an overflow, the value will be saturated to the closest limitation value.
+    /// In case of an overflow, the value will be saturated to the closest limit.
     /// \note This is the type that should be used in released software when overflow checks cannot
     /// be avoided in the first place.
     SATURATE = 2u,
@@ -42,7 +42,10 @@ enum class overflow : uint8_t {
     ALLOWED = NO_CHECK,
 };
 
-/** \returns whether overflow action a is stricter than overflow action b. */
+/// Overflow type alias.
+using ovf = overflow;
+
+/** \returns whether overflow behavior a is stricter than overflow behavior b. */
 consteval bool is_ovf_stricter(overflow a, overflow b) noexcept {
     return a < b;
 }
@@ -93,18 +96,18 @@ namespace _i {
     /** Overflow check function.
      * \note Works for signed and unsigned value type. */
     template<
-        overflow OVF_ACTION,  ///< overflow action
-        typename VALUE_T,     ///< type of the value to check (after a scaling/casting operation)
+        overflow OVF_BX,   ///< overflow behavior
+        typename VALUE_T,  ///< type of the value to check (after a scaling/casting operation)
         typename SRC_V_T = VALUE_T  ///< type of the value before scaling/casting operation; required if different
     >
     requires ( std::is_integral_v<VALUE_T> && std::is_integral_v<SRC_V_T> )
     constexpr void check_overflow(VALUE_T &value, VALUE_T const MIN, VALUE_T const MAX) noexcept {
-        if constexpr (overflow::ASSERT == OVF_ACTION) {
+        if constexpr (overflow::ASSERT == OVF_BX) {
             if ( !(value >= MIN && value <= MAX)) {
                 assert(false);  // value is out of range
             }
         }
-        else if constexpr (overflow::SATURATE == OVF_ACTION) {
+        else if constexpr (overflow::SATURATE == OVF_BX) {
             // determine check type
             constexpr auto CHECKTYPE = _i::determine_checktype<SRC_V_T, VALUE_T>::checktype;
 
@@ -322,8 +325,8 @@ concept RealLimitsInRangeOfBaseType = (
 
 /** Concept of a type that can overflow when allowed.
  * \note In C++23, signed int overflow (i.e. the value does not fit in the type) is still undefined. */
-template< typename BASE_T, overflow OVF_ACTION >
-concept CanBaseTypeOverflow = ( std::is_unsigned_v<BASE_T> && OVF_ACTION == overflow::ALLOWED );
+template< typename BASE_T, overflow OVF_BX >
+concept CanBaseTypeOverflow = ( std::is_unsigned_v<BASE_T> && OVF_BX == overflow::ALLOWED );
 
 /** Concept of a valid value that fits the specified base type. */
 template< typename BASE_T, scaling_t F, double REAL_VALUE >
@@ -331,9 +334,9 @@ concept RealValueScaledFitsBaseType = ( std::in_range<BASE_T>(v2s<interm_t<BASE_
 
 /** Concept: Runtime overflow check required when needed.
  * \note If this fails, runtime overflow check is needed but not allowed for desired q type.
- *       Allow for type, or specify the action-override template argument (to be preferred). */
-template< overflow OVF_ACTION, bool CHECK_NEEDED = true >
-concept RuntimeCheckAllowedWhenNeeded = ( !CHECK_NEEDED || overflow::FORBIDDEN != OVF_ACTION );
+ *       Allow for type, or specify the overflow-override template argument (to be preferred). */
+template< overflow OVF_BX, bool CHECK_NEEDED = true >
+concept RuntimeCheckAllowedWhenNeeded = ( !CHECK_NEEDED || overflow::FORBIDDEN != OVF_BX );
 
 }
 
