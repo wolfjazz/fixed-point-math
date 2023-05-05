@@ -267,7 +267,7 @@ template< class Q_C, overflow OVF_ACTION_OVERRIDE = Q_C::OVF_ACTION,
                               || is_ovf_stricter(_OVF_ACTION, OVF_ACTION_OVERRIDE)) >
 requires (
     !std::is_same_v<_BASE_T, _BASE_T_C>
-    && ScalingIsPossible<_BASE_T, _F, _BASE_T_C, _F_C>
+    && (CanBaseTypeOverflow<_BASE_T_C, OVF_ACTION_OVERRIDE> || ScalingIsPossible<_BASE_T, _F, _BASE_T_C, _F_C>)
     && RuntimeCheckAllowedWhenNeeded<OVF_ACTION_OVERRIDE, _OVF_CHECK_NEEDED>
 )
 constexpr Q_C static_q_cast(q<_BASE_T, _F, _REAL_V_MIN, _REAL_V_MAX, _OVF_ACTION> from) noexcept {
@@ -297,6 +297,7 @@ constexpr Q_C static_q_cast(q<_BASE_T, _F, _REAL_V_MIN, _REAL_V_MAX, _OVF_ACTION
 
 /// Explicit, safe cast of a q type to another q type with a different base type.
 /// This will always perform overflow checks, even if not necessarily needed.
+/// \note overflow::ALLOWED is not possible - use static_cast instead.
 template< class Q_C, overflow OVF_ACTION_OVERRIDE = Q_C::OVF_ACTION,
     typename _BASE_T, scaling_t _F, double _REAL_V_MIN, double _REAL_V_MAX, overflow _OVF_ACTION,
     typename _BASE_T_C = Q_C::base_t, scaling_t _F_C = Q_C::F >

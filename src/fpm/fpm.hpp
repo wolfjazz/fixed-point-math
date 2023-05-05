@@ -320,6 +320,11 @@ concept RealLimitsInRangeOfBaseType = (
     && (std::is_signed_v<BASE_T> || REAL_V_MIN >= 0.)
 );
 
+/** Concept of a type that can overflow when allowed.
+ * \note In C++23, signed int overflow (i.e. the value does not fit in the type) is still undefined. */
+template< typename BASE_T, overflow OVF_ACTION >
+concept CanBaseTypeOverflow = ( std::is_unsigned_v<BASE_T> && OVF_ACTION == overflow::ALLOWED );
+
 /** Concept of a valid value that fits the specified base type. */
 template< typename BASE_T, scaling_t F, double REAL_VALUE >
 concept RealValueScaledFitsBaseType = ( std::in_range<BASE_T>(v2s<interm_t<BASE_T>, F>(REAL_VALUE)) );

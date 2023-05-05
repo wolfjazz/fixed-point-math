@@ -671,7 +671,7 @@ TEST_F(QTest_Casting, q_static_cast__negative_real_value__smaller_unsigned_type_
     ASSERT_TRUE((std::is_same_v<u16q6_ovf, decltype(d)>));
 }
 
-TEST_F(QTest_Casting, q_static_cast__signed_user_range__unsigned_different_range__saturated_real_value) {
+TEST_F(QTest_Casting, q_static_cast__signed_user_range__unsigned_different_range__expected_real_value) {
     // i16[min,max]:
     // i16::min    min        0         max      i16::max
     // |------------|---------|----------|-----------|
@@ -685,30 +685,37 @@ TEST_F(QTest_Casting, q_static_cast__signed_user_range__unsigned_different_range
     //
     // note: every i16 < 0 before cast will result in u32 > i16::max; these values are mapped to u32::MIN
 
-    using i16qm2 = q<int16_t, -3, -100000., 100000.>;  // i16 -> u32, max delta F is 17
+    using i16qm3 = q<int16_t, -3, -100000., 100000.>;  // i16 -> u32, max delta F is 17
     using u32q14 = q<uint32_t, 14, 80000., 160000.>;
-    auto a = i16qm2::from_real<-110000., overflow::ALLOWED>();
-    auto b = i16qm2::from_real<i16qm2::REAL_V_MIN>();
-    auto c = i16qm2::from_real<50000.>();
-    auto d = i16qm2::from_real<90000.>();
-    auto e = i16qm2::from_real<i16qm2::REAL_V_MAX>();
-    auto f = i16qm2::from_real<+110000., overflow::ALLOWED>();
+    auto a = i16qm3::from_real<-110000., overflow::ALLOWED>();
+    auto b = i16qm3::from_real<i16qm3::REAL_V_MIN>();
+    auto c = i16qm3::from_real<50000.>();
+    auto d = i16qm3::from_real<90000.>();
+    auto e = i16qm3::from_real<i16qm3::REAL_V_MAX>();
+    auto f = i16qm3::from_real<110000., overflow::ALLOWED>();
+    auto g = i16qm3::from_real<200000., overflow::ALLOWED>();
     auto ac = static_q_cast<u32q14, overflow::SATURATE>(a);
     auto bc = static_q_cast<u32q14, overflow::SATURATE>(b);
+    auto bc_ovf = static_q_cast<u32q14, overflow::ALLOWED>(b);
     auto cc = static_q_cast<u32q14, overflow::SATURATE>(c);
     auto dc = static_q_cast<u32q14, overflow::SATURATE>(d);
     auto ec = static_q_cast<u32q14, overflow::SATURATE>(e);
     auto fc = static_q_cast<u32q14, overflow::SATURATE>(f);
+    auto gc = static_q_cast<u32q14, overflow::SATURATE>(g);
+    auto gc_ovf = static_q_cast<u32q14, overflow::ALLOWED>(g);
 
-    ASSERT_NEAR(u32q14::REAL_V_MIN, ac.to_real(), i16qm2::RESOLUTION);  // (u32::max - 110000*2^14) / 2^14 saturated
-    ASSERT_NEAR(u32q14::REAL_V_MIN, bc.to_real(), i16qm2::RESOLUTION);  // (u32::max - 100000*2^14) / 2^14 saturated
-    ASSERT_NEAR(u32q14::REAL_V_MIN, cc.to_real(), i16qm2::RESOLUTION);  // 50000 saturated to u32q14::REAL_V_MIN
-    ASSERT_NEAR( 90000., dc.to_real(), i16qm2::RESOLUTION);
-    ASSERT_NEAR(i16qm2::REAL_V_MAX, ec.to_real(), i16qm2::RESOLUTION);
-    ASSERT_NEAR(110000., fc.to_real(), i16qm2::RESOLUTION);
+    ASSERT_NEAR(u32q14::REAL_V_MIN, ac.to_real(), i16qm3::RESOLUTION);  // (u32::max - 110000*2^14) / 2^14 saturated
+    ASSERT_NEAR(u32q14::REAL_V_MIN, bc.to_real(), i16qm3::RESOLUTION);  // (u32::max - 100000*2^14) / 2^14 saturated
+    ASSERT_NEAR(162144., bc_ovf.to_real(), i16qm3::RESOLUTION);  // (u32::max - 100000*2^14) / 2^14
+    ASSERT_NEAR(u32q14::REAL_V_MIN, cc.to_real(), i16qm3::RESOLUTION);  // 50000 saturated to u32q14::REAL_V_MIN
+    ASSERT_NEAR( 90000., dc.to_real(), i16qm3::RESOLUTION);
+    ASSERT_NEAR(i16qm3::REAL_V_MAX, ec.to_real(), i16qm3::RESOLUTION);
+    ASSERT_NEAR(110000., fc.to_real(), i16qm3::RESOLUTION);
+    ASSERT_NEAR(u32q14::REAL_V_MAX, gc.to_real(), i16qm3::RESOLUTION);
+    ASSERT_NEAR(200000., gc_ovf.to_real(), i16qm3::RESOLUTION);
 }
 
-TEST_F(QTest_Casting, q_static_cast__unsigned_user_range__signed_different_range__saturated_real_value) {
+TEST_F(QTest_Casting, q_static_cast__unsigned_user_range__signed_different_range__expected_real_value) {
     // u16[min,max]:
     // 0           min                 max         u16::max
     // |------------|----------|--------|--------------|
@@ -722,58 +729,103 @@ TEST_F(QTest_Casting, q_static_cast__unsigned_user_range__signed_different_range
     //
     // note: everything > u16::max/2 before cast will result in negative i32; these values are mapped to i32::MAX
 
-    using u16qm4 = q<uint16_t, -3, 0., 400000.>;  // u16 -> i32, max delta F is 15
+    using u16qm3 = q<uint16_t, -3, 0., 400000.>;  // u16 -> i32, max delta F is 15
     using i32q12 = q<int32_t, 12, -80000., 500000.>;
-    auto a = u16qm4::from_real<u16qm4::REAL_V_MIN>();
-    auto b = u16qm4::from_real<50000.>();
-    auto c = u16qm4::from_real<u16qm4::REAL_V_MAX>();
-    auto d = u16qm4::from_real<+410000., overflow::ALLOWED>();
-    auto e = u16qm4::from_real<+520000., overflow::ALLOWED>();
+    auto a = u16qm3::from_real<u16qm3::REAL_V_MIN>();
+    auto b = u16qm3::from_real<50000.>();
+    auto c = u16qm3::from_real<u16qm3::REAL_V_MAX>();
+    auto d = u16qm3::from_real<410000., overflow::ALLOWED>();
+    auto e = u16qm3::from_real<520000., overflow::ALLOWED>();
     auto ac = static_q_cast<i32q12, overflow::SATURATE>(a);
     auto bc = static_q_cast<i32q12, overflow::SATURATE>(b);
     auto cc = static_q_cast<i32q12, overflow::SATURATE>(c);
     auto dc = static_q_cast<i32q12, overflow::SATURATE>(d);
     auto ec = static_q_cast<i32q12, overflow::SATURATE>(e);
+    auto ec_ovf = static_q_cast<i32q12, overflow::ALLOWED>(e);
 
-    ASSERT_NEAR(u16qm4::REAL_V_MIN, ac.to_real(), u16qm4::RESOLUTION);
-    ASSERT_NEAR( 50000., bc.to_real(), u16qm4::RESOLUTION);
-    ASSERT_NEAR(u16qm4::REAL_V_MAX, cc.to_real(), u16qm4::RESOLUTION);
-    ASSERT_NEAR(410000., dc.to_real(), u16qm4::RESOLUTION);
-    ASSERT_NEAR(i32q12::REAL_V_MAX, ec.to_real(), u16qm4::RESOLUTION);  // 800000 saturated to i32q12::REAL_V_MAX
+    ASSERT_NEAR(u16qm3::REAL_V_MIN, ac.to_real(), u16qm3::RESOLUTION);
+    ASSERT_NEAR( 50000., bc.to_real(), u16qm3::RESOLUTION);
+    ASSERT_NEAR(u16qm3::REAL_V_MAX, cc.to_real(), u16qm3::RESOLUTION);
+    ASSERT_NEAR(410000., dc.to_real(), u16qm3::RESOLUTION);
+    ASSERT_NEAR(i32q12::REAL_V_MAX, ec.to_real(), u16qm3::RESOLUTION);  // 520000 saturated to i32q12::REAL_V_MAX
+    ASSERT_NEAR(520000., ec_ovf.to_real(), u16qm3::RESOLUTION);
 }
 
-TEST_F(QTest_Casting, q_static_cast__signed_user_range__signed_different_range__saturated_real_value) {
-    // i32[min,max]:
-    // i32::min      min       0       max         i32::max
+TEST_F(QTest_Casting, q_static_cast__signed_user_range__signed_different_range__expected_real_value) {
+    // i16[min,max]:
+    // i16::min      min       0       max         i16::max
     // |--------------|--------|--------|--------------|
-    //                ^^^^^^^^^^^^^^^^^^^  <= first i32 user value range
+    //                ^^^^^^^^^^^^^^^^^^^  <= i16 user value range
     //
-    // static_cast< i32[MIN,MAX] >( i32_scaled[min,max] ):
+    // static_cast< i32[MIN,MAX] >( i16_scaled[min,max] ):
     // i32::min  MIN           0            MAX    i32::max
     // |-----|----|------------|-------------|--|------|
     // |    min   |                          | max     |
-    //       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^  <= scaled first user value range before saturation
+    //       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^  <= scaled i16 user value range before saturation
     //            |                          |
-    //            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^  <= second i32 user value range (saturated value range)
+    //            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^  <= i32 user value range (saturated value range)
 
-    // TODO: add tests
+    using i16qm4 = q<int16_t, -4, -400000., 400000.>;  // i16 -> i32, max delta F is 16
+    using i32q12 = q<int32_t, 12, -80000., 500000.>;
+    auto a = i16qm4::from_real<i16qm4::REAL_V_MIN>();
+    auto b = i16qm4::from_real<-50000.>();
+    auto c = i16qm4::from_real<i16qm4::REAL_V_MAX>();
+    auto d = i16qm4::from_real<410000., overflow::ALLOWED>();
+    auto e = i16qm4::from_real<520000., overflow::ALLOWED>();
+    auto ac = static_q_cast<i32q12, overflow::SATURATE>(a);
+    auto ac_ovf = static_q_cast<i32q12, overflow::ALLOWED>(a);
+    auto bc = static_q_cast<i32q12, overflow::SATURATE>(b);
+    auto cc = static_q_cast<i32q12, overflow::SATURATE>(c);
+    auto dc = static_q_cast<i32q12, overflow::SATURATE>(d);
+    auto ec = static_q_cast<i32q12, overflow::SATURATE>(e);
+    auto ec_ovf = static_q_cast<i32q12, overflow::ALLOWED>(e);
+
+    ASSERT_NEAR(i32q12::REAL_V_MIN, ac.to_real(), i16qm4::RESOLUTION);  // -400000 saturated to i32q12::REAL_V_MIN
+    ASSERT_NEAR(i16qm4::REAL_V_MIN, ac_ovf.to_real(), i16qm4::RESOLUTION);  // -400000 not saturated
+    ASSERT_NEAR(-50000., bc.to_real(), i16qm4::RESOLUTION);
+    ASSERT_NEAR(i16qm4::REAL_V_MAX, cc.to_real(), i16qm4::RESOLUTION);
+    ASSERT_NEAR(410000., dc.to_real(), i16qm4::RESOLUTION);
+    ASSERT_NEAR(i32q12::REAL_V_MAX, ec.to_real(), i16qm4::RESOLUTION);  // 520000 saturated to i32q12::REAL_V_MAX
+    ASSERT_NEAR(520000., ec_ovf.to_real(), i16qm4::RESOLUTION);  // not saturated
 }
 
-TEST_F(QTest_Casting, q_static_cast__unsigned_user_range__unsigned_different_range__saturated_real_value) {
-    // u32[min,max]:
-    // 0             min               max         u32::max
+TEST_F(QTest_Casting, q_static_cast__unsigned_user_range__unsigned_different_range__expected_real_value) {
+    // u16[min,max]:
+    // 0             min               max         u16::max
     // |--------------|--------|--------|--------------|
-    //                ^^^^^^^^^^^^^^^^^^^  <= first u32 user value range
+    //                ^^^^^^^^^^^^^^^^^^^  <= u16 user value range
     //
-    // static_cast< u32[MIN,MAX] >( u32_scaled[min,max] ):
+    // static_cast< u32[MIN,MAX] >( u16_scaled[min,max] ):
     // 0         MIN                        MAX    u32::max
     // |-----|----|------------|-------------|--|------|
     // |    min   |                          | max     |
-    //       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^  <= scaled first user value range before saturation
+    //       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^  <= scaled u16 user value range before saturation
     //            |                          |
-    //            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^  <= second u32 user value range (saturated value range)
+    //            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^  <= u32 user value range (saturated value range)
 
-    // TODO: add tests
+    using u16qm2 = q<uint16_t, -2, 10000., 100000.>;  // u16 -> u32, max delta F is 16
+    using u32q14 = q<uint32_t, 14, 80000., 160000.>;
+    auto a = u16qm2::from_real<0., overflow::ALLOWED>();
+    auto b = u16qm2::from_real<u16qm2::REAL_V_MIN>();
+    auto c = u16qm2::from_real<50000.>();
+    auto d = u16qm2::from_real<90000.>();
+    auto e = u16qm2::from_real<u16qm2::REAL_V_MAX>();
+    auto f = u16qm2::from_real<210000., overflow::ALLOWED>();
+    auto ac = static_q_cast<u32q14, overflow::SATURATE>(a);
+    auto bc = static_q_cast<u32q14, overflow::SATURATE>(b);
+    auto cc = static_q_cast<u32q14, overflow::SATURATE>(c);
+    auto dc = static_q_cast<u32q14, overflow::SATURATE>(d);
+    auto ec = static_q_cast<u32q14, overflow::SATURATE>(e);
+    auto fc = static_q_cast<u32q14, overflow::SATURATE>(f);
+    auto fc_ovf = static_q_cast<u32q14, overflow::ALLOWED>(f);
+
+    ASSERT_NEAR(u32q14::REAL_V_MIN, ac.to_real(), u16qm2::RESOLUTION);  // (u32::max - 110000*2^14) / 2^14 saturated
+    ASSERT_NEAR(u32q14::REAL_V_MIN, bc.to_real(), u16qm2::RESOLUTION);  // (u32::max - 100000*2^14) / 2^14 saturated
+    ASSERT_NEAR(u32q14::REAL_V_MIN, cc.to_real(), u16qm2::RESOLUTION);  // 50000 saturated to u32q14::REAL_V_MIN
+    ASSERT_NEAR( 90000., dc.to_real(), u16qm2::RESOLUTION);
+    ASSERT_NEAR(u16qm2::REAL_V_MAX, ec.to_real(), u16qm2::RESOLUTION);
+    ASSERT_NEAR(u32q14::REAL_V_MAX, fc.to_real(), u16qm2::RESOLUTION);  // 210000 saturated to u32q14::REAL_V_MAX
+    ASSERT_NEAR(210000., fc_ovf.to_real(), u16qm2::RESOLUTION);  // not saturated
 }
 
 TEST_F(QTest_Casting, q_safe_cast__positive_real_value_signed__unsigned_type_smallerF_same_value) {
@@ -848,6 +900,148 @@ TEST_F(QTest_Casting, q_safe_cast__negative_real_value__smaller_unsigned_type_la
     ASSERT_NEAR(u16q6::REAL_V_MIN, c.to_real(), u16q6::RESOLUTION);
     ASSERT_TRUE((std::is_same_v<u16q6_sat, decltype(b)>));
     ASSERT_TRUE((std::is_same_v<u16q6, decltype(c)>));
+}
+
+TEST_F(QTest_Casting, q_safe_cast__signed_user_range__unsigned_different_range__saturated_real_value) {
+    // i16[min,max]:
+    // i16::min    min        0         max      i16::max
+    // |------------|---------|----------|-----------|
+    //              ^^^^^^^^^^^^^^^^^^^^^^  <= user value range i16
+    //
+    // static_cast< u32[MIN,MAX] >( i16_scaled[min,max] ):
+    // 0         MIN                                   MAX    u32::max
+    // |----------|-----|-----------||-----------|------|---------|
+    // |               max  i16::max  i16::min  min               |
+    // ^^^^^^^^^^^^^^^^^^                        ^^^^^^^^^^^^^^^^^^  <= scaled i16 user value range in u32
+    //
+    // note: every i16 < 0 before cast will result in u32 > i16::max; these values are mapped to u32::MIN
+
+    using i16qm3 = q<int16_t, -3, -100000., 100000.>;  // i16 -> u32, max delta F is 17
+    using u32q14 = q<uint32_t, 14, 80000., 160000.>;
+    auto a = i16qm3::from_real<-110000., overflow::ALLOWED>();
+    auto b = i16qm3::from_real<i16qm3::REAL_V_MIN>();
+    auto c = i16qm3::from_real<50000.>();
+    auto d = i16qm3::from_real<90000.>();
+    auto e = i16qm3::from_real<i16qm3::REAL_V_MAX>();
+    auto f = i16qm3::from_real<110000., overflow::ALLOWED>();
+    auto ac = safe_q_cast<u32q14, overflow::SATURATE>(a);
+    auto bc = safe_q_cast<u32q14, overflow::SATURATE>(b);
+    auto cc = safe_q_cast<u32q14, overflow::SATURATE>(c);
+    auto dc = safe_q_cast<u32q14, overflow::SATURATE>(d);
+    auto ec = safe_q_cast<u32q14, overflow::SATURATE>(e);
+    auto fc = safe_q_cast<u32q14, overflow::SATURATE>(f);
+
+    ASSERT_NEAR(u32q14::REAL_V_MIN, ac.to_real(), i16qm3::RESOLUTION);  // (u32::max - 110000*2^14) / 2^14 saturated
+    ASSERT_NEAR(u32q14::REAL_V_MIN, bc.to_real(), i16qm3::RESOLUTION);  // (u32::max - 100000*2^14) / 2^14 saturated
+    ASSERT_NEAR(u32q14::REAL_V_MIN, cc.to_real(), i16qm3::RESOLUTION);  // 50000 saturated to u32q14::REAL_V_MIN
+    ASSERT_NEAR( 90000., dc.to_real(), i16qm3::RESOLUTION);
+    ASSERT_NEAR(i16qm3::REAL_V_MAX, ec.to_real(), i16qm3::RESOLUTION);
+    ASSERT_NEAR(110000., fc.to_real(), i16qm3::RESOLUTION);
+}
+
+TEST_F(QTest_Casting, q_safe_cast__unsigned_user_range__signed_different_range__saturated_real_value) {
+    // u16[min,max]:
+    // 0           min                 max         u16::max
+    // |------------|----------|--------|--------------|
+    //              ^^^^^^^^^^^^^^^^^^^^^  <= user value range u16
+    //
+    // static_cast< i32[MIN,MAX] >( u16_scaled[min,max] ):
+    // i32::min  MIN                0                 MAX    i32::max
+    // |----------|----|------------|-------|----------|---------|
+    // |              max                  min                   |
+    // ^^^^^^^^^^^^^^^^^                    ^^^^^^^^^^^^^^^^^^^^^^  <= scaled u16 user value range in i32
+    //
+    // note: everything > u16::max/2 before cast will result in negative i32; these values are mapped to i32::MAX
+
+    using u16qm3 = q<uint16_t, -3, 0., 400000.>;  // u16 -> i32, max delta F is 15
+    using i32q12 = q<int32_t, 12, -80000., 500000.>;
+    auto a = u16qm3::from_real<u16qm3::REAL_V_MIN>();
+    auto b = u16qm3::from_real<50000.>();
+    auto c = u16qm3::from_real<u16qm3::REAL_V_MAX>();
+    auto d = u16qm3::from_real<410000., overflow::ALLOWED>();
+    auto e = u16qm3::from_real<520000., overflow::ALLOWED>();
+    auto ac = safe_q_cast<i32q12, overflow::SATURATE>(a);
+    auto bc = safe_q_cast<i32q12, overflow::SATURATE>(b);
+    auto cc = safe_q_cast<i32q12, overflow::SATURATE>(c);
+    auto dc = safe_q_cast<i32q12, overflow::SATURATE>(d);
+    auto ec = safe_q_cast<i32q12, overflow::SATURATE>(e);
+
+    ASSERT_NEAR(u16qm3::REAL_V_MIN, ac.to_real(), u16qm3::RESOLUTION);
+    ASSERT_NEAR( 50000., bc.to_real(), u16qm3::RESOLUTION);
+    ASSERT_NEAR(u16qm3::REAL_V_MAX, cc.to_real(), u16qm3::RESOLUTION);
+    ASSERT_NEAR(410000., dc.to_real(), u16qm3::RESOLUTION);
+    ASSERT_NEAR(i32q12::REAL_V_MAX, ec.to_real(), u16qm3::RESOLUTION);  // 520000 saturated to i32q12::REAL_V_MAX
+}
+
+TEST_F(QTest_Casting, q_safe_cast__signed_user_range__signed_different_range__saturated_real_value) {
+    // i16[min,max]:
+    // i16::min      min       0       max         i16::max
+    // |--------------|--------|--------|--------------|
+    //                ^^^^^^^^^^^^^^^^^^^  <= i16 user value range
+    //
+    // static_cast< i32[MIN,MAX] >( i16_scaled[min,max] ):
+    // i32::min  MIN           0            MAX    i32::max
+    // |-----|----|------------|-------------|--|------|
+    // |    min   |                          | max     |
+    //       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^  <= scaled i16 user value range before saturation
+    //            |                          |
+    //            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^  <= i32 user value range (saturated value range)
+
+    using i16qm4 = q<int16_t, -4, -400000., 400000.>;  // i16 -> i32, max delta F is 16
+    using i32q12 = q<int32_t, 12, -80000., 500000.>;
+    auto a = i16qm4::from_real<i16qm4::REAL_V_MIN>();
+    auto b = i16qm4::from_real<-50000.>();
+    auto c = i16qm4::from_real<i16qm4::REAL_V_MAX>();
+    auto d = i16qm4::from_real<410000., overflow::ALLOWED>();
+    auto e = i16qm4::from_real<520000., overflow::ALLOWED>();
+    auto ac = safe_q_cast<i32q12, overflow::SATURATE>(a);
+    auto bc = safe_q_cast<i32q12, overflow::SATURATE>(b);
+    auto cc = safe_q_cast<i32q12, overflow::SATURATE>(c);
+    auto dc = safe_q_cast<i32q12, overflow::SATURATE>(d);
+    auto ec = safe_q_cast<i32q12, overflow::SATURATE>(e);
+
+    ASSERT_NEAR(i32q12::REAL_V_MIN, ac.to_real(), i16qm4::RESOLUTION);  // -400000 saturated to i32q12::REAL_V_MIN
+    ASSERT_NEAR(-50000., bc.to_real(), i16qm4::RESOLUTION);
+    ASSERT_NEAR(i16qm4::REAL_V_MAX, cc.to_real(), i16qm4::RESOLUTION);
+    ASSERT_NEAR(410000., dc.to_real(), i16qm4::RESOLUTION);
+    ASSERT_NEAR(i32q12::REAL_V_MAX, ec.to_real(), i16qm4::RESOLUTION);  // 520000 saturated to i32q12::REAL_V_MAX
+}
+
+TEST_F(QTest_Casting, q_safe_cast__unsigned_user_range__unsigned_different_range__saturated_real_value) {
+    // u16[min,max]:
+    // 0             min               max         u16::max
+    // |--------------|--------|--------|--------------|
+    //                ^^^^^^^^^^^^^^^^^^^  <= u16 user value range
+    //
+    // static_cast< u32[MIN,MAX] >( u16_scaled[min,max] ):
+    // 0         MIN                        MAX    u32::max
+    // |-----|----|------------|-------------|--|------|
+    // |    min   |                          | max     |
+    //       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^  <= scaled u16 user value range before saturation
+    //            |                          |
+    //            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^  <= u32 user value range (saturated value range)
+
+    using u16qm2 = q<uint16_t, -2, 10000., 100000.>;  // u16 -> u32, max delta F is 16
+    using u32q14 = q<uint32_t, 14, 80000., 160000.>;
+    auto a = u16qm2::from_real<0., overflow::ALLOWED>();
+    auto b = u16qm2::from_real<u16qm2::REAL_V_MIN>();
+    auto c = u16qm2::from_real<50000.>();
+    auto d = u16qm2::from_real<90000.>();
+    auto e = u16qm2::from_real<u16qm2::REAL_V_MAX>();
+    auto f = u16qm2::from_real<110000., overflow::ALLOWED>();
+    auto ac = safe_q_cast<u32q14, overflow::SATURATE>(a);
+    auto bc = safe_q_cast<u32q14, overflow::SATURATE>(b);
+    auto cc = safe_q_cast<u32q14, overflow::SATURATE>(c);
+    auto dc = safe_q_cast<u32q14, overflow::SATURATE>(d);
+    auto ec = safe_q_cast<u32q14, overflow::SATURATE>(e);
+    auto fc = safe_q_cast<u32q14, overflow::SATURATE>(f);
+
+    ASSERT_NEAR(u32q14::REAL_V_MIN, ac.to_real(), u16qm2::RESOLUTION);  // (u32::max - 110000*2^14) / 2^14 saturated
+    ASSERT_NEAR(u32q14::REAL_V_MIN, bc.to_real(), u16qm2::RESOLUTION);  // (u32::max - 100000*2^14) / 2^14 saturated
+    ASSERT_NEAR(u32q14::REAL_V_MIN, cc.to_real(), u16qm2::RESOLUTION);  // 50000 saturated to u32q14::REAL_V_MIN
+    ASSERT_NEAR( 90000., dc.to_real(), u16qm2::RESOLUTION);
+    ASSERT_NEAR(u16qm2::REAL_V_MAX, ec.to_real(), u16qm2::RESOLUTION);
+    ASSERT_NEAR(110000., fc.to_real(), u16qm2::RESOLUTION);
 }
 
 TEST_F(QTest_Casting, q_force_cast__positive_scaled_value_signed__unsigned_type_smallerF_same_value) {
