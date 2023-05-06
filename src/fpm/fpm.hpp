@@ -76,6 +76,14 @@ namespace _i {
         return static_cast<_TARGET_T>( input >= 0 ? input : -input );
     }
 
+    /** Returns the larger value of the two input values.
+     * \note Shadows std::max() because VSCode does not like references to a and b in a consteval context :( */
+    template< typename VALUE_T >
+    requires ( std::is_integral_v<VALUE_T> )
+    consteval VALUE_T max(VALUE_T a, VALUE_T b) noexcept {
+        return a > b ? a : b;
+    }
+
     /// Overflow check types.
     enum overflow_checktype : uint8_t {
         CHECKTYPE_SIGN_UNCHANGED = 0u,  ///< default check type

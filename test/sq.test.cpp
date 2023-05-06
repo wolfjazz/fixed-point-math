@@ -282,4 +282,33 @@ TEST_F(SQTest_Casting, q_static_cast__unsigned_user_range__unsigned_larger_range
     ASSERT_NEAR(u16sqm2::REAL_V_MAX, cc3.to_real(), u16sqm2::RESOLUTION);
 }
 
+
+// ////////////////////////////////////////////////////////////////////////////////////////////// //
+// ------------------------------------ SQ Test: Addition --------------------------------------- //
+// ////////////////////////////////////////////////////////////////////////////////////////////// //
+
+class SQTest_Addition : public ::testing::Test {
+protected:
+    void SetUp() override
+    {
+    }
+    void TearDown() override
+    {
+    }
+};
+
+TEST_F(SQTest_Addition, sq_add__three_values_same_sq_type__values_added) {
+    using i32sq16 = sq<int32_t, 16, -10000., 10000.>;
+    auto a = i32sq16::from_real<5000.>();
+    auto b = i32sq16::from_real<-3333.>();
+    auto c = i32sq16::from_real<1333.>();
+
+    auto d = a + b + c;
+
+    using result_t = i32sq16::delimit< 3*i32sq16::REAL_V_MIN, 3*i32sq16::REAL_V_MAX >;
+    ASSERT_TRUE((std::is_same_v<result_t, decltype(d)>));
+    ASSERT_NEAR(3000., d.to_real(), 3*i32sq16::RESOLUTION);
+}
+
+
 // EOF

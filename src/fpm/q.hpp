@@ -194,7 +194,7 @@ public:
         && ScalingIsPossible<base_t, F, _BASE_T_C, _F_C>
         && RuntimeCheckAllowedWhenNeeded<_OVF_C, _OVF_CHECK_NEEDED>
     )
-    operator q<_BASE_T_C, _F_C, _REAL_V_MIN_C, _REAL_V_MAX_C, _OVF_C>() const {
+    explicit operator q<_BASE_T_C, _F_C, _REAL_V_MIN_C, _REAL_V_MAX_C, _OVF_C>() const {
         using target_q = q<_BASE_T_C, _F_C, _REAL_V_MIN_C, _REAL_V_MAX_C, _OVF_C>;
         using interm_b_t = interm_t<base_t>;
         using interm_c_t = interm_t<_BASE_T_C>;

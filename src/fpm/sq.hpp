@@ -121,7 +121,7 @@ public:
         && ScalingIsPossible<base_t, F, _BASE_T_C, _F_C>
         && _REAL_V_MIN_C <= REAL_V_MIN && REAL_V_MAX <= _REAL_V_MAX_C
     )
-    operator sq<_BASE_T_C, _F_C, _REAL_V_MIN_C, _REAL_V_MAX_C>() const {
+    explicit operator sq<_BASE_T_C, _F_C, _REAL_V_MIN_C, _REAL_V_MAX_C>() const {
         using target_sq = sq<_BASE_T_C, _F_C, _REAL_V_MIN_C, _REAL_V_MAX_C>;
 
         // scale value
@@ -129,6 +129,31 @@ public:
 
         // create target sq
         return target_sq(cValue);
+    }
+
+    /// Adds two sq values.
+    /// \returns a value of a new sq type with the larger scaling (higher precision) and the user value
+    /// ranges added together. If the base types are different, integral promotion rules will be applied.
+    template< class SQ_RHS,
+        typename _BASE_T_RHS = SQ_RHS::base_t, scaling_t _F_RHS = SQ_RHS::F,
+            double _REAL_V_MIN_RHS = SQ_RHS::REAL_V_MIN, double _REAL_V_MAX_RHS = SQ_RHS::REAL_V_MAX,
+        // common type is larger type, or unsigned type if same size, or type if same types
+        typename _BASE_T_R = std::common_type_t<base_t, _BASE_T_RHS>,
+        scaling_t _F_R = _i::max(_F_RHS, F),
+        double _REAL_V_MIN_R = REAL_V_MIN + _REAL_V_MIN_RHS,
+        double _REAL_V_MAX_R = REAL_V_MAX + _REAL_V_MAX_RHS >
+    requires (
+        RealLimitsInRangeOfBaseType<_BASE_T_R, _F_R, _REAL_V_MIN_R, _REAL_V_MAX_R>
+    )
+    // Note: Passing lhs by value helps optimize chained a+b+c.
+    friend sq<_BASE_T_R, _F_R, _REAL_V_MIN_R, _REAL_V_MAX_R> operator+(sq lhs, SQ_RHS const &rhs) {
+        using rhs_sq = sq<_BASE_T_RHS, _F_RHS, _REAL_V_MIN_RHS, _REAL_V_MAX_RHS>;
+        using result_sq = sq<_BASE_T_R, _F_R, _REAL_V_MIN_R, _REAL_V_MAX_R>;
+
+        // add values
+        auto result = s2s<_BASE_T_R, F, result_sq::F>(lhs.value) + s2s<_BASE_T_R, rhs_sq::F, result_sq::F>(rhs.value);
+
+        return result_sq( static_cast<result_sq::base_t>(result) );
     }
 
     /// Reveals the integer value stored in the memory.
@@ -183,8 +208,7 @@ constexpr SQ_C static_sq_cast(sq<_BASE_T, _F, _REAL_V_MIN, _REAL_V_MAX> from) no
 /// Uses static_cast internally. Exists for consistency reasons.
 template< class SQ_C,
     typename _BASE_T, scaling_t _F, double _REAL_V_MIN, double _REAL_V_MAX,
-    typename _BASE_T_C = SQ_C::base_t, scaling_t _F_C = SQ_C::F, double _REAL_V_MIN_C = SQ_C::REAL_V_MIN,
-    double _REAL_V_MAX_C = SQ_C::REAL_V_MAX >
+    typename _BASE_T_C = SQ_C::base_t, scaling_t _F_C = SQ_C::F, double _REAL_V_MIN_C = SQ_C::REAL_V_MIN, double _REAL_V_MAX_C = SQ_C::REAL_V_MAX >
 requires (
     !std::is_same_v<_BASE_T, _BASE_T_C>
     // scaling is only possible if the F difference allows scaling and the real value
