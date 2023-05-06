@@ -115,4 +115,171 @@ TEST_F(SQTest_Construct, sq_downscale_copy_constructor__int16_someF__int16_small
     ASSERT_NEAR(REAL_VALUE_A, b.to_real(), i32sq4::RESOLUTION + i32sqm2::RESOLUTION);
 }
 
+
+// ////////////////////////////////////////////////////////////////////////////////////////////// //
+// ------------------------------------ SQ Test: Casting ---------------------------------------- //
+// ////////////////////////////////////////////////////////////////////////////////////////////// //
+
+class SQTest_Casting : public ::testing::Test {
+protected:
+    void SetUp() override
+    {
+    }
+    void TearDown() override
+    {
+    }
+};
+
+TEST_F(SQTest_Casting, sq_static_cast__signed_user_range__unsigned_larger_range__same_real_value) {
+    // i16[min,max]:
+    // i16::min               0 min         max  i16::max
+    // |----------------------|--|-----------|-------|
+    //                           ^^^^^^^^^^^^^  <= user value range i16
+    //
+    // static_cast< u32[MIN,MAX] >( i16_scaled[min,max] ):
+    // 0  MIN                                          MAX    u32::max
+    // |---|---|--------------|-----||------------------|---------|
+    //        min            max
+    //         ^^^^^^^^^^^^^^^^  <= scaled i16 user value range in u32
+
+    using i16sqm3 = sq<int16_t, -3, 10000., 100000.>;  // i16 -> u32, max delta F is 17
+    using u32sq14 = sq<uint32_t, 14, 10000., 160000.>;
+    auto a = i16sqm3::from_real<i16sqm3::REAL_V_MIN>();
+    auto b = i16sqm3::from_real<70000.>();
+    auto c = i16sqm3::from_real<i16sqm3::REAL_V_MAX>();
+    auto ac = static_cast<u32sq14>(a);
+    auto ac2 = static_sq_cast<u32sq14>(a);
+    auto ac3 = safe_sq_cast<u32sq14>(a);
+    auto bc = static_cast<u32sq14>(b);
+    auto bc2 = static_sq_cast<u32sq14>(b);
+    auto bc3 = safe_sq_cast<u32sq14>(b);
+    auto cc = static_cast<u32sq14>(c);
+    auto cc2 = static_sq_cast<u32sq14>(c);
+    auto cc3 = safe_sq_cast<u32sq14>(c);
+
+    ASSERT_NEAR(i16sqm3::REAL_V_MIN, ac.to_real(), i16sqm3::RESOLUTION);
+    ASSERT_NEAR(i16sqm3::REAL_V_MIN, ac2.to_real(), i16sqm3::RESOLUTION);
+    ASSERT_NEAR(i16sqm3::REAL_V_MIN, ac3.to_real(), i16sqm3::RESOLUTION);
+    ASSERT_NEAR(70000., bc.to_real(), i16sqm3::RESOLUTION);
+    ASSERT_NEAR(70000., bc2.to_real(), i16sqm3::RESOLUTION);
+    ASSERT_NEAR(70000., bc3.to_real(), i16sqm3::RESOLUTION);
+    ASSERT_NEAR(i16sqm3::REAL_V_MAX, cc.to_real(), i16sqm3::RESOLUTION);
+    ASSERT_NEAR(i16sqm3::REAL_V_MAX, cc2.to_real(), i16sqm3::RESOLUTION);
+    ASSERT_NEAR(i16sqm3::REAL_V_MAX, cc3.to_real(), i16sqm3::RESOLUTION);
+}
+
+TEST_F(SQTest_Casting, sq_static_cast__unsigned_user_range__signed_larger_range__same_real_value) {
+    // u16[min,max]:
+    // 0     min          max                    u16::max
+    // |------|------------|--|----------------------|
+    //        ^^^^^^^^^^^^^^  <= user value range u16
+    //
+    // static_cast< i32[MIN,MAX] >( u16_scaled[min,max] ):
+    // i32::min  MIN                0                   MAX  i32::max
+    // |----------|-----------------|---|------------|---|-------|
+    //                                 min          max
+    //                                  ^^^^^^^^^^^^^^  <= scaled u16 user value range in i32
+
+    using u16sqm3 = sq<uint16_t, -3, 10000., 400000.>;  // u16 -> i32, max delta F is 15
+    using i32sq12 = sq<int32_t, 12, -80000., 500000.>;
+    auto a = u16sqm3::from_real<u16sqm3::REAL_V_MIN>();
+    auto b = u16sqm3::from_real<50000.>();
+    auto c = u16sqm3::from_real<u16sqm3::REAL_V_MAX>();
+    auto ac = static_cast<i32sq12>(a);
+    auto ac2 = static_sq_cast<i32sq12>(a);
+    auto ac3 = safe_sq_cast<i32sq12>(a);
+    auto bc = static_cast<i32sq12>(b);
+    auto bc2 = static_sq_cast<i32sq12>(b);
+    auto bc3 = safe_sq_cast<i32sq12>(b);
+    auto cc = static_cast<i32sq12>(c);
+    auto cc2 = static_sq_cast<i32sq12>(c);
+    auto cc3 = safe_sq_cast<i32sq12>(c);
+
+    ASSERT_NEAR(u16sqm3::REAL_V_MIN, ac.to_real(), u16sqm3::RESOLUTION);
+    ASSERT_NEAR(u16sqm3::REAL_V_MIN, ac2.to_real(), u16sqm3::RESOLUTION);
+    ASSERT_NEAR(u16sqm3::REAL_V_MIN, ac3.to_real(), u16sqm3::RESOLUTION);
+    ASSERT_NEAR(50000., bc.to_real(), u16sqm3::RESOLUTION);
+    ASSERT_NEAR(50000., bc2.to_real(), u16sqm3::RESOLUTION);
+    ASSERT_NEAR(50000., bc3.to_real(), u16sqm3::RESOLUTION);
+    ASSERT_NEAR(u16sqm3::REAL_V_MAX, cc.to_real(), u16sqm3::RESOLUTION);
+    ASSERT_NEAR(u16sqm3::REAL_V_MAX, cc2.to_real(), u16sqm3::RESOLUTION);
+    ASSERT_NEAR(u16sqm3::REAL_V_MAX, cc3.to_real(), u16sqm3::RESOLUTION);
+}
+
+TEST_F(SQTest_Casting, sq_static_cast__signed_user_range__signed_larger_range__same_real_value) {
+    // i16[min,max]:
+    // i16::min     min       0       max        i16::max
+    // |-------------|--------|--------|-------------|
+    //               ^^^^^^^^^^^^^^^^^^^  <= i16 user value range
+    //
+    // static_cast< i32[MIN,MAX] >( i16_scaled[min,max] ):
+    // i32::min  MIN                0                 MAX    i32::max
+    // |----------|--|--------------|---------------|--|---------|
+    //              min                            max
+    //               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^  <= scaled i16 user value range in i32
+
+    using i16sqm4 = sq<int16_t, -4, -100000., 400000.>;  // i16 -> i32, max delta F is 16
+    using i32sq12 = sq<int32_t, 12, -120000., 500000.>;
+    auto a = i16sqm4::from_real<i16sqm4::REAL_V_MIN>();
+    auto b = i16sqm4::from_real<-50000.>();
+    auto c = i16sqm4::from_real<i16sqm4::REAL_V_MAX>();
+    auto ac = static_cast<i32sq12>(a);
+    auto ac2 = static_sq_cast<i32sq12>(a);
+    auto ac3 = safe_sq_cast<i32sq12>(a);
+    auto bc = static_cast<i32sq12>(b);
+    auto bc2 = static_sq_cast<i32sq12>(b);
+    auto bc3 = safe_sq_cast<i32sq12>(b);
+    auto cc = static_cast<i32sq12>(c);
+    auto cc2 = static_sq_cast<i32sq12>(c);
+    auto cc3 = safe_sq_cast<i32sq12>(c);
+
+    ASSERT_NEAR(i16sqm4::REAL_V_MIN, ac.to_real(), i16sqm4::RESOLUTION);
+    ASSERT_NEAR(i16sqm4::REAL_V_MIN, ac2.to_real(), i16sqm4::RESOLUTION);
+    ASSERT_NEAR(i16sqm4::REAL_V_MIN, ac3.to_real(), i16sqm4::RESOLUTION);
+    ASSERT_NEAR(-50000., bc.to_real(), i16sqm4::RESOLUTION);
+    ASSERT_NEAR(-50000., bc2.to_real(), i16sqm4::RESOLUTION);
+    ASSERT_NEAR(-50000., bc3.to_real(), i16sqm4::RESOLUTION);
+    ASSERT_NEAR(i16sqm4::REAL_V_MAX, cc.to_real(), i16sqm4::RESOLUTION);
+    ASSERT_NEAR(i16sqm4::REAL_V_MAX, cc2.to_real(), i16sqm4::RESOLUTION);
+    ASSERT_NEAR(i16sqm4::REAL_V_MAX, cc3.to_real(), i16sqm4::RESOLUTION);
+}
+
+TEST_F(SQTest_Casting, q_static_cast__unsigned_user_range__unsigned_larger_range__same_real_value) {
+    // u16[min,max]:
+    // 0            min               max        u16::max
+    // |-------------|--------|--------|-------------|
+    //               ^^^^^^^^^^^^^^^^^^^  <= u16 user value range
+    //
+    // static_cast< u32[MIN,MAX] >( u16_scaled[min,max] ):
+    // 0         MIN                                  MAX    u32::max
+    // |----------|--|--------------|---------------|--|---------|
+    //              min                            max
+    //               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^  <= scaled u16 user value range in u32
+
+    using u16sqm2 = sq<uint16_t, -2, 10000., 100000.>;  // u16 -> u32, max delta F is 16
+    using u32sq14 = sq<uint32_t, 14, 0., 160000.>;
+    auto a = u16sqm2::from_real<u16sqm2::REAL_V_MIN>();
+    auto b = u16sqm2::from_real<50000.>();
+    auto c = u16sqm2::from_real<u16sqm2::REAL_V_MAX>();
+    auto ac = static_cast<u32sq14>(a);
+    auto ac2 = static_sq_cast<u32sq14>(a);
+    auto ac3 = safe_sq_cast<u32sq14>(a);
+    auto bc = static_cast<u32sq14>(b);
+    auto bc2 = static_sq_cast<u32sq14>(b);
+    auto bc3 = safe_sq_cast<u32sq14>(b);
+    auto cc = static_cast<u32sq14>(c);
+    auto cc2 = static_sq_cast<u32sq14>(c);
+    auto cc3 = safe_sq_cast<u32sq14>(c);
+
+    ASSERT_NEAR(u16sqm2::REAL_V_MIN, ac.to_real(), u16sqm2::RESOLUTION);
+    ASSERT_NEAR(u16sqm2::REAL_V_MIN, ac2.to_real(), u16sqm2::RESOLUTION);
+    ASSERT_NEAR(u16sqm2::REAL_V_MIN, ac3.to_real(), u16sqm2::RESOLUTION);
+    ASSERT_NEAR(50000., bc.to_real(), u16sqm2::RESOLUTION);
+    ASSERT_NEAR(50000., bc2.to_real(), u16sqm2::RESOLUTION);
+    ASSERT_NEAR(50000., bc3.to_real(), u16sqm2::RESOLUTION);
+    ASSERT_NEAR(u16sqm2::REAL_V_MAX, cc.to_real(), u16sqm2::RESOLUTION);
+    ASSERT_NEAR(u16sqm2::REAL_V_MAX, cc2.to_real(), u16sqm2::RESOLUTION);
+    ASSERT_NEAR(u16sqm2::REAL_V_MAX, cc3.to_real(), u16sqm2::RESOLUTION);
+}
+
 // EOF

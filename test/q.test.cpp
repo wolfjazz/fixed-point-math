@@ -760,7 +760,7 @@ TEST_F(QTest_Casting, q_static_cast__signed_user_range__signed_different_range__
     // static_cast< i32[MIN,MAX] >( i16_scaled[min,max] ):
     // i32::min  MIN           0            MAX    i32::max
     // |-----|----|------------|-------------|--|------|
-    // |    min   |                          | max     |
+    //      min   |                          | max
     //       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^  <= scaled i16 user value range before saturation
     //            |                          |
     //            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^  <= i32 user value range (saturated value range)
@@ -798,7 +798,7 @@ TEST_F(QTest_Casting, q_static_cast__unsigned_user_range__unsigned_different_ran
     // static_cast< u32[MIN,MAX] >( u16_scaled[min,max] ):
     // 0         MIN                        MAX    u32::max
     // |-----|----|------------|-------------|--|------|
-    // |    min   |                          | max     |
+    //      min   |                          | max
     //       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^  <= scaled u16 user value range before saturation
     //            |                          |
     //            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^  <= u32 user value range (saturated value range)
@@ -982,7 +982,7 @@ TEST_F(QTest_Casting, q_safe_cast__signed_user_range__signed_different_range__sa
     // static_cast< i32[MIN,MAX] >( i16_scaled[min,max] ):
     // i32::min  MIN           0            MAX    i32::max
     // |-----|----|------------|-------------|--|------|
-    // |    min   |                          | max     |
+    //      min   |                          | max
     //       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^  <= scaled i16 user value range before saturation
     //            |                          |
     //            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^  <= i32 user value range (saturated value range)

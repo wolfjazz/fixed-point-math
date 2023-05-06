@@ -38,6 +38,15 @@ public:
     static constexpr base_t V_MAX = v2s<base_t, F>(REAL_V_MAX_);  ///< maximum value of integer value range
     static constexpr double RESOLUTION = v2s<double, -F>(1);  ///< real resolution of this type
 
+    // friend all sq types so that private members of similar types can be accessed for construction
+    template< typename BASE_T_SQ, scaling_t F_SQ, double REAL_V_MIN_SQ, double REAL_V_MAX_SQ >
+    requires (
+        ValidBaseType<BASE_T_SQ>
+        && ValidScaling<F_SQ>
+        && RealLimitsInRangeOfBaseType<BASE_T_SQ, F_SQ, REAL_V_MIN_SQ, REAL_V_MAX_SQ>
+    )
+    friend class sq;
+
     // friend q type so that it can access the private members of this type to construct it
     // Note: As of May 2023, partial specializations cannot be friended, so we friend q in general.
     template< typename _BASE_T_Q, scaling_t _F_Q, double _REAL_V_MIN_Q, double _REAL_V_MAX_Q, overflow _OVF_Q >
@@ -75,7 +84,7 @@ public:
         return sq(VALUE);
     }
 
-    /// Named "Copy-Constructor" from another sq type value with the same base type and scaling.
+    /// Named "Copy-Constructor" from another sq type value with the same base type.
     /// \note When an sq value is up-scaled to a larger resolution, the initial representation error
     /// will not change because the underlying integer value is just multiplied by some integral power
     /// of two factor. However, if the sq value is down-scaled to a smaller resolution, the resulting
@@ -85,8 +94,7 @@ public:
     template< double _REAL_V_MIN_FROM, double _REAL_V_MAX_FROM, scaling_t _F_FROM >
     requires (
         // rescaling is only possible if the real value can be represented (must not overflow)
-        REAL_V_MIN <= _REAL_V_MIN_FROM
-        && REAL_V_MAX >= _REAL_V_MAX_FROM
+        REAL_V_MIN <= _REAL_V_MIN_FROM && _REAL_V_MAX_FROM <= REAL_V_MAX
     )
     static constexpr sq from_sq(sq<base_t, _F_FROM, _REAL_V_MIN_FROM, _REAL_V_MAX_FROM> const &from) noexcept {
         return sq( s2s<base_t, _F_FROM, F>(from.reveal()) );
@@ -99,8 +107,29 @@ public:
     constexpr sq(sq&&) noexcept = default;
 
     /// Destructor.
-    constexpr ~sq()
-    {}
+    constexpr ~sq() {}
+
+    /// Explicit static and safe cast to a different sq type with a different base type.
+    /// Only possible if the value can be cast safely without any potential overflow, i.e. if the
+    /// target value range is equal to or larger than the value range of this class.
+    /// \note If a cast does not work it's most probably due to unfulfilled requirements.
+    template< typename _BASE_T_C, scaling_t _F_C, double _REAL_V_MIN_C, double _REAL_V_MAX_C >
+    requires (
+        !std::is_same_v<base_t, _BASE_T_C>
+        // scaling is only possible if the F difference allows scaling and the real value
+        // can be represented by the target type
+        && ScalingIsPossible<base_t, F, _BASE_T_C, _F_C>
+        && _REAL_V_MIN_C <= REAL_V_MIN && REAL_V_MAX <= _REAL_V_MAX_C
+    )
+    operator sq<_BASE_T_C, _F_C, _REAL_V_MIN_C, _REAL_V_MAX_C>() const {
+        using target_sq = sq<_BASE_T_C, _F_C, _REAL_V_MIN_C, _REAL_V_MAX_C>;
+
+        // scale value
+        auto cValue = s2s<typename target_sq::base_t, F, target_sq::F>(value);
+
+        // create target sq
+        return target_sq(cValue);
+    }
 
     /// Reveals the integer value stored in the memory.
     base_t reveal() const noexcept {
@@ -127,12 +156,45 @@ private:
     sq& operator=(sq&&) = delete;  // move-assignment
 
     /// Explicit, possibly compile-time constructor from scaled integer value.
-    explicit constexpr sq(base_t value) noexcept : value(value)
-    {}
+    explicit constexpr sq(base_t value) noexcept : value(value) {}
 
     /// scaled integer value that represents a fixed-point value; stored in memory
     base_t const value;
 };
+
+/// Explicit static cast to another sq type with a different base type.
+/// Uses static_cast internally. Exists for consistency reasons.
+template< class SQ_C,
+    typename _BASE_T, scaling_t _F, double _REAL_V_MIN, double _REAL_V_MAX,
+    typename _BASE_T_C = SQ_C::base_t, scaling_t _F_C = SQ_C::F, double _REAL_V_MIN_C = SQ_C::REAL_V_MIN,
+    double _REAL_V_MAX_C = SQ_C::REAL_V_MAX >
+requires (
+    !std::is_same_v<_BASE_T, _BASE_T_C>
+    // scaling is only possible if the F difference allows scaling and the real value
+    // can be represented by the target type
+    && ScalingIsPossible<_BASE_T, _F, _BASE_T_C, _F_C>
+    && _REAL_V_MIN_C <= _REAL_V_MIN && _REAL_V_MAX <= _REAL_V_MAX_C
+)
+constexpr SQ_C static_sq_cast(sq<_BASE_T, _F, _REAL_V_MIN, _REAL_V_MAX> from) noexcept {
+    return static_cast<SQ_C>(from);
+}
+
+/// Explicit safe cast to another sq type with a different base type.
+/// Uses static_cast internally. Exists for consistency reasons.
+template< class SQ_C,
+    typename _BASE_T, scaling_t _F, double _REAL_V_MIN, double _REAL_V_MAX,
+    typename _BASE_T_C = SQ_C::base_t, scaling_t _F_C = SQ_C::F, double _REAL_V_MIN_C = SQ_C::REAL_V_MIN,
+    double _REAL_V_MAX_C = SQ_C::REAL_V_MAX >
+requires (
+    !std::is_same_v<_BASE_T, _BASE_T_C>
+    // scaling is only possible if the F difference allows scaling and the real value
+    // can be represented by the target type
+    && ScalingIsPossible<_BASE_T, _F, _BASE_T_C, _F_C>
+    && _REAL_V_MIN_C <= _REAL_V_MIN && _REAL_V_MAX <= _REAL_V_MAX_C
+)
+constexpr SQ_C safe_sq_cast(sq<_BASE_T, _F, _REAL_V_MIN, _REAL_V_MAX> from) noexcept {
+    return static_cast<SQ_C>(from);
+}
 
 }
 

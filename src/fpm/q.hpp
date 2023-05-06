@@ -37,6 +37,16 @@ public:
     static constexpr double RESOLUTION = v2s<double, -F>(1);  ///< real resolution of this type
     static constexpr overflow OVF_BX = OVF_BX_;  ///< overflow behavior
 
+    // friend all q types so that private members of similar types can be accessed for construction
+    // Note: As of May 2023, partial specializations cannot be friended, so we friend q in general.
+    template< typename _BASE_T_Q, scaling_t _F_Q, double _REAL_V_MIN_Q, double _REAL_V_MAX_Q, overflow _OVF_Q >
+    requires (
+        ValidBaseType<_BASE_T_Q>
+        && ValidScaling<_F_Q>
+        && RealLimitsInRangeOfBaseType<_BASE_T_Q, _F_Q, _REAL_V_MIN_Q, _REAL_V_MAX_Q>
+    )
+    friend class q;
+
     /// Corresponding sq type.
     template< double SQ_REAL_V_MIN = REAL_V_MIN, double SQ_REAL_V_MAX = REAL_V_MAX >
     using sq = fpm::sq< base_t, F, SQ_REAL_V_MIN, SQ_REAL_V_MAX >;
@@ -156,8 +166,7 @@ public:
     q& operator=(q&&) noexcept = default;
 
     /// Destructor.
-    constexpr ~q()
-    {}
+    constexpr ~q() {}
 
     /// Copy-Assignment from a different q type with the same base type.
     template< double _REAL_V_MIN_RHS, double _REAL_V_MAX_RHS, scaling_t _F_RHS, overflow _OVF_RHS >
@@ -199,7 +208,7 @@ public:
         }
 
         // create target value; disable overflow check to avoid that value is checked again
-        return target_q::template construct<overflow::NO_CHECK>( static_cast<target_q::base_t>(cValue) );
+        return target_q( static_cast<target_q::base_t>(cValue) );
     }
 
     /// Conversion to the related sq type.
@@ -245,8 +254,7 @@ private:
     q() = delete;
 
     /// Explicit, possibly compile-time constructor from integer value.
-    explicit constexpr q(base_t value) noexcept : value(value)
-    {}
+    explicit constexpr q(base_t value) noexcept : value(value) {}
 
     /// scaled integer value that represents a fixed-point value; stored in memory
     base_t value;
