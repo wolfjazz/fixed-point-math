@@ -45,10 +45,11 @@ enum class overflow : uint8_t {
 /// Overflow type alias.
 using ovf = overflow;
 
-/** \returns whether overflow behavior a is stricter than overflow behavior b. */
-consteval bool is_ovf_stricter(overflow a, overflow b) noexcept {
-    return a < b;
-}
+/** Checks if overflow behavior a is stricter than overflow behavior b. */
+template< overflow A, overflow B >
+struct is_ovf_stricter { static constexpr bool value = A < B; };
+template< overflow A, overflow B >
+static constexpr bool is_ovf_stricter_v = is_ovf_stricter<A, B>::value;
 
 
 /// Scaling factor type.

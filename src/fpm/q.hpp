@@ -154,8 +154,8 @@ public:
         // or if different overflow properties could result in overflow if not checked
         // note: real limits are compared because scaled integers with different q's cannot be compared so easily
         bool _OVF_CHECK_NEEDED = (_REAL_V_MIN_FROM < REAL_V_MIN || REAL_V_MAX < _REAL_V_MAX_FROM
-                                  || is_ovf_stricter(OVF_BX_OVERRIDE, _OVF_FROM)
-                                  || is_ovf_stricter(OVF_BX, OVF_BX_OVERRIDE)) >
+                                  || is_ovf_stricter_v<OVF_BX_OVERRIDE, _OVF_FROM>
+                                  || is_ovf_stricter_v<OVF_BX, OVF_BX_OVERRIDE>) >
     requires (
         ScalingIsPossible<base_t, _F_FROM, base_t, F>
         && RuntimeOverflowCheckAllowedWhenNeeded<OVF_BX_OVERRIDE, _OVF_CHECK_NEEDED>
@@ -229,7 +229,7 @@ public:
         // note: real limits are compared because scaled integers with different base types and q's
         //       cannot be compared so easily
         bool _OVF_CHECK_NEEDED = (REAL_V_MIN < _REAL_V_MIN_C || _REAL_V_MAX_C < REAL_V_MAX
-                                  || is_ovf_stricter(_OVF_C, OVF_BX)) >
+                                  || is_ovf_stricter_v<_OVF_C, OVF_BX>) >
     requires (
         !std::is_same_v<base_t, _BASE_T_C>
         && ScalingIsPossible<base_t, F, _BASE_T_C, _F_C>
@@ -312,8 +312,8 @@ template< class Q_C, overflow OVF_BX_OVERRIDE = Q_C::OVF_BX,
     // note: real limits are compared because scaled integers with different base types and q's
     //       cannot be compared so easily
     bool _OVF_CHECK_NEEDED = (_REAL_V_MIN < _REAL_V_MIN_C || _REAL_V_MAX_C < _REAL_V_MAX
-                              || is_ovf_stricter(OVF_BX_OVERRIDE, _OVF_BX)
-                              || is_ovf_stricter(_OVF_BX, OVF_BX_OVERRIDE)) >
+                              || is_ovf_stricter_v<OVF_BX_OVERRIDE, _OVF_BX>
+                              || is_ovf_stricter_v<_OVF_BX, OVF_BX_OVERRIDE>) >
 requires (
     !std::is_same_v<_BASE_T, _BASE_T_C>
     && (CanBaseTypeOverflow<_BASE_T_C, OVF_BX_OVERRIDE> || ScalingIsPossible<_BASE_T, _F, _BASE_T_C, _F_C>)
