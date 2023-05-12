@@ -75,13 +75,13 @@ using i16q2<...> = i16q<2, ..., fpm::overflow::SATURATE>;  // res. 2^-2; overflo
 
 
 /* declaration and initialization */
-u32q16<> a0::from_real<99.9>();  // direct initialization; default value range is full possible range
-auto a = u32q16<>::from_real<45678.123>();  // construction
-auto b = u32q16<45.0, 98.2>::from_real<66.>();  // construction; value range 45.0-98.2 (2949120-6435635);
+u32q16<> a0::from_real<99.9>;  // direct initialization; default value range is full possible range
+auto a = u32q16<>::from_real<45678.123>;  // construction
+auto b = u32q16<45.0, 98.2>::from_real<66.>;  // construction; value range 45.0-98.2 (2949120-6435635);
 // value range specified via scaled integer is not useful because if the value of n is changed
 // all ranges need to be adapted when scaled values are used; this is not needed for real values
 // and lets be honest - this is not intuitive either.
-//auto c = u32q16<1966080, 3932160>::from_real<45.1>();
+//auto c = u32q16<1966080, 3932160>::from_real<45.1>;
 
 // copy: construct from another q value with same base-type; value range and overflow behavior can be changed this way;
 // note that copy will perform a range check at runtime when the lhs range is smaller than the rhs range
@@ -89,7 +89,7 @@ auto d1 = u32q16<>::from_q<fpm::overflow::ASSERT>(b);
 auto d2 = u32q16<40000.0, 50000.0>::from_q(a);  // limitation of value range; will perform range check at runtime
 // upscale-copy: mem-value increased by 2^4 and checked at runtime; value range implicitly reduced
 auto e = u32q20<>::from_q(a);
-auto e2 = u32q20<>::from_q( u32q16<>::from_real<1.1>() );  // construct temporary q16 and upscale-move to q20 lvalue
+auto e2 = u32q20<>::from_q( u32q16<>::from_real<1.1> );  // construct temporary q16 and upscale-move to q20 lvalue
 // downscale-copy: mem-value decreased at runtime without checks; value range implicitly extended
 auto f = u32q16<>::from_q(e);
 
@@ -109,7 +109,7 @@ f = a;
 auto cast1 = static_cast<i16q2<>>(b);  // Performs checks if needed (decided at compile-time).
 auto cast1b = static_q_cast<i16q2<>, overflow::SATURATE>(b);  // Same as static_cast but with overflow override.
 auto cast2 = safe_q_cast<i16q2<>, overflow::ASSERT>(a);  // Safe cast will always perform checks. overflow:NO_CHECK is not permitted.
-// force-cast doesn't perform any scaling or overflow checks! Value is simply reused.
+// Forced cast doesn't perform any scaling or overflow checks! Value is simply reused.
 // Can overflow! (E.g. useful if an overflow is required as part of an algorithm.)
 auto cast3 = force_q_cast<i16q2<40., 100.>>(b);
 
@@ -154,9 +154,9 @@ using u16sq<...> = fpm::sq<uint16_t, ...>;
 using speed_t = i32q16<-100., 100.>;
 using accel_t = i32q16<-10., 10.>;
 using pos_t = i32q16<-10000., 10000.>;
-auto speed = speed_t::from_real<50.>();
-auto accel = accel_t::from_real<5.>();
-auto pos = pos_t::from_real<1000.>();
+auto speed = speed_t::from_real<50.>;
+auto accel = accel_t::from_real<5.>;
+auto pos = pos_t::from_real<1000.>;
 // ...
 
 // sq-calculation, performed safely via sq values. As mentioned above, if only sq values are used
@@ -180,7 +180,7 @@ auto pos = pos_t::from_real<1000.>();
 auto s0 = pos.to_sq< -5e3, 5e3, overflow::SATURATE >();
 //
 // also given: current time [s]
-auto time = u16sq8<0., 10.>::from_real<4.>();
+auto time = u16sq8<0., 10.>::from_real<4.>;
 //
 // calculation; for a range of input values; expect an sq value within a given range (can and should
 // be calculated with the real decimal range values given when the types are defined; for example,
@@ -197,7 +197,7 @@ pos_t::sq<-6500., 6500.> s = accel*time*time/2 + speed*time + pos.to_sq<-5e3, 5e
 //
 // another calculation step; note that a new variable needs to be defined because s cannot be changed
 // since it is of sq type.
-pos_t::sq<-6500., 7000.> s2 = s + pos_t::sq<0., 500.>::from_real<250.>();  // add some constant value from a range
+pos_t::sq<-6500., 7000.> s2 = s + pos_t::sq<0., 500.>::from_real<250.>;  // add some constant value from a range
 //
 // now update position in q scaling;
 // performs no check when value of s is assigned to pos this way because of smaller value range of s2
@@ -227,8 +227,8 @@ u32sq20<> i = aa + ee;  // addition performed in q20 (higher precision of e) and
 u32sq16<> j = aa + ee;  // addition performed in q20 (higher precision of e) and stored as q16 (j)
 //
 // remember: no range check performed when R1 * R2 (ranges Ri, * is an operator) cannot go ooR
-auto x = u32q16<40., 80.>::from_real<50.>();
-auto y = u32q16<10., 20.>::from_real<15.>();
+auto x = u32q16<40., 80.>::from_real<50.>;
+auto y = u32q16<10., 20.>::from_real<15.>;
 u32sq16<> sz = x + y;  // no range check performed here; implicit conversion of x and y to sq type!
 auto z = u32q16<>::from_sq(sz);  // convert to q-value
 //

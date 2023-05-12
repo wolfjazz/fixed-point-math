@@ -59,30 +59,36 @@ public:
 
     /// Create a new sq type with the same base type and scaling but a different real value range.
     template< double NEW_REAL_V_MIN, double NEW_REAL_V_MAX >
-    using delimit = sq< base_t, F, NEW_REAL_V_MIN, NEW_REAL_V_MAX >;
+    struct relimit { using type = sq< base_t, F, NEW_REAL_V_MIN, NEW_REAL_V_MAX >; };
+
+    /// Type alias for relimit::type.
+    template< double NEW_REAL_V_MIN, double NEW_REAL_V_MAX >
+    using relimit_t = relimit<NEW_REAL_V_MIN, NEW_REAL_V_MAX>::type;
+
+    /// Helper struct template for sq::from_real<.>
+    template< double REAL_VALUE >
+    struct wrap_real { static constexpr sq wrapped = sq( v2s<base_t, F>(REAL_VALUE) ); };
+
+    /// Helper struct template for sq::from_scaled<.>
+    template< base_t VALUE >
+    requires ( V_MIN <= VALUE && VALUE <= V_MAX )  // must not overflow
+    struct wrap_scaled { static constexpr sq wrapped = sq( VALUE ); };
 
     /// Named compile-time-only "constructor" from a floating-point value. This will use v2s to scale
-    /// the given floating-point value at compile-time and then call the sq constructor with the
-    /// scaled integer value at runtime.
+    /// the given floating-point value at compile-time before the sq value is constructed with the
+    /// scaled integer value.
     /// \note: When a real value is wrapped into an sq value, there is an inherent rounding error due
     /// to the limited resolution. This error is called 'representation error' and it refers to the
     /// deviation from the initial real value when an sq value is unscaled to a real value again.
     /// Usually the representation error is in the order of the resolution of the sq type.
     /// \note Does not compile if the value is outside the value range.
     template< double REAL_VALUE >
-    requires ( REAL_V_MIN <= REAL_VALUE && REAL_VALUE <= REAL_V_MAX )  // must not overflow
-    static consteval sq from_real() {
-        constexpr base_t scaledValue = v2s<base_t, F>(REAL_VALUE);
-        return sq(scaledValue);
-    }
+    static constexpr sq from_real = wrap_real<REAL_VALUE>::wrapped;
 
-    /// Named "constructor" from a scaled integer value.
+    /// Named compile-time-only "constructor" from a scaled integer value.
     /// \note Does not compile if the value is outside the value range.
     template< base_t VALUE >
-    requires ( V_MIN <= VALUE && VALUE <= V_MAX )  // must not overflow
-    static consteval sq from_scaled() {
-        return sq(VALUE);
-    }
+    static constexpr sq from_scaled = wrap_scaled<VALUE>::wrapped;
 
     /// Named "Copy-Constructor" from another sq type value with the same base type.
     /// \note When an sq value is up-scaled to a larger resolution, the initial representation error

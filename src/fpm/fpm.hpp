@@ -27,8 +27,8 @@ enum class overflow : uint8_t {
     FORBIDDEN = 0u,
 
     /// If an overflow check is needed, it will be included. In case of an overflow the assert
-    /// function will be called.
-    /// \note This can be used e.g. for debug builds, on types where FORBIDDEN is not possible by design.
+    /// function will be called at runtime.
+    /// \note This can be used e.g. in a debug build on types where FORBIDDEN is not possible by design.
     ASSERT = 1u,
 
     /// In case of an overflow, the value will be saturated to the closest limit.
@@ -177,7 +177,8 @@ namespace _i {
  * Scaling is possible if:
  *  - target and source type are of equal size and the effective target value range is not outshifted, or
  *  - target and source type are of different size and the effective size difference is not outshifted, or
- *  - both types are equal and the number of shifted bits is at most the number of bits in the types */
+ *  - both types are equal and the number of shifted bits is at most the number of bits in each type
+ * \note If this fails, none of the conditions listed above is fulfilled. Double-check! */
 template< typename from_t, scaling_t F_FROM, typename to_t, scaling_t F_TO >
 concept ScalingIsPossible = (
     ( sizeof(from_t) == sizeof(to_t) && _i::abs(F_TO - F_FROM) <= std::numeric_limits<to_t>::digits )
@@ -309,20 +310,27 @@ constexpr TARGET_T v2s(VALUE_T value) noexcept { return v2sh<TARGET_T, TO>(value
 #endif
 
 
-/** Concept of a valid (s)q base-type. */
+/** Concept of a valid (s)q base-type.
+ * \note If this fails, the selected base type is not integral, or too large.
+         Use an integer with a proper size! */
 template< typename BASE_T >
 concept ValidBaseType = (
        std::is_integral_v<BASE_T>
     && sizeof(BASE_T) <= MAX_BASETYPE_SIZE
 );
 
-/** Concept of a valid (s)q scaling value. */
+/** Concept of a valid (s)q scaling value.
+ * \note If this fails, the selected scaling factor is too large. Use a smaller scaling factor! */
 template< scaling_t SCALING >
 concept ValidScaling = (
     SCALING <= MAX_F
 );
 
-/** Concept of a valid (s)q type value range that fits the specified base type. */
+/** Concept of a valid (s)q type value range that fits the specified base type.
+ * \note If this fails, the specified real value limits exceed the value range of the selected
+ *       base type when scaled with the desired scaling factor.
+ *       Use a larger base type, a smaller scaling factor, or double-check the sign and value of
+ *       your selected real limits! */
 template< typename BASE_T, scaling_t F, double REAL_V_MIN, double REAL_V_MAX >
 concept RealLimitsInRangeOfBaseType = (
        std::in_range<BASE_T>(v2s<interm_t<BASE_T>, F>(REAL_V_MIN))
@@ -331,20 +339,30 @@ concept RealLimitsInRangeOfBaseType = (
     && (std::is_signed_v<BASE_T> || REAL_V_MIN >= 0.)
 );
 
-/** Concept of a type that can overflow when allowed.
- * \note In C++23, signed int overflow (i.e. the value does not fit in the type) is still undefined. */
+/** Concept of a type that can overflow when allowed. Typically used in the context of casting.
+ * \note In C++23, signed int overflow (i.e. the value does not fit in the type) is still undefined.
+ * \note If this fails, a signed base type is used in the context of a potential overflow. This is
+ *       not allowed. Use an unsigned target base type. */
 template< typename BASE_T, overflow OVF_BX >
 concept CanBaseTypeOverflow = ( std::is_unsigned_v<BASE_T> && OVF_BX == overflow::ALLOWED );
 
-/** Concept of a valid value that fits the specified base type. */
+/** Concept of a valid value that fits the specified base type.
+ * \note If this fails, the scaled integer value exceeds the value range of the specified base type.
+ *       Use a larger base type or a smaller real value! */
 template< typename BASE_T, scaling_t F, double REAL_VALUE >
 concept RealValueScaledFitsBaseType = ( std::in_range<BASE_T>(v2s<interm_t<BASE_T>, F>(REAL_VALUE)) );
 
+/** Concept: Compile-time-only check is possible.
+ * \note If this fails, a runtime overflow check is probably needed but not allowed in the context
+ *       where this concept is required. Use a different overflow check! */
+template< overflow OVF_BX >
+concept CompileTimeOnlyOverflowCheckPossible = ( overflow::ASSERT != OVF_BX );
+
 /** Concept: Runtime overflow check required when needed.
  * \note If this fails, runtime overflow check is needed but not allowed for desired q type.
- *       Allow for type, or specify the overflow-override template argument (to be preferred). */
+ *       Allow for type, or specify the overflow-override template argument (to be preferred)! */
 template< overflow OVF_BX, bool CHECK_NEEDED = true >
-concept RuntimeCheckAllowedWhenNeeded = ( !CHECK_NEEDED || overflow::FORBIDDEN != OVF_BX );
+concept RuntimeOverflowCheckAllowedWhenNeeded = ( !CHECK_NEEDED || overflow::FORBIDDEN != OVF_BX );
 
 }
 
