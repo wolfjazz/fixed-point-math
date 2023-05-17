@@ -7,8 +7,7 @@
 #include <iostream>
 using namespace std;
 
-#include <fpm/sq.hpp>
-#include <fpm/q.hpp>
+#include <fpm/fpm.hpp>
 using namespace fpm;
 
 

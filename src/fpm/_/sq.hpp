@@ -1,16 +1,15 @@
 /** \file
- * Declaration of the sq class template.
+ * Implementation of the sq class template.
  */
 
-#ifndef _FPM_SQ_HPP_
-#define _FPM_SQ_HPP_
+#ifndef _FPM___SQ_HPP_
+#define _FPM___SQ_HPP_
 
 #include "fpm.hpp"
-#include <cmath>
-#include <limits>
-#include <type_traits>
 
 
+/** \addtogroup grp_fpm
+ * \{ */
 namespace fpm {
 
 /// Static (safe) q type. Implements mathematical operations and checks at compile-time whether these
@@ -227,7 +226,7 @@ constexpr SQ_C safe_sq_cast(sq<_BASE_T, _F, _REAL_V_MIN, _REAL_V_MAX> from) noex
 }
 
 }
-
+/**\}*/
 
 #endif
 // EOF

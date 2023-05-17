@@ -1,17 +1,15 @@
 /** \file
- * Declaration of the q class template.
+ * Implementation of the q class template.
  */
 
-#ifndef _FPM_Q_HPP_
-#define _FPM_Q_HPP_
+#ifndef _FPM___Q_HPP_
+#define _FPM___Q_HPP_
 
 #include "sq.hpp"
-#include <algorithm>
-#include <cmath>
-#include <limits>
-#include <type_traits>
 
 
+/** \addtogroup grp_fpm
+ * \{ */
 namespace fpm {
 
 template<
@@ -384,7 +382,7 @@ constexpr Q_C force_q_cast(q<_BASE_T, _F, _REAL_V_MIN, _REAL_V_MAX, _OVF_BX> fro
 }
 
 }
-
+/**\}*/
 
 #endif
 // EOF

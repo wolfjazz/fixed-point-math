@@ -15,8 +15,9 @@ add_subdirectory(test)
 
 set(Headers
     src/fpm/fpm.hpp
-    src/fpm/q.hpp
-    src/fpm/sq.hpp
+    src/fpm/_/fpm.hpp
+    src/fpm/_/q.hpp
+    src/fpm/_/sq.hpp
 )
 
 set(Sources

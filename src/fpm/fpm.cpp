@@ -1,8 +1,8 @@
 /** \file
- *
+ * Main compilation unit of the fpm library.
  */
 
-#include "q.hpp"
+#include "fpm.hpp"
 
 
 // EOF

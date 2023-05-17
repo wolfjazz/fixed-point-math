@@ -90,7 +90,9 @@
 			"xtree": "cpp",
 			"xutility": "cpp",
 			"charconv": "cpp",
-			"format": "cpp"
+			"format": "cpp",
+			"cassert": "cpp",
+			"climits": "cpp"
 		}
 	}
 }
