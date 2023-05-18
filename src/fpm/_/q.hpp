@@ -338,7 +338,7 @@ constexpr Q_C static_q_cast(q<_BASE_T, _F, _REAL_V_MIN, _REAL_V_MAX, _OVF_BX> fr
         }
 
         // create target value; disable overflow check to avoid that value is checked again
-        return target_q::template construct<overflow::NO_CHECK>( static_cast<typename target_q::base_t>(cValue) );
+        return target_q::template construct<overflow::NO_CHECK>( static_cast<target_q::base_t>(cValue) );
     }
 }
 
@@ -367,7 +367,7 @@ constexpr Q_C safe_q_cast(q<_BASE_T, _F, _REAL_V_MIN, _REAL_V_MAX, _OVF_BX> from
     _i::check_overflow<OVF_BX_OVERRIDE, interm_c_t, interm_f_t>(cValue, target_q::V_MIN, target_q::V_MAX);
 
     // finally, create target value; disable overflow check to avoid that value is checked again
-    return target_q::template construct<overflow::NO_CHECK>( static_cast<typename target_q::base_t>(cValue) );
+    return target_q::template construct<overflow::NO_CHECK>( static_cast<target_q::base_t>(cValue) );
 }
 
 /// Explicit, force cast of a q type to a different q type.

@@ -63,7 +63,7 @@ using scaling_t = int8_t;
 
 /// Intermediate type used for compile-time and runtime calculations with (s)q values.
 template< typename BASE_T >
-using interm_t = std::conditional_t<std::is_signed_v<BASE_T>, int64_t, uint64_t>;
+using interm_t = typename std::conditional_t<std::is_signed_v<BASE_T>, int64_t, uint64_t>;
 
 /// Maximal size of q type base type supported.
 constexpr size_t MAX_BASETYPE_SIZE = sizeof(uint32_t);
