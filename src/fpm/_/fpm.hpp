@@ -69,26 +69,36 @@ using interm_t = typename std::conditional_t<std::is_signed_v<BASE_T>, int64_t, 
 constexpr size_t MAX_BASETYPE_SIZE = sizeof(uint32_t);
 
 /// Maximum possible value of F to support correct scaling of floating-point types with double precision.
+/// \note Empirically determined value!
 constexpr scaling_t MAX_F = 30;
 
 
 /// Internal implementations.
 namespace _i {
 
-    /** Returns the absolute value of the given input value.
-     * \note Shadows cmath::abs() as it is not declared constexpr, therefore VSCode would squiggle it here :( */
-    template< typename VALUE_T, typename _TARGET_T = typename std::make_unsigned<VALUE_T>::type >
-    requires ( std::is_signed_v<VALUE_T> && std::is_integral_v<VALUE_T> )
-    consteval _TARGET_T abs(VALUE_T const input) noexcept {
-        return static_cast<_TARGET_T>( input >= 0 ? input : -input );
-    }
+    // Some standard functions are redefined here for consteval context, otherwise VSCode would squiggle
+    // the functions. :(
+    inline namespace _vsc {
 
-    /** Returns the larger value of the two input values.
-     * \note Shadows std::max() because VSCode does not like references to a and b in a consteval context :( */
-    template< typename VALUE_T >
-    requires ( std::is_integral_v<VALUE_T> )
-    consteval VALUE_T max(VALUE_T a, VALUE_T b) noexcept {
-        return a > b ? a : b;
+        /** Returns the absolute value of the given input value. Treats minimum numeric limits correctly. */
+        template< typename VALUE_T, typename _TARGET_T = typename std::make_unsigned<VALUE_T>::type >
+        requires ( std::is_signed_v<VALUE_T> )
+        consteval _TARGET_T abs(VALUE_T const input) noexcept {
+            // note: cast to unsigned first when value is negative to handle numeric_limits<VALUE_T>::min() correctly
+            return static_cast<_TARGET_T>( input >= 0 ? input : -static_cast<_TARGET_T>(input) );
+        }
+
+        /** Returns the smaller value of the two input values. */
+        template< typename VALUE_T >
+        consteval VALUE_T min(VALUE_T a, VALUE_T b) noexcept {
+            return a < b ? a : b;
+        }
+
+        /** Returns the larger value of the two input values. */
+        template< typename VALUE_T >
+        consteval VALUE_T max(VALUE_T a, VALUE_T b) noexcept {
+            return a > b ? a : b;
+        }
     }
 
     /// Overflow check types.

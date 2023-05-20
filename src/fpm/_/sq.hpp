@@ -82,12 +82,14 @@ public:
     /// Usually the representation error is in the order of the resolution of the sq type.
     /// \note Does not compile if the value is outside the value range.
     template< double REAL_VALUE >
-    static constexpr sq from_real = wrap_real<REAL_VALUE>::wrapped;
+    static constexpr
+    sq from_real = wrap_real<REAL_VALUE>::wrapped;
 
     /// Named compile-time-only "constructor" from a scaled integer value.
     /// \note Does not compile if the value is outside the value range.
     template< base_t VALUE >
-    static constexpr sq from_scaled = wrap_scaled<VALUE>::wrapped;
+    static constexpr
+    sq from_scaled = wrap_scaled<VALUE>::wrapped;
 
     /// Named "Copy-Constructor" from another sq type value with the same base type.
     /// \note When an sq value is up-scaled to a larger resolution, the initial representation error
@@ -101,7 +103,8 @@ public:
         // rescaling is only possible if the real value can be represented (must not overflow)
         REAL_V_MIN <= _REAL_V_MIN_FROM && _REAL_V_MAX_FROM <= REAL_V_MAX
     )
-    static constexpr sq from_sq(sq<base_t, _F_FROM, _REAL_V_MIN_FROM, _REAL_V_MAX_FROM> const &from) noexcept {
+    static constexpr
+    sq from_sq(sq<base_t, _F_FROM, _REAL_V_MIN_FROM, _REAL_V_MAX_FROM> const &from) noexcept {
         return sq( s2s<base_t, _F_FROM, F>(from.reveal()) );
     }
 
@@ -126,7 +129,8 @@ public:
         && ScalingIsPossible<base_t, F, _BASE_T_C, _F_C>
         && _REAL_V_MIN_C <= REAL_V_MIN && REAL_V_MAX <= _REAL_V_MAX_C
     )
-    explicit operator sq<_BASE_T_C, _F_C, _REAL_V_MIN_C, _REAL_V_MAX_C>() const {
+    explicit
+    operator sq<_BASE_T_C, _F_C, _REAL_V_MIN_C, _REAL_V_MAX_C>() const noexcept {
         using target_sq = sq<_BASE_T_C, _F_C, _REAL_V_MIN_C, _REAL_V_MAX_C>;
 
         // scale value
@@ -150,13 +154,42 @@ public:
     requires (
         RealLimitsInRangeOfBaseType<_BASE_T_R, _F_R, _REAL_V_MIN_R, _REAL_V_MAX_R>
     )
+    friend
+    sq<_BASE_T_R, _F_R, _REAL_V_MIN_R, _REAL_V_MAX_R>
     // Note: Passing lhs by value helps optimize chained a+b+c.
-    friend sq<_BASE_T_R, _F_R, _REAL_V_MIN_R, _REAL_V_MAX_R> operator+(sq lhs, SQ_RHS const &rhs) {
+    operator+(sq lhs, SQ_RHS const &rhs) noexcept {
         using rhs_sq = sq<_BASE_T_RHS, _F_RHS, _REAL_V_MIN_RHS, _REAL_V_MAX_RHS>;
         using result_sq = sq<_BASE_T_R, _F_R, _REAL_V_MIN_R, _REAL_V_MAX_R>;
 
         // add values
         auto result = s2s<_BASE_T_R, F, result_sq::F>(lhs.value) + s2s<_BASE_T_R, rhs_sq::F, result_sq::F>(rhs.value);
+
+        return result_sq( static_cast<result_sq::base_t>(result) );
+    }
+
+    /// Subtracts the rhs value from the lhs value.
+    /// \returns a value of a new sq type with the larger scaling (higher precision) and the user value
+    /// ranges subtracted. If the base types are different, integral promotion rules will be applied.
+    template< class SQ_RHS,
+        typename _BASE_T_RHS = SQ_RHS::base_t, scaling_t _F_RHS = SQ_RHS::F,
+            double _REAL_V_MIN_RHS = SQ_RHS::REAL_V_MIN, double _REAL_V_MAX_RHS = SQ_RHS::REAL_V_MAX,
+        // common type is larger type, or unsigned type if same size, or type if same types
+        typename _BASE_T_R = std::common_type_t<base_t, _BASE_T_RHS>,
+        scaling_t _F_R = _i::max(_F_RHS, F),
+        double _REAL_V_MIN_R = _i::min(REAL_V_MIN - _REAL_V_MAX_RHS, _REAL_V_MIN_RHS - REAL_V_MAX),
+        double _REAL_V_MAX_R = _i::max(REAL_V_MAX - _REAL_V_MIN_RHS, _REAL_V_MAX_RHS - REAL_V_MIN) >
+    requires (
+        RealLimitsInRangeOfBaseType<_BASE_T_R, _F_R, _REAL_V_MIN_R, _REAL_V_MAX_R>
+    )
+    friend
+    sq<_BASE_T_R, _F_R, _REAL_V_MIN_R, _REAL_V_MAX_R>
+    // Note: Passing lhs by value helps optimize chained a-b-c.
+    operator-(sq lhs, SQ_RHS const &rhs) noexcept {
+        using rhs_sq = sq<_BASE_T_RHS, _F_RHS, _REAL_V_MIN_RHS, _REAL_V_MAX_RHS>;
+        using result_sq = sq<_BASE_T_R, _F_R, _REAL_V_MIN_R, _REAL_V_MAX_R>;
+
+        // subtract rhs value from lhs value
+        auto result = s2s<_BASE_T_R, F, result_sq::F>(lhs.value) - s2s<_BASE_T_R, rhs_sq::F, result_sq::F>(rhs.value);
 
         return result_sq( static_cast<result_sq::base_t>(result) );
     }
@@ -205,7 +238,8 @@ requires (
     && ScalingIsPossible<_BASE_T, _F, _BASE_T_C, _F_C>
     && _REAL_V_MIN_C <= _REAL_V_MIN && _REAL_V_MAX <= _REAL_V_MAX_C
 )
-constexpr SQ_C static_sq_cast(sq<_BASE_T, _F, _REAL_V_MIN, _REAL_V_MAX> from) noexcept {
+constexpr
+SQ_C static_sq_cast(sq<_BASE_T, _F, _REAL_V_MIN, _REAL_V_MAX> from) noexcept {
     return static_cast<SQ_C>(from);
 }
 
@@ -221,7 +255,8 @@ requires (
     && ScalingIsPossible<_BASE_T, _F, _BASE_T_C, _F_C>
     && _REAL_V_MIN_C <= _REAL_V_MIN && _REAL_V_MAX <= _REAL_V_MAX_C
 )
-constexpr SQ_C safe_sq_cast(sq<_BASE_T, _F, _REAL_V_MIN, _REAL_V_MAX> from) noexcept {
+constexpr
+SQ_C safe_sq_cast(sq<_BASE_T, _F, _REAL_V_MIN, _REAL_V_MAX> from) noexcept {
     return static_cast<SQ_C>(from);
 }
 

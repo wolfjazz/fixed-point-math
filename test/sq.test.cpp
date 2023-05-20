@@ -309,5 +309,61 @@ TEST_F(SQTest_Addition, sq_add__three_values_same_sq_type__values_added) {
     ASSERT_NEAR(3000., d.to_real(), 3*i32sq16::RESOLUTION);
 }
 
+TEST_F(SQTest_Addition, sq_add__three_values_different_sq_type__values_added_largest_resolution) {
+    using i32sq16 = sq<int32_t, 16, -500., 500.>;
+    using i32sq20 = sq<int32_t, 20, -300., 300.>;
+    auto a = i32sq16::from_real<-455.>;
+    auto b = i32sq20::from_real<233.>;
+    auto c = i32sq16::from_real<167.>;
+
+    auto d = a + b + c;
+
+    using expected_result_t = i32sq20::relimit_t<-1300., 1300.>;
+    ASSERT_TRUE((std::is_same_v<expected_result_t, decltype(d)>));
+    ASSERT_NEAR(-55., d.to_real(), 2*i32sq16::RESOLUTION + i32sq20::RESOLUTION);
+}
+
+
+// ////////////////////////////////////////////////////////////////////////////////////////////// //
+// ------------------------------------ SQ Test: Subtraction ------------------------------------ //
+// ////////////////////////////////////////////////////////////////////////////////////////////// //
+
+class SQTest_Subtraction : public ::testing::Test {
+protected:
+    void SetUp() override
+    {
+    }
+    void TearDown() override
+    {
+    }
+};
+
+TEST_F(SQTest_Subtraction, sq_subtract__three_values_same_sq_type__values_subtracted) {
+    using i32sq16 = sq<int32_t, 16, -500., 500.>;
+    auto a = i32sq16::from_real<-455.>;
+    auto b = i32sq16::from_real<233.>;
+    auto c = i32sq16::from_real<167.>;
+
+    auto d = a - b - c;
+
+    using expected_result_t = i32sq16::relimit_t<-1500., +1500.>;
+    ASSERT_TRUE((std::is_same_v<expected_result_t, decltype(d)>));
+    ASSERT_NEAR(-855., d.to_real(), 3*i32sq16::RESOLUTION);
+}
+
+TEST_F(SQTest_Subtraction, sq_subtract__three_values_different_sq_type__values_subtracted_largest_resolution) {
+    using i32sq16 = sq<int32_t, 16, -500., 500.>;
+    using i32sq20 = sq<int32_t, 20, -300., 300.>;
+    auto a = i32sq16::from_real<255.1111>;
+    auto b = i32sq20::from_real<233.2222>;
+    auto c = i32sq16::from_real<167.3333>;
+
+    auto d = a - b - c;
+
+    using expected_result_t = i32sq20::relimit_t<-1300., +1300.>;
+    ASSERT_TRUE((std::is_same_v<expected_result_t, decltype(d)>));
+    ASSERT_NEAR(-145.4444, d.to_real(), 2*i32sq16::RESOLUTION + i32sq20::RESOLUTION);
+}
+
 
 // EOF
