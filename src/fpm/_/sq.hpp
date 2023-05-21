@@ -143,9 +143,9 @@ public:
     /// Adds two sq values.
     /// \returns a value of a new sq type with the larger scaling (higher precision) and the user value
     /// ranges added together. If the base types are different, integral promotion rules will be applied.
-    template< class SQ_RHS,
-        typename _BASE_T_RHS = SQ_RHS::base_t, scaling_t _F_RHS = SQ_RHS::F,
-            double _REAL_V_MIN_RHS = SQ_RHS::REAL_V_MIN, double _REAL_V_MAX_RHS = SQ_RHS::REAL_V_MAX,
+    template< class _SQ_RHS,
+        typename _BASE_T_RHS = _SQ_RHS::base_t, scaling_t _F_RHS = _SQ_RHS::F,
+            double _REAL_V_MIN_RHS = _SQ_RHS::REAL_V_MIN, double _REAL_V_MAX_RHS = _SQ_RHS::REAL_V_MAX,
         // common type is larger type, or unsigned type if same size, or type if same types
         typename _BASE_T_R = std::common_type_t<base_t, _BASE_T_RHS>,
         scaling_t _F_R = _i::max(_F_RHS, F),
@@ -157,7 +157,7 @@ public:
     friend
     sq<_BASE_T_R, _F_R, _REAL_V_MIN_R, _REAL_V_MAX_R>
     // Note: Passing lhs by value helps optimize chained a+b+c.
-    operator+(sq lhs, SQ_RHS const &rhs) noexcept {
+    operator+(sq lhs, _SQ_RHS const &rhs) noexcept {
         using rhs_sq = sq<_BASE_T_RHS, _F_RHS, _REAL_V_MIN_RHS, _REAL_V_MAX_RHS>;
         using result_sq = sq<_BASE_T_R, _F_R, _REAL_V_MIN_R, _REAL_V_MAX_R>;
 
@@ -170,9 +170,9 @@ public:
     /// Subtracts the rhs value from the lhs value.
     /// \returns a value of a new sq type with the larger scaling (higher precision) and the user value
     /// ranges subtracted. If the base types are different, integral promotion rules will be applied.
-    template< class SQ_RHS,
-        typename _BASE_T_RHS = SQ_RHS::base_t, scaling_t _F_RHS = SQ_RHS::F,
-            double _REAL_V_MIN_RHS = SQ_RHS::REAL_V_MIN, double _REAL_V_MAX_RHS = SQ_RHS::REAL_V_MAX,
+    template< class _SQ_RHS,
+        typename _BASE_T_RHS = _SQ_RHS::base_t, scaling_t _F_RHS = _SQ_RHS::F,
+            double _REAL_V_MIN_RHS = _SQ_RHS::REAL_V_MIN, double _REAL_V_MAX_RHS = _SQ_RHS::REAL_V_MAX,
         // common type is larger type, or unsigned type if same size, or type if same types
         typename _BASE_T_R = std::common_type_t<base_t, _BASE_T_RHS>,
         scaling_t _F_R = _i::max(_F_RHS, F),
@@ -184,7 +184,7 @@ public:
     friend
     sq<_BASE_T_R, _F_R, _REAL_V_MIN_R, _REAL_V_MAX_R>
     // Note: Passing lhs by value helps optimize chained a-b-c.
-    operator-(sq lhs, SQ_RHS const &rhs) noexcept {
+    operator-(sq lhs, _SQ_RHS const &rhs) noexcept {
         using rhs_sq = sq<_BASE_T_RHS, _F_RHS, _REAL_V_MIN_RHS, _REAL_V_MAX_RHS>;
         using result_sq = sq<_BASE_T_R, _F_R, _REAL_V_MIN_R, _REAL_V_MAX_R>;
 
