@@ -78,7 +78,7 @@ namespace _i {
 
     // Some standard functions are redefined here for consteval context, otherwise VSCode would squiggle
     // the functions. :(
-    inline namespace _vsc {
+    inline namespace {
 
         /** Returns the absolute value of the given input value. Treats minimum numeric limits correctly. */
         template< typename VALUE_T, typename _TARGET_T = typename std::make_unsigned<VALUE_T>::type >
@@ -101,23 +101,6 @@ namespace _i {
         }
     }
 
-    /// Overflow check types.
-    enum overflow_checktype : uint8_t {
-        CHECKTYPE_SIGN_UNCHANGED = 0u,  ///< default check type
-        CHECKTYPE_SIGNED_TO_UNSIGNED = 1u,  ///< sign has changed from signed to unsigned
-        CHECKTYPE_UNSIGNED_TO_SIGNED = 2u,  ///< sign has changed from unsigned to signed
-    };
-
-    /** Returns the check-type based on the two types before and after a casting operation. */
-    template< typename BEFORE_T, typename AFTER_T >
-    struct determine_checktype {
-        static constexpr overflow_checktype checktype = (std::is_signed_v<BEFORE_T> && std::is_unsigned_v<AFTER_T>)
-            ? CHECKTYPE_SIGNED_TO_UNSIGNED
-            : (std::is_unsigned_v<BEFORE_T> && std::is_signed_v<AFTER_T>)
-                ? CHECKTYPE_UNSIGNED_TO_SIGNED
-                : CHECKTYPE_SIGN_UNCHANGED;
-    };
-
     /** Overflow check function.
      * \note Works for signed and unsigned value type. */
     template<
@@ -127,47 +110,54 @@ namespace _i {
     >
     requires ( std::is_integral_v<VALUE_T> && std::is_integral_v<SRC_V_T> )
     constexpr void check_overflow(VALUE_T &value, VALUE_T const MIN, VALUE_T const MAX) noexcept {
+        // Overflow check types.
+        enum checktype : uint8_t {
+            CHECKTYPE_SIGN_UNCHANGED = 0u,  ///< default overflow check
+            CHECKTYPE_SIGNED_TO_UNSIGNED = 1u,  ///< sign has changed from signed to unsigned
+            CHECKTYPE_UNSIGNED_TO_SIGNED = 2u,  ///< sign has changed from unsigned to signed
+        };
+
         if constexpr (overflow::ASSERT == OVF_BX) {
-            if ( !(value >= MIN && value <= MAX)) {
+            if (value < MIN || value > MAX) {
                 assert(false);  // value is out of range
             }
         }
         else if constexpr (overflow::SATURATE == OVF_BX) {
             // determine check type
-            constexpr auto CHECKTYPE = _i::determine_checktype<SRC_V_T, VALUE_T>::checktype;
+            constexpr auto CHECKTYPE = (std::is_signed_v<SRC_V_T> && std::is_unsigned_v<VALUE_T>)
+                ? CHECKTYPE_SIGNED_TO_UNSIGNED
+                : (std::is_unsigned_v<SRC_V_T> && std::is_signed_v<VALUE_T>)
+                    ? CHECKTYPE_UNSIGNED_TO_SIGNED
+                    : CHECKTYPE_SIGN_UNCHANGED;
 
-            // if value was casted from a signed to unsigned type, and is in the upper half of the
-            // unsigned value range, the value was negative before; saturate it to lower limit
+            // if the value was cast from a signed to an unsigned type and is in the upper half of the
+            // unsigned value range, the value was negative before; saturate it to the lower limit
             if constexpr (CHECKTYPE_SIGNED_TO_UNSIGNED == CHECKTYPE) {
-                constexpr VALUE_T CENTER = static_cast<VALUE_T>(std::numeric_limits<std::make_signed_t<VALUE_T>>::max());
-                if ( !(value >= MIN && value < CENTER)) {
+                constexpr VALUE_T SIGNED_MAX = static_cast<VALUE_T>(std::numeric_limits<std::make_signed_t<VALUE_T>>::max());
+                if (value < MIN || value > SIGNED_MAX) {
                     value = MIN;
                 }
-                else if ( !(value <= MAX)) {
+                else if (value > MAX) {
                     value = MAX;
                 }
                 else { /* okay */ }
             }
-            // if value was casted from an unsigned to signed type, and is negative, the value was
-            // positive before; saturate it to upper limit
+            // if the value was cast from an unsigned to a signed type and is negative, the value was
+            // positive before; saturate it to the upper limit
             else if constexpr (CHECKTYPE_UNSIGNED_TO_SIGNED == CHECKTYPE) {
-                if ( !(value >= 0)) {
-                    // this cannot be combined with check for MAX because MAX can be negative
+                if (value < 0 || value > MAX) {
                     value = MAX;
                 }
-                else if ( !(value >= MIN)) {
+                else if (value < MIN) {
                     value = MIN;
-                }
-                else if ( !(value <= MAX)) {
-                    value = MAX;
                 }
                 else { /* okay */ }
             }
             else /* checktype sign unchanged */ {
-                if ( !(value >= MIN)) {
+                if (value < MIN) {
                     value = MIN;
                 }
-                else if ( !(value <= MAX)) {
+                else if (value > MAX) {
                     value = MAX;
                 }
                 else { /* okay */ }
