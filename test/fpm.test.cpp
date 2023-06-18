@@ -391,13 +391,15 @@ TEST_F(V2STest, v2s__constexpr_pos_and_neg_double__double_output) {
 TEST_F(V2STest, v2s__large_F__double_output) {
     constexpr double REAL_VALUE_MIN = std::numeric_limits<int16_t>().min();
     constexpr double REAL_VALUE_MAX = std::numeric_limits<int16_t>().max();
-    auto resultN = v2s<double,MAX_F>(REAL_VALUE_MIN);
-    auto resultP = v2s<double,MAX_F>(REAL_VALUE_MAX);
+    auto resultN = v2s<double,MAX_F-std::numeric_limits<int16_t>::digits>(REAL_VALUE_MIN);  // F: 53-15=38
+    auto resultP = v2s<double,MAX_F-std::numeric_limits<int16_t>::digits>(REAL_VALUE_MAX);
 
-    constexpr double EXPECTED_RESULT_N = -3.5184372088832e13;
-    constexpr double EXPECTED_RESULT_P = 3.5183298347008e13;
-    ASSERT_NEAR(EXPECTED_RESULT_N, resultN, _i::testing::fp_epsilon_for(EXPECTED_RESULT_N));
-    ASSERT_NEAR(EXPECTED_RESULT_P, resultP, _i::testing::fp_epsilon_for(EXPECTED_RESULT_P));
+    constexpr double EXPECTED_RESULT_N = -9.007199254740992e15;
+    constexpr double EXPECTED_RESULT_P = +9.006924376834048e15;
+    EXPECT_NEAR(_i::testing::floatp_epsilon_for(EXPECTED_RESULT_N), 1.0, 1.0e-10);
+    EXPECT_NEAR(_i::testing::floatp_epsilon_for(EXPECTED_RESULT_P), 1.0, 1.0e-10);
+    ASSERT_NEAR(EXPECTED_RESULT_N, resultN, _i::testing::floatp_epsilon_for(EXPECTED_RESULT_N));
+    ASSERT_NEAR(EXPECTED_RESULT_P, resultP, _i::testing::floatp_epsilon_for(EXPECTED_RESULT_P));
 }
 
 

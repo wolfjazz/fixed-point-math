@@ -24,7 +24,7 @@ template<
 >
 requires (
     ValidBaseType<BASE_T_>
-    && ValidScaling<F_>
+    && ValidScaling<BASE_T_, F_>
     && RealLimitsInRangeOfBaseType<BASE_T_, F_, REAL_V_MIN_, REAL_V_MAX_>
 )
 class sq final {
@@ -41,7 +41,7 @@ public:
     template< typename BASE_T_SQ, scaling_t F_SQ, double REAL_V_MIN_SQ, double REAL_V_MAX_SQ >
     requires (
         ValidBaseType<BASE_T_SQ>
-        && ValidScaling<F_SQ>
+        && ValidScaling<BASE_T_SQ, F_SQ>
         && RealLimitsInRangeOfBaseType<BASE_T_SQ, F_SQ, REAL_V_MIN_SQ, REAL_V_MAX_SQ>
     )
     friend class sq;
@@ -51,7 +51,7 @@ public:
     template< typename _BASE_T_Q, scaling_t _F_Q, double _REAL_V_MIN_Q, double _REAL_V_MAX_Q, overflow _OVF_Q >
     requires (
         ValidBaseType<_BASE_T_Q>
-        && ValidScaling<_F_Q>
+        && ValidScaling<_BASE_T_Q, _F_Q>
         && RealLimitsInRangeOfBaseType<_BASE_T_Q, _F_Q, _REAL_V_MIN_Q, _REAL_V_MAX_Q>
     )
     friend class q;

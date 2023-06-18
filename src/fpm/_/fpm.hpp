@@ -65,19 +65,21 @@ using scaling_t = int8_t;
 template< typename BASE_T >
 using interm_t = typename std::conditional_t<std::is_signed_v<BASE_T>, int64_t, uint64_t>;
 
-/// Maximal size of q type base type supported.
+/// Maximal supported size of a (s)q-type's base type.
+/// TODO: Support uint64_t.
 constexpr size_t MAX_BASETYPE_SIZE = sizeof(uint32_t);
 
 /// Maximum possible value of F to support correct scaling of floating-point types with double precision.
-/// \note Empirically determined value!
-constexpr scaling_t MAX_F = 30;
+/// Corresponds to the effective size of double's mantissa (significant double precision).
+/// \note Absolute integers between 2^-53 and 2^53 can be exactly represented in double.
+constexpr scaling_t MAX_F = 53;
 
 
 /// Internal implementations.
 namespace _i {
 
-    // Some standard functions are redefined here for consteval context, otherwise VSCode would squiggle
-    // the functions. :(
+    // Some standard functions are redefined here for consteval/constexpr context, otherwise VSCode
+    // would squiggle the functions. :(
     inline namespace {
 
         /** Returns the absolute value of the given input value. Treats minimum numeric limits correctly. */
@@ -170,8 +172,8 @@ namespace _i {
     namespace testing {
         /** Returns the minimum distance between doubles (epsilon) for numbers of the magnitude
          * of the given value.
-         * \warning Expensive at runtime! */
-        constexpr double fp_epsilon_for(double value) noexcept {
+         * \warning Expensive! */
+        inline double floatp_epsilon_for(double value) noexcept {
             double epsilon = nextafter(value, std::numeric_limits<double>::infinity()) - value;
             return epsilon;
         }
@@ -207,12 +209,15 @@ template< typename TARGET_T, scaling_t FROM, scaling_t TO, typename VALUE_T >
 constexpr TARGET_T s2smd(VALUE_T value) noexcept {
     // use common type for calculation to avoid loss of precision
     using COMMON_T = typename std::common_type<VALUE_T, TARGET_T>::type;
+    using SCALING_T = typename std::conditional_t<sizeof(COMMON_T) <= 4u,
+        std::conditional_t<std::is_signed_v<COMMON_T>, int32_t, uint32_t>,
+        std::conditional_t<std::is_signed_v<COMMON_T>, int64_t, uint64_t>>;
 
     if constexpr (FROM > TO) {
-        return static_cast<TARGET_T>( static_cast<COMMON_T>(value) / (1 << (unsigned)(FROM - TO)) );
+        return static_cast<TARGET_T>( static_cast<COMMON_T>(value) / (static_cast<SCALING_T>(1) << (unsigned)(FROM - TO)) );
     }
     else if constexpr (TO > FROM) {
-        return static_cast<TARGET_T>( static_cast<COMMON_T>(value) * (1 << (unsigned)(TO - FROM)) );
+        return static_cast<TARGET_T>( static_cast<COMMON_T>(value) * (static_cast<SCALING_T>(1) << (unsigned)(TO - FROM)) );
     }
     else /* FROM == TO */ {
         return static_cast<TARGET_T>(value);
@@ -267,12 +272,15 @@ template< typename TARGET_T, scaling_t TO, typename VALUE_T >
 constexpr TARGET_T v2smd(VALUE_T value) noexcept {
     // use common type for shift to avoid loss of precision
     using COMMON_T = typename std::common_type<VALUE_T, TARGET_T>::type;
+    using SCALING_T = typename std::conditional_t<sizeof(COMMON_T) <= 4u,
+        std::conditional_t<std::is_signed_v<COMMON_T>, int32_t, uint32_t>,
+        std::conditional_t<std::is_signed_v<COMMON_T>, int64_t, uint64_t>>;
 
     if constexpr (TO < 0) {
-        return static_cast<TARGET_T>( static_cast<COMMON_T>(value) / (1 << (unsigned)(-TO)) );
+        return static_cast<TARGET_T>( static_cast<COMMON_T>(value) / (static_cast<SCALING_T>(1) << (unsigned)(-TO)) );
     }
     else if constexpr (TO > 0) {
-        return static_cast<TARGET_T>( static_cast<COMMON_T>(value) * (1 << (unsigned)TO) );
+        return static_cast<TARGET_T>( static_cast<COMMON_T>(value) * (static_cast<SCALING_T>(1) << (unsigned)TO) );
     }
     else /* TO == 0 */ {
         return static_cast<TARGET_T>(value);
@@ -327,10 +335,13 @@ concept ValidBaseType = (
 );
 
 /** Concept of a valid (s)q scaling value.
+ * Types can be scaled by maximal the number of bits in the base type minus one bit, limited by the
+ * size of double's mantissa.
  * \note If this fails, the selected scaling factor is too large. Use a smaller scaling factor! */
-template< scaling_t SCALING >
+template< typename BASE_T, scaling_t SCALING >
 concept ValidScaling = (
-    SCALING <= MAX_F
+    SCALING <= std::numeric_limits<std::make_signed_t<BASE_T>>::digits  // CHAR_BIT * sizeof(BASE_T) - 1
+    && SCALING <= MAX_F
 );
 
 /** Concept of a valid (s)q type value range that fits the specified base type.
