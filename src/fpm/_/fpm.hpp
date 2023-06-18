@@ -172,7 +172,7 @@ namespace _i {
     namespace testing {
         /** Returns the minimum distance between doubles (epsilon) for numbers of the magnitude
          * of the given value.
-         * \warning Expensive! */
+         * \warning Expensive when used in production code! */
         inline double floatp_epsilon_for(double value) noexcept {
             double epsilon = nextafter(value, std::numeric_limits<double>::infinity()) - value;
             return epsilon;
