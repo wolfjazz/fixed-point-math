@@ -14,14 +14,14 @@ add_subdirectory(googletest)
 add_subdirectory(test)
 
 set(Headers
+    src/fpm.hpp
     src/fpm/fpm.hpp
-    src/fpm/_/fpm.hpp
-    src/fpm/_/q.hpp
-    src/fpm/_/sq.hpp
+    src/fpm/q.hpp
+    src/fpm/sq.hpp
 )
 
 set(Sources
-    src/fpm/fpm.cpp
+    src/fpm.cpp
 )
 
 add_compile_options(-Wall -Wextra -pedantic -Werror -fconcepts-diagnostics-depth=2)
