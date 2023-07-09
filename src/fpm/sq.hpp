@@ -157,13 +157,12 @@ public:
     friend
     sq<_BASE_T_R, _F_R, _REAL_V_MIN_R, _REAL_V_MAX_R>
     // Note: Passing lhs by value helps optimize chained a+b+c.
-    operator+(sq lhs, _SQ_RHS const &rhs) noexcept {
+    operator+(sq const lhs, _SQ_RHS const &rhs) noexcept {
         using rhs_sq = sq<_BASE_T_RHS, _F_RHS, _REAL_V_MIN_RHS, _REAL_V_MAX_RHS>;
         using result_sq = sq<_BASE_T_R, _F_R, _REAL_V_MIN_R, _REAL_V_MAX_R>;
 
         // add values
         auto result = s2s<_BASE_T_R, F, result_sq::F>(lhs.value) + s2s<_BASE_T_R, rhs_sq::F, result_sq::F>(rhs.value);
-
         return result_sq( static_cast<result_sq::base_t>(result) );
     }
 
@@ -184,17 +183,100 @@ public:
     friend
     sq<_BASE_T_R, _F_R, _REAL_V_MIN_R, _REAL_V_MAX_R>
     // Note: Passing lhs by value helps optimize chained a-b-c.
-    operator-(sq lhs, _SQ_RHS const &rhs) noexcept {
+    operator-(sq const lhs, _SQ_RHS const &rhs) noexcept {
         using rhs_sq = sq<_BASE_T_RHS, _F_RHS, _REAL_V_MIN_RHS, _REAL_V_MAX_RHS>;
         using result_sq = sq<_BASE_T_R, _F_R, _REAL_V_MIN_R, _REAL_V_MAX_R>;
 
         // subtract rhs value from lhs value
         auto result = s2s<_BASE_T_R, F, result_sq::F>(lhs.value) - s2s<_BASE_T_R, rhs_sq::F, result_sq::F>(rhs.value);
-
         return result_sq( static_cast<result_sq::base_t>(result) );
     }
 
-    /// Reveals the integer value stored in the memory.
+    /// Multiplies the lhs value with the rhs value.
+    /// \returns a value of a new sq type with the larger scaling (higher precision) and the user value
+    /// ranges multiplied. If the base types are different, integral promotion rules will be applied.
+    /// \note The error propagation is complicated. When a number x is multiplied with itself n times,
+    ///       the real error is of order O( n * x^(n-1) * 2^-q ). For example, for a chain x*x*x
+    ///       the real error is of order O( 3*x^2 * 2^-q ). Higher terms O( 2^-mq ), m > 1 do occur
+    ///       for such chains, but are very close to 0 for larger q and can usually be ignored.
+    template< class _SQ_RHS,
+        typename _BASE_T_RHS = _SQ_RHS::base_t, scaling_t _F_RHS = _SQ_RHS::F,
+            double _REAL_V_MIN_RHS = _SQ_RHS::REAL_V_MIN, double _REAL_V_MAX_RHS = _SQ_RHS::REAL_V_MAX,
+        // common type is larger type, or unsigned type if same size, or type if same types
+        typename _BASE_T_R = std::common_type_t<base_t, _BASE_T_RHS>,
+        scaling_t _F_R = _i::max(_F_RHS, F),
+        double _REAL_V_MIN_R = _i::min(_i::min(REAL_V_MIN * _REAL_V_MAX_RHS, _REAL_V_MIN_RHS * REAL_V_MAX),
+                                       _i::min(REAL_V_MIN * _REAL_V_MIN_RHS, REAL_V_MAX * _REAL_V_MAX_RHS)),
+        double _REAL_V_MAX_R = _i::max(_i::max(REAL_V_MAX * _REAL_V_MIN_RHS, _REAL_V_MAX_RHS * REAL_V_MIN),
+                                       _i::max(REAL_V_MIN * _REAL_V_MIN_RHS, REAL_V_MAX * _REAL_V_MAX_RHS)) >
+    requires (
+        RealLimitsInRangeOfBaseType<_BASE_T_R, _F_R, _REAL_V_MIN_R, _REAL_V_MAX_R>
+    )
+    friend
+    sq<_BASE_T_R, _F_R, _REAL_V_MIN_R, _REAL_V_MAX_R>
+    // Note: Passing lhs by value helps optimize chained a*b*c.
+    operator*(sq const lhs, _SQ_RHS const &rhs) noexcept {
+        using rhs_sq = sq<_BASE_T_RHS, _F_RHS, _REAL_V_MIN_RHS, _REAL_V_MAX_RHS>;
+        using result_sq = sq<_BASE_T_R, _F_R, _REAL_V_MIN_R, _REAL_V_MAX_R>;
+        using interm_m_t = interm_t<_BASE_T_R>;
+
+        // multiply lhs with rhs in intermediate type and correct scaling to obtain result
+        auto intermediate = s2s<interm_m_t, F, result_sq::F>(lhs.value) * s2s<interm_m_t, rhs_sq::F, result_sq::F>(rhs.value);
+        auto result = s2s<typename result_sq::base_t, 2*result_sq::F, result_sq::F>(intermediate);
+        return result_sq( result );
+    }
+
+#if 0
+    /// Multiplies the lhs sq value with a rhs integer.
+    /// \returns a value of a new sq type with the user value range multiplied. If the base types are
+    /// different, integral promotion rules will be applied.
+    template< typename _BASE_T_RHS,
+        // common type is larger type, or unsigned type if same size, or type if same types
+        typename _BASE_T_R = std::common_type_t<base_t, _BASE_T_RHS> >
+    requires (
+        std::is_integral_v<_BASE_T_RHS>
+    )
+    friend consteval
+    // Note: Passing lhs by value helps optimize chained a*b*c.
+    auto operator*(sq const lhs, _BASE_T_RHS const rhs) noexcept {
+        double _REAL_V_MIN_R = REAL_V_MIN * rhs;
+        double _REAL_V_MAX_R = REAL_V_MAX * rhs;
+        static_assert(RealLimitsInRangeOfBaseType<_BASE_T_R, F, _REAL_V_MIN_R, _REAL_V_MAX_R>);
+        using result_sq = sq<_BASE_T_R, F, _REAL_V_MIN_R, _REAL_V_MAX_R>;
+        using interm_m_t = interm_t<_BASE_T_R>;
+
+        // multiply lhs with integral rhs to obtain result
+        auto result = static_cast<result_sq::base_t>(lhs.value) * static_cast<result_sq::base_t>(rhs);
+        return result_sq( result );
+    }
+
+    /// Multiplies a lhs integer with a rhs sq value.
+    /// \returns a value of a new sq type with the user value range multiplied. If the base types are
+    /// different, integral promotion rules will be applied.
+    template< typename _BASE_T_LHS, class _SQ_RHS,
+        typename _BASE_T_RHS = _SQ_RHS::base_t, scaling_t _F_R = _SQ_RHS::F,
+        double _REAL_V_MIN_RHS = _SQ_RHS::REAL_V_MIN, double _REAL_V_MAX_RHS = _SQ_RHS::REAL_V_MAX,
+        // common type is larger type, or unsigned type if same size, or type if same types
+        typename _BASE_T_R = std::common_type_t<_BASE_T_LHS, _BASE_T_RHS> >
+    requires (
+        std::is_integral_v<_BASE_T_LHS>
+    )
+    friend consteval
+    // Note: Passing lhs by value helps optimize chained a*b*c.
+    auto operator*(_BASE_T_LHS const lhs, _SQ_RHS const &rhs) noexcept {
+        double _REAL_V_MIN_R = _REAL_V_MIN_RHS * rhs;
+        double _REAL_V_MAX_R = _REAL_V_MAX_RHS * rhs;
+        static_assert(RealLimitsInRangeOfBaseType<_BASE_T_R, F, _REAL_V_MIN_R, _REAL_V_MAX_R>);
+        using rhs_sq = sq<_BASE_T_RHS, _F_R, _REAL_V_MIN_RHS, _REAL_V_MAX_RHS>;
+        using result_sq = sq<_BASE_T_R, _F_R, _REAL_V_MIN_R, _REAL_V_MAX_R>;
+
+        // multiply integral lhs with rhs to obtain result
+        auto result = static_cast<result_sq::base_t>(lhs) * static_cast<result_sq::base_t>(rhs.value);
+        return result_sq( result );
+    }
+#endif
+
+    /// Reveals the integer value stored in memory.
     base_t reveal() const noexcept {
         return value;
     }

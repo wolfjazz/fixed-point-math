@@ -366,4 +366,64 @@ TEST_F(SQTest_Subtraction, sq_subtract__three_values_different_sq_type__values_s
 }
 
 
+// ////////////////////////////////////////////////////////////////////////////////////////////// //
+// ------------------------------------ SQ Test: Multiplication --------------------------------- //
+// ////////////////////////////////////////////////////////////////////////////////////////////// //
+
+class SQTest_Multiplication : public ::testing::Test {
+protected:
+    void SetUp() override
+    {
+    }
+    void TearDown() override
+    {
+    }
+};
+
+TEST_F(SQTest_Multiplication, sq_multiplicate__three_values_same_sq_type__values_multiplied) {
+    using i32sq16 = sq<int32_t, 16, -8., 8.>;
+    auto a = i32sq16::from_real< -4.5 >;
+    auto b = i32sq16::from_real<  7./3 >;
+    auto c = i32sq16::from_real<  5./3 >;
+
+    auto d = a * b * c;
+
+    using expected_result_t = i32sq16::relimit_t<-512., +512.>;
+    ASSERT_TRUE((std::is_same_v<expected_result_t, decltype(d)>));
+    ASSERT_NEAR(-17.5, d.to_real(), 12*i32sq16::RESOLUTION);
+}
+
+TEST_F(SQTest_Multiplication, sq_multiplicate__three_values_different_sq_type__values_multiplied_largest_resolution) {
+    using i32sq16 = sq<int32_t, 16, -8., -2.>;
+    using i32sq20 = sq<int32_t, 20, -9., 10.>;
+    auto a = i32sq16::from_real< -7.888 >;
+    auto b = i32sq20::from_real< -2.666 >;
+    auto c = i32sq20::from_real<  8.123 >;
+
+    auto d = a * b * c;
+
+    using expected_result_t = i32sq20::relimit_t<-800., +720.>;
+    ASSERT_TRUE((std::is_same_v<expected_result_t, decltype(d)>));
+    ASSERT_NEAR(170.8218812, d.to_real(), 26*i32sq16::RESOLUTION);
+}
+
+TEST_F(SQTest_Multiplication, sq_multiplicate__three_values_same_type_and_int_constant__values_multiplied) {
+    // using i32sq16 = sq<int32_t, 16, -8., 8.>;
+    // auto a = i32sq16::from_real<  5.5 >;
+    // auto b = i32sq16::from_real< -2.6 >;
+
+    // auto d = a * b * 15;
+    // auto e = a * 15 * b;
+    // auto f = 15 * a * b;
+
+    // using expected_result_t = i32sq16::relimit_t<-960., +960.>;
+    // ASSERT_TRUE((std::is_same_v<expected_result_t, decltype(d)>));
+    // ASSERT_TRUE((std::is_same_v<expected_result_t, decltype(e)>));
+    // ASSERT_TRUE((std::is_same_v<expected_result_t, decltype(f)>));
+    // ASSERT_NEAR(-214.5, d.to_real(), 8*i32sq16::RESOLUTION);
+    // ASSERT_NEAR(-214.5, e.to_real(), 8*i32sq16::RESOLUTION);
+    // ASSERT_NEAR(-214.5, f.to_real(), 8*i32sq16::RESOLUTION);
+}
+
+
 // EOF

@@ -284,7 +284,7 @@ public:
         return target_sq(sqValue);
     }
 
-    /// Reveals the integer value stored in the memory.
+    /// Reveals the integer value stored in memory.
     base_t reveal() const noexcept {
         return value;
     }
