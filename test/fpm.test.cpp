@@ -25,53 +25,53 @@ protected:
 };
 
 TEST_F(InternalTest, abs__signed_positive__returns_unsigned_positive) {
-    auto result = _i::abs((int)+36);
+    auto result = details::abs((int)+36);
 
     ASSERT_TRUE((std::is_same_v<unsigned int, decltype(result)>));
     ASSERT_EQ(+36u, result);
 }
 
 TEST_F(InternalTest, abs__signed_negative__returns_unsigned_positive) {
-    auto result = _i::abs((int)-36);
+    auto result = details::abs((int)-36);
 
     ASSERT_TRUE((std::is_same_v<unsigned int, decltype(result)>));
     ASSERT_EQ(+36u, result);
 }
 
 TEST_F(InternalTest, abs__signed_negative_min__returns_unsigned_positive) {
-    auto result = _i::abs(std::numeric_limits<int>::min());
+    auto result = details::abs(std::numeric_limits<int>::min());
 
     ASSERT_TRUE((std::is_same_v<unsigned int, decltype(result)>));
     ASSERT_EQ((unsigned)std::numeric_limits<int>::max() + 1u, result);
 }
 
 TEST_F(InternalTest, min__signed_negative__returns_smaller_value) {
-    auto result = _i::min((int)-23, -45);
+    auto result = details::min((int)-23, -45);
     ASSERT_EQ((int)-45, result);
 }
 
 TEST_F(InternalTest, min__signed_positive__returns_smaller_value) {
-    auto result = _i::min((int)89, 1145);
+    auto result = details::min((int)89, 1145);
     ASSERT_EQ((int)89, result);
 }
 
 TEST_F(InternalTest, min__signed_mixed__returns_smaller_value) {
-    auto result = _i::min((int)2299, -1166);
+    auto result = details::min((int)2299, -1166);
     ASSERT_EQ((int)-1166, result);
 }
 
 TEST_F(InternalTest, max__signed_negative__returns_larger_value) {
-    auto result = _i::max((int)-6, -45);
+    auto result = details::max((int)-6, -45);
     ASSERT_EQ((int)-6, result);
 }
 
 TEST_F(InternalTest, max__signed_positive__returns_larger_value) {
-    auto result = _i::max((int)189, 9145);
+    auto result = details::max((int)189, 9145);
     ASSERT_EQ((int)9145, result);
 }
 
 TEST_F(InternalTest, max__signed_mixed__returns_larger_value) {
-    auto result = _i::max((int)3366, -5879);
+    auto result = details::max((int)3366, -5879);
     ASSERT_EQ((int)3366, result);
 }
 
@@ -396,10 +396,10 @@ TEST_F(V2STest, v2s__large_F__double_output) {
 
     constexpr double expectedResultN = -9.007199254740992e15;
     constexpr double expectedResultP = +9.006924376834048e15;
-    EXPECT_NEAR(_i::testing::floatpEpsilonFor(expectedResultN), 1.0, 1.0e-10);
-    EXPECT_NEAR(_i::testing::floatpEpsilonFor(expectedResultP), 1.0, 1.0e-10);
-    ASSERT_NEAR(expectedResultN, resultN, _i::testing::floatpEpsilonFor(expectedResultN));
-    ASSERT_NEAR(expectedResultP, resultP, _i::testing::floatpEpsilonFor(expectedResultP));
+    EXPECT_NEAR(details::test::floatpEpsilonFor(expectedResultN), 1.0, 1.0e-10);
+    EXPECT_NEAR(details::test::floatpEpsilonFor(expectedResultP), 1.0, 1.0e-10);
+    ASSERT_NEAR(expectedResultN, resultN, details::test::floatpEpsilonFor(expectedResultN));
+    ASSERT_NEAR(expectedResultP, resultP, details::test::floatpEpsilonFor(expectedResultP));
 }
 
 

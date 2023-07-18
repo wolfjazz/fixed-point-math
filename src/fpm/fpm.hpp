@@ -77,7 +77,7 @@ constexpr scaling_t MAX_F = 53;
 
 
 /// Internal implementations.
-namespace _i {
+namespace details {
 
     // Some standard functions are redefined here for consteval/constexpr context, otherwise VSCode
     // would squiggle the functions. :(
@@ -194,7 +194,7 @@ namespace _i {
     }
 
     /// Functions defined for testing purposes.
-    namespace testing {
+    namespace test {
         /** Returns the minimum distance between doubles (epsilon) for numbers of the magnitude
          * of the given value.
          * \warning Expensive when used in production code! */
@@ -215,10 +215,10 @@ namespace _i {
  * \note If this fails, none of the conditions listed above is fulfilled. Double-check! */
 template< typename from_t, scaling_t fFrom, typename to_t, scaling_t fTo >
 concept ScalingIsPossible = (
-    ( sizeof(from_t) == sizeof(to_t) && _i::abs(fTo - fFrom) <= std::numeric_limits<to_t>::digits )
+    ( sizeof(from_t) == sizeof(to_t) && details::abs(fTo - fFrom) <= std::numeric_limits<to_t>::digits )
     || ( sizeof(from_t) != sizeof(to_t)
-         && _i::abs(fTo - fFrom) <= _i::abs(std::numeric_limits<to_t>::digits - std::numeric_limits<from_t>::digits) )
-    || ( std::is_same_v<from_t, to_t> && _i::abs(fTo - fFrom) <= sizeof(to_t) * CHAR_BIT )
+         && details::abs(fTo - fFrom) <= details::abs(std::numeric_limits<to_t>::digits - std::numeric_limits<from_t>::digits) )
+    || ( std::is_same_v<from_t, to_t> && details::abs(fTo - fFrom) <= sizeof(to_t) * CHAR_BIT )
 );
 
 
@@ -244,7 +244,7 @@ constexpr TargetT s2smd(ValueT value) noexcept {
     else if constexpr (to > from) {
         return static_cast<TargetT>( static_cast<CommonT>(value) * (static_cast<ScalingT>(1) << (unsigned)(to - from)) );
     }
-    else /* from == TO */ {
+    else /* from == to */ {
         return static_cast<TargetT>(value);
     }
 }
@@ -271,7 +271,7 @@ constexpr TargetT s2sh(ValueT value) noexcept {
     else if constexpr (to > from) {
         return static_cast<TargetT>( static_cast<CommonT>(value) << (unsigned)(to - from) );
     }
-    else /* from == TO */ {
+    else /* from == to */ {
         return static_cast<TargetT>(value);
     }
 }
@@ -284,8 +284,8 @@ constexpr TargetT s2sh(ValueT value) noexcept {
 template< typename TargetT, scaling_t from, scaling_t to, typename ValueT >
 constexpr TargetT s2s(ValueT value) noexcept { return s2smd<TargetT, from, to>(value); }
 #else
-template< typename TargetT, scaling_t from, scaling_t TO, typename ValueT >
-constexpr TargetT s2s(ValueT value) noexcept { return s2sh<TargetT, from, TO>(value); }
+template< typename TargetT, scaling_t from, scaling_t to, typename ValueT >
+constexpr TargetT s2s(ValueT value) noexcept { return s2sh<TargetT, from, to>(value); }
 #endif
 
 
@@ -307,7 +307,7 @@ constexpr TargetT v2smd(ValueT value) noexcept {
     else if constexpr (to > 0) {
         return static_cast<TargetT>( static_cast<CommonT>(value) * (static_cast<ScalingT>(1) << (unsigned)to) );
     }
-    else /* TO == 0 */ {
+    else /* to == 0 */ {
         return static_cast<TargetT>(value);
     }
 }
@@ -332,7 +332,7 @@ constexpr TargetT v2sh(ValueT value) noexcept {
     else if constexpr (to > 0) {
         return static_cast<TargetT>( static_cast<CommonT>(value) << (unsigned)to );
     }
-    else /* TO == 0 */ {
+    else /* to == 0 */ {
         return static_cast<TargetT>(value);
     }
 }
@@ -345,8 +345,8 @@ constexpr TargetT v2sh(ValueT value) noexcept {
 template< typename TargetT, scaling_t to, typename ValueT >
 constexpr TargetT v2s(ValueT value) noexcept { return v2smd<TargetT, to>(value); }
 #else
-template< typename TargetT, scaling_t TO, typename ValueT >
-constexpr TargetT v2s(ValueT value) noexcept { return v2sh<TargetT, TO>(value); }
+template< typename TargetT, scaling_t to, typename ValueT >
+constexpr TargetT v2s(ValueT value) noexcept { return v2sh<TargetT, to>(value); }
 #endif
 
 
