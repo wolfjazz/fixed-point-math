@@ -22,7 +22,7 @@ In the end, we just want to perform calculations with a predefined value range a
 - ability to specify the value range via floats (= unscaled values) at compile-time
 - ability to change the precision and/or the value range later in code (at compile-time, via types)
 - no implicit construction from floating-point types (safety, to avoid confusion)
-- implicit construction from static integers only when unambiguous (e.g. when used as a factor)
+- implicit construction (of sq) from static integers when they appear in formulas (e.g. as factors)
 - explicit construction from static, scaled integers and real floating-point values at compile time
 - explicit construction from integer-based variables with scaled integer values at runtime
 - no runtime construction from floating-point variables (we don't want floats at runtime)
@@ -75,23 +75,23 @@ using i16q2<...> = i16q<2, ..., fpm::overflow::SATURATE>;  // res. 2^-2; overflo
 
 
 /* declaration and initialization */
-u32q16<> a0::from_real<99.9>;  // direct initialization; default value range is full possible range
-auto a = u32q16<>::from_real<45678.123>;  // construction
-auto b = u32q16<45.0, 98.2>::from_real<66.>;  // construction; value range 45.0-98.2 (2949120-6435635);
+u32q16<> a0::fromReal<99.9>;  // direct initialization; default value range is full possible range
+auto a = u32q16<>::fromReal<45678.123>;  // construction
+auto b = u32q16<45.0, 98.2>::fromReal<66.>;  // construction; value range 45.0-98.2 (2949120-6435635);
 // value range specified via scaled integer is not useful because if the value of n is changed
 // all ranges need to be adapted when scaled values are used; this is not needed for real values
 // and lets be honest - this is not intuitive either.
-//auto c = u32q16<1966080, 3932160>::from_real<45.1>;
+//auto c = u32q16<1966080, 3932160>::fromReal<45.1>;
 
 // copy: construct from another q value with same base-type; value range and overflow behavior can be changed this way;
 // note that copy will perform a range check at runtime when the lhs range is smaller than the rhs range
-auto d1 = u32q16<>::from_q<fpm::overflow::ASSERT>(b);
-auto d2 = u32q16<40000.0, 50000.0>::from_q(a);  // limitation of value range; will perform range check at runtime
+auto d1 = u32q16<>::fromQ<fpm::overflow::ASSERT>(b);
+auto d2 = u32q16<40000.0, 50000.0>::fromQ(a);  // limitation of value range; will perform range check at runtime
 // upscale-copy: mem-value increased by 2^4 and checked at runtime; value range implicitly reduced
-auto e = u32q20<>::from_q(a);
-auto e2 = u32q20<>::from_q( u32q16<>::from_real<1.1> );  // construct temporary q16 and upscale-move to q20 lvalue
+auto e = u32q20<>::fromQ(a);
+auto e2 = u32q20<>::fromQ( u32q16<>::fromReal<1.1> );  // construct temporary q16 and upscale-move to q20 lvalue
 // downscale-copy: mem-value decreased at runtime without checks; value range implicitly extended
-auto f = u32q16<>::from_q(e);
+auto f = u32q16<>::fromQ(e);
 
 
 /* assignment operator */
@@ -141,7 +141,6 @@ using i32sq<...> = fpm::sq<int32_t, ...>;
 using u32sq<...> = fpm::sq<uint32_t, ...>;
 using i16sq<...> = fpm::sq<int16_t, ...>;
 using u16sq<...> = fpm::sq<uint16_t, ...>;
-// ...
 
 // user-defined types
 // from above: for q-types, corresponding sq types are created; can be accessed via q<>::sq<>;
@@ -154,9 +153,9 @@ using u16sq<...> = fpm::sq<uint16_t, ...>;
 using speed_t = i32q16<-100., 100.>;
 using accel_t = i32q16<-10., 10.>;
 using pos_t = i32q16<-10000., 10000.>;
-auto speed = speed_t::from_real<50.>;
-auto accel = accel_t::from_real<5.>;
-auto pos = pos_t::from_real<1000.>;
+auto speed = speed_t::fromReal<50.>;
+auto accel = accel_t::fromReal<5.>;
+auto pos = pos_t::fromReal<1000.>;
 // ...
 
 // sq-calculation, performed safely via sq values. As mentioned above, if only sq values are used
@@ -173,14 +172,14 @@ auto pos = pos_t::from_real<1000.>;
 //
 // not needed: construct sq value from corresponding q value;  -> is done implicitly for operators;
 //             default value range of sq type is that of the q type
-//speed_t::sq<> v0 = speed.to_sq<>();  // conversion q -> sq
-//accel_t::sq<> a = accel.to_sq<>();
+//speed_t::sq<> v0 = speed.toSq<>();  // conversion q -> sq
+//accel_t::sq<> a = accel.toSq<>();
 //
 // explicit change of value range: sq value for pos0 with a smaller value range; performs overflow checks!
-auto s0 = pos.to_sq< -5e3, 5e3, overflow::SATURATE >();
+auto s0 = pos.toSq< -5e3, 5e3, overflow::SATURATE >();
 //
 // also given: current time [s]
-auto time = u16sq8<0., 10.>::from_real<4.>;
+auto time = u16sq8<0., 10.>::fromReal<4.>;
 //
 // calculation; for a range of input values; expect an sq value within a given range (can and should
 // be calculated with the real decimal range values given when the types are defined; for example,
@@ -192,27 +191,28 @@ auto time = u16sq8<0., 10.>::from_real<4.>;
 pos_t::sq<-6500., 6500.> s = accel*time*time/2 + speed*time + s0;
 //
 // alternative: explicit conversion in situ:
-pos_t::sq<-6500., 6500.> s = accel*time*time/2 + speed*time + pos.to_sq<-5e3, 5e3, overflow::SATURATE>();
+pos_t::sq<-6500., 6500.> s = accel*time*time/2 + speed*time + pos.toSq<-5e3, 5e3, overflow::SATURATE>();
 //                                                            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 //
 // another calculation step; note that a new variable needs to be defined because s cannot be changed
 // since it is of sq type.
-pos_t::sq<-6500., 7000.> s2 = s + pos_t::sq<0., 500.>::from_real<250.>;  // add some constant value from a range
+pos_t::sq<-6500., 7000.> s2 = s + pos_t::sq<0., 500.>::fromReal<250.>;  // add some constant value from a range
 //
 // now update position in q scaling;
 // performs no check when value of s is assigned to pos this way because of smaller value range of s2
 // => calculations via sq, storage at runtime via q
-pos = pos_t::from_sq< ovf_override >(s2);  // conversion sq -> q (via named constructor of q)
+pos = pos_t::fromSq< ovf_override >(s2);  // conversion sq -> q (via named constructor of q)
 
 // some thoughts about implicit conversion of integers in formulas:
-// - should the following be possible? This is somehow ambiguous (does it mean that the underlying
-//   base integer is increased by one, or that the value represented by s is increased by one?).
-//   --> no!
-pos_t::sq<> s3 = s + 1;  // same problem for minus operator
-// - the following definitely makes sense though (because it is not ambiguous):
-//   --> yes!
-pos_t::sq<> s4 = s * 4;
-pos_t::sq<> s5 = s / 3;
+// - integers are converted implicitly to the (resulting) type on the lhs, or to the type on the rhs
+//   if a formula starts with an integer; this is ambiguous to some extend, because the user might
+//   wonder whether the underlying integer or the real value is incremented - it is the latter
+// - NOT SUPPORTED YET; as of 2023, C++ does not have constexpr function parameters
+// -> integers are converted explicitly via literal operator
+//    - limitations: only positive integers can be converted like this
+pos_t::sq<> s3 = s + 1_i32q16;  // converts 1 to i32q16<(double)1,(double)1>::fromReal<(double)1>
+pos_t::sq<> s4 = s * 4_i32q16;
+pos_t::sq<> s5 = s / 3_i32q16;
 
 
 /* mathematical operators */
@@ -227,10 +227,10 @@ u32sq20<> i = aa + ee;  // addition performed in q20 (higher precision of e) and
 u32sq16<> j = aa + ee;  // addition performed in q20 (higher precision of e) and stored as q16 (j)
 //
 // remember: no range check performed when R1 * R2 (ranges Ri, * is an operator) cannot go ooR
-auto x = u32q16<40., 80.>::from_real<50.>;
-auto y = u32q16<10., 20.>::from_real<15.>;
+auto x = u32q16<40., 80.>::fromReal<50.>;
+auto y = u32q16<10., 20.>::fromReal<15.>;
 u32sq16<> sz = x + y;  // no range check performed here; implicit conversion of x and y to sq type!
-auto z = u32q16<>::from_sq(sz);  // convert to q-value
+auto z = u32q16<>::fromSq(sz);  // convert to q-value
 //
 //
 /* subtraction */

@@ -17,61 +17,52 @@ namespace fpm {
 /// \note sq values cannot be constructed directly at runtime; only indirect construction via q types
 ///       is possible in this case.
 template<
-    typename BASE_T_,  ///< type of the scaled integer stored in memory
-    scaling_t F_,      ///< number of fraction bits (precision 2^-F)
-    double REAL_V_MIN_ = v2s<double, -F_>((double)std::numeric_limits<BASE_T_>::min()),  ///< minimum real value represented by this type
-    double REAL_V_MAX_ = v2s<double, -F_>((double)std::numeric_limits<BASE_T_>::max())   ///< maximum real value represented by this type
+    typename BaseT,  ///< type of the scaled integer stored in memory
+    scaling_t f_,    ///< number of fraction bits (precision 2^-f)
+    double realVMin_ = v2s<double, -f_>((double)std::numeric_limits<BaseT>::min()),  ///< minimum real value represented by this type
+    double realVMax_ = v2s<double, -f_>((double)std::numeric_limits<BaseT>::max())   ///< maximum real value represented by this type
 >
 requires (
-    ValidBaseType<BASE_T_>
-    && ValidScaling<BASE_T_, F_>
-    && RealLimitsInRangeOfBaseType<BASE_T_, F_, REAL_V_MIN_, REAL_V_MAX_>
+    ValidBaseType<BaseT>
+    && ValidScaling<BaseT, f_>
+    && RealLimitsInRangeOfBaseType<BaseT, f_, realVMin_, realVMax_>
 )
 class sq final {
 public:
-    using base_t = BASE_T_;  /// integral base type
-    static constexpr scaling_t F = F_;  ///< number of fraction bits
-    static constexpr double REAL_V_MIN = REAL_V_MIN_;  ///< minimum real value
-    static constexpr double REAL_V_MAX = REAL_V_MAX_;  ///< maximum real value
-    static constexpr base_t V_MIN = v2s<base_t, F>(REAL_V_MIN_);  ///< minimum value of integer value range
-    static constexpr base_t V_MAX = v2s<base_t, F>(REAL_V_MAX_);  ///< maximum value of integer value range
-    static constexpr double RESOLUTION = v2s<double, -F>(1);  ///< real resolution of this type
+    using base_t = BaseT;  /// integral base type
+    static constexpr scaling_t f = f_;  ///< number of fraction bits
+    static constexpr double realVMin = realVMin_;  ///< minimum real value
+    static constexpr double realVMax = realVMax_;  ///< maximum real value
+    static constexpr base_t vMin = v2s<base_t, f>(realVMin_);  ///< minimum value of integer value range
+    static constexpr base_t vMax = v2s<base_t, f>(realVMax_);  ///< maximum value of integer value range
+    static constexpr double resolution = v2s<double, -f>(1);  ///< real resolution of this type
 
     // friend all sq types so that private members of similar types can be accessed for construction
-    template< typename BASE_T_SQ, scaling_t F_SQ, double REAL_V_MIN_SQ, double REAL_V_MAX_SQ >
+    template< typename BaseTSq, scaling_t fSq, double realVMinSq, double realVMaxSq >
     requires (
-        ValidBaseType<BASE_T_SQ>
-        && ValidScaling<BASE_T_SQ, F_SQ>
-        && RealLimitsInRangeOfBaseType<BASE_T_SQ, F_SQ, REAL_V_MIN_SQ, REAL_V_MAX_SQ>
+        ValidBaseType<BaseTSq>
+        && ValidScaling<BaseTSq, fSq>
+        && RealLimitsInRangeOfBaseType<BaseTSq, fSq, realVMinSq, realVMaxSq>
     )
     friend class sq;
 
     // friend q type so that it can access the private members of this type to construct it
     // Note: As of May 2023, partial specializations cannot be friended, so we friend q in general.
-    template< typename _BASE_T_Q, scaling_t _F_Q, double _REAL_V_MIN_Q, double _REAL_V_MAX_Q, overflow _OVF_Q >
+    template< typename BaseTQ, scaling_t fQ, double realVMinQ, double realVMaxQ, overflow ovfQ >
     requires (
-        ValidBaseType<_BASE_T_Q>
-        && ValidScaling<_BASE_T_Q, _F_Q>
-        && RealLimitsInRangeOfBaseType<_BASE_T_Q, _F_Q, _REAL_V_MIN_Q, _REAL_V_MAX_Q>
+        ValidBaseType<BaseTQ>
+        && ValidScaling<BaseTQ, fQ>
+        && RealLimitsInRangeOfBaseType<BaseTQ, fQ, realVMinQ, realVMaxQ>
     )
     friend class q;
 
     /// Create a new sq type with the same base type and scaling but a different real value range.
-    template< double NEW_REAL_V_MIN, double NEW_REAL_V_MAX >
-    struct relimit { using type = sq< base_t, F, NEW_REAL_V_MIN, NEW_REAL_V_MAX >; };
+    template< double newRealVMin, double newRealVMax >
+    struct relimit { using type = sq< base_t, f, newRealVMin, newRealVMax >; };
 
     /// Type alias for relimit::type.
-    template< double NEW_REAL_V_MIN, double NEW_REAL_V_MAX >
-    using relimit_t = relimit<NEW_REAL_V_MIN, NEW_REAL_V_MAX>::type;
-
-    /// Helper struct template for sq::from_real<.>
-    template< double REAL_VALUE >
-    struct wrap_real { static constexpr sq wrapped = sq( v2s<base_t, F>(REAL_VALUE) ); };
-
-    /// Helper struct template for sq::from_scaled<.>
-    template< base_t VALUE >
-    requires ( V_MIN <= VALUE && VALUE <= V_MAX )  // must not overflow
-    struct wrap_scaled { static constexpr sq wrapped = sq( VALUE ); };
+    template< double newRealVMin, double newRealVMax >
+    using relimit_t = relimit<newRealVMin, newRealVMax>::type;
 
     /// Named compile-time-only "constructor" from a floating-point value. This will use v2s to scale
     /// the given floating-point value at compile-time before the sq value is constructed with the
@@ -81,15 +72,16 @@ public:
     /// deviation from the initial real value when an sq value is unscaled to a real value again.
     /// Usually the representation error is in the order of the resolution of the sq type.
     /// \note Does not compile if the value is outside the value range.
-    template< double REAL_VALUE >
+    template< double realValue >
     static constexpr
-    sq from_real = wrap_real<REAL_VALUE>::wrapped;
+    sq fromReal = sq( v2s<base_t, f>(realValue) );
 
     /// Named compile-time-only "constructor" from a scaled integer value.
     /// \note Does not compile if the value is outside the value range.
-    template< base_t VALUE >
+    template< base_t value >
+    requires ( vMin <= value && value <= vMax )  // must not overflow
     static constexpr
-    sq from_scaled = wrap_scaled<VALUE>::wrapped;
+    sq fromScaled = sq( value );
 
     /// Named "Copy-Constructor" from another sq type value with the same base type.
     /// \note When an sq value is up-scaled to a larger resolution, the initial representation error
@@ -98,14 +90,14 @@ public:
     /// representation error may become larger since the underlying integer is divided and the result
     /// rounded towards zero to the next integer. The resulting representation error is at most the
     /// sum of the two resolutions before and after a down-scaling operation.
-    template< double _REAL_V_MIN_FROM, double _REAL_V_MAX_FROM, scaling_t _F_FROM >
+    template< double realVMinFrom, double realVMaxFrom, scaling_t fFrom >
     requires (
         // rescaling is only possible if the real value can be represented (must not overflow)
-        REAL_V_MIN <= _REAL_V_MIN_FROM && _REAL_V_MAX_FROM <= REAL_V_MAX
+        realVMin <= realVMinFrom && realVMaxFrom <= realVMax
     )
     static constexpr
-    sq from_sq(sq<base_t, _F_FROM, _REAL_V_MIN_FROM, _REAL_V_MAX_FROM> const &from) noexcept {
-        return sq( s2s<base_t, _F_FROM, F>(from.reveal()) );
+    sq fromSq(sq<base_t, fFrom, realVMinFrom, realVMaxFrom> const &from) noexcept {
+        return sq( s2s<base_t, fFrom, f>(from.reveal()) );
     }
 
     /// Copy-Constructor from the same type.
@@ -121,20 +113,20 @@ public:
     /// Only possible if the value can be cast safely without any potential overflow, i.e. if the
     /// target value range is equal to or larger than the value range of this class.
     /// \note If a cast does not work it's most probably due to unfulfilled requirements.
-    template< typename _BASE_T_C, scaling_t _F_C, double _REAL_V_MIN_C, double _REAL_V_MAX_C >
+    template< typename BaseTC, scaling_t fC, double realVMinC, double realVMaxC >
     requires (
-        !std::is_same_v<base_t, _BASE_T_C>
-        // scaling is only possible if the F difference allows scaling and the real value
+        !std::is_same_v<base_t, BaseTC>
+        // scaling is only possible if the f difference allows scaling and the real value
         // can be represented by the target type
-        && ScalingIsPossible<base_t, F, _BASE_T_C, _F_C>
-        && _REAL_V_MIN_C <= REAL_V_MIN && REAL_V_MAX <= _REAL_V_MAX_C
+        && ScalingIsPossible<base_t, f, BaseTC, fC>
+        && realVMinC <= realVMin && realVMax <= realVMaxC
     )
     explicit
-    operator sq<_BASE_T_C, _F_C, _REAL_V_MIN_C, _REAL_V_MAX_C>() const noexcept {
-        using target_sq = sq<_BASE_T_C, _F_C, _REAL_V_MIN_C, _REAL_V_MAX_C>;
+    operator sq<BaseTC, fC, realVMinC, realVMaxC>() const noexcept {
+        using target_sq = sq<BaseTC, fC, realVMinC, realVMaxC>;
 
         // scale value
-        auto cValue = s2s<typename target_sq::base_t, F, target_sq::F>(value);
+        auto cValue = s2s<typename target_sq::base_t, f, target_sq::f>(value);
 
         // create target sq
         return target_sq(cValue);
@@ -143,52 +135,52 @@ public:
     /// Adds two sq values.
     /// \returns a value of a new sq type with the larger scaling (higher precision) and the user value
     /// ranges added together. If the base types are different, integral promotion rules will be applied.
-    template< class _SQ_RHS,
-        typename _BASE_T_RHS = _SQ_RHS::base_t, scaling_t _F_RHS = _SQ_RHS::F,
-            double _REAL_V_MIN_RHS = _SQ_RHS::REAL_V_MIN, double _REAL_V_MAX_RHS = _SQ_RHS::REAL_V_MAX,
+    template< class SqRhs,
+        typename BaseTRhs = SqRhs::base_t, scaling_t fRhs = SqRhs::f,
+        double realVMinRhs = SqRhs::realVMin, double realVMaxRhs = SqRhs::realVMax,
         // common type is larger type, or unsigned type if same size, or type if same types
-        typename _BASE_T_R = std::common_type_t<base_t, _BASE_T_RHS>,
-        scaling_t _F_R = _i::max(_F_RHS, F),
-        double _REAL_V_MIN_R = REAL_V_MIN + _REAL_V_MIN_RHS,
-        double _REAL_V_MAX_R = REAL_V_MAX + _REAL_V_MAX_RHS >
+        typename BaseTR = std::common_type_t<base_t, BaseTRhs>,
+        scaling_t fR = _i::max(fRhs, f),
+        double realVMinR = realVMin + realVMinRhs,
+        double realVMaxR = realVMax + realVMaxRhs >
     requires (
-        RealLimitsInRangeOfBaseType<_BASE_T_R, _F_R, _REAL_V_MIN_R, _REAL_V_MAX_R>
+        RealLimitsInRangeOfBaseType<BaseTR, fR, realVMinR, realVMaxR>
     )
-    friend
-    sq<_BASE_T_R, _F_R, _REAL_V_MIN_R, _REAL_V_MAX_R>
+    friend constexpr
+    sq<BaseTR, fR, realVMinR, realVMaxR>
     // Note: Passing lhs by value helps optimize chained a+b+c.
-    operator+(sq const lhs, _SQ_RHS const &rhs) noexcept {
-        using rhs_sq = sq<_BASE_T_RHS, _F_RHS, _REAL_V_MIN_RHS, _REAL_V_MAX_RHS>;
-        using result_sq = sq<_BASE_T_R, _F_R, _REAL_V_MIN_R, _REAL_V_MAX_R>;
+    operator+(sq const lhs, SqRhs const &rhs) noexcept {
+        using rhs_sq = sq<BaseTRhs, fRhs, realVMinRhs, realVMaxRhs>;
+        using result_sq = sq<BaseTR, fR, realVMinR, realVMaxR>;
 
         // add values
-        auto result = s2s<_BASE_T_R, F, result_sq::F>(lhs.value) + s2s<_BASE_T_R, rhs_sq::F, result_sq::F>(rhs.value);
+        auto result = s2s<BaseTR, f, result_sq::f>(lhs.value) + s2s<BaseTR, rhs_sq::f, result_sq::f>(rhs.reveal());
         return result_sq( static_cast<result_sq::base_t>(result) );
     }
 
     /// Subtracts the rhs value from the lhs value.
     /// \returns a value of a new sq type with the larger scaling (higher precision) and the user value
     /// ranges subtracted. If the base types are different, integral promotion rules will be applied.
-    template< class _SQ_RHS,
-        typename _BASE_T_RHS = _SQ_RHS::base_t, scaling_t _F_RHS = _SQ_RHS::F,
-            double _REAL_V_MIN_RHS = _SQ_RHS::REAL_V_MIN, double _REAL_V_MAX_RHS = _SQ_RHS::REAL_V_MAX,
+    template< class SqRhs,
+        typename BaseTRhs = SqRhs::base_t, scaling_t fRhs = SqRhs::f,
+        double realVMinRhs = SqRhs::realVMin, double realVMaxRhs = SqRhs::realVMax,
         // common type is larger type, or unsigned type if same size, or type if same types
-        typename _BASE_T_R = std::common_type_t<base_t, _BASE_T_RHS>,
-        scaling_t _F_R = _i::max(_F_RHS, F),
-        double _REAL_V_MIN_R = _i::min(REAL_V_MIN - _REAL_V_MAX_RHS, _REAL_V_MIN_RHS - REAL_V_MAX),
-        double _REAL_V_MAX_R = _i::max(REAL_V_MAX - _REAL_V_MIN_RHS, _REAL_V_MAX_RHS - REAL_V_MIN) >
+        typename BaseTR = std::common_type_t<base_t, BaseTRhs>,
+        scaling_t fR = _i::max(fRhs, f),
+        double realVMinR = _i::min(realVMin - realVMaxRhs, realVMinRhs - realVMax),
+        double realVMaxR = _i::max(realVMax - realVMinRhs, realVMaxRhs - realVMin) >
     requires (
-        RealLimitsInRangeOfBaseType<_BASE_T_R, _F_R, _REAL_V_MIN_R, _REAL_V_MAX_R>
+        RealLimitsInRangeOfBaseType<BaseTR, fR, realVMinR, realVMaxR>
     )
-    friend
-    sq<_BASE_T_R, _F_R, _REAL_V_MIN_R, _REAL_V_MAX_R>
+    friend constexpr
+    sq<BaseTR, fR, realVMinR, realVMaxR>
     // Note: Passing lhs by value helps optimize chained a-b-c.
-    operator-(sq const lhs, _SQ_RHS const &rhs) noexcept {
-        using rhs_sq = sq<_BASE_T_RHS, _F_RHS, _REAL_V_MIN_RHS, _REAL_V_MAX_RHS>;
-        using result_sq = sq<_BASE_T_R, _F_R, _REAL_V_MIN_R, _REAL_V_MAX_R>;
+    operator-(sq const lhs, SqRhs const &rhs) noexcept {
+        using rhs_sq = sq<BaseTRhs, fRhs, realVMinRhs, realVMaxRhs>;
+        using result_sq = sq<BaseTR, fR, realVMinR, realVMaxR>;
 
         // subtract rhs value from lhs value
-        auto result = s2s<_BASE_T_R, F, result_sq::F>(lhs.value) - s2s<_BASE_T_R, rhs_sq::F, result_sq::F>(rhs.value);
+        auto result = s2s<BaseTR, f, result_sq::f>(lhs.value) - s2s<BaseTR, rhs_sq::f, result_sq::f>(rhs.reveal());
         return result_sq( static_cast<result_sq::base_t>(result) );
     }
 
@@ -199,82 +191,32 @@ public:
     ///       the real error is of order O( n * x^(n-1) * 2^-q ). For example, for a chain x*x*x
     ///       the real error is of order O( 3*x^2 * 2^-q ). Higher terms O( 2^-mq ), m > 1 do occur
     ///       for such chains, but are very close to 0 for larger q and can usually be ignored.
-    template< class _SQ_RHS,
-        typename _BASE_T_RHS = _SQ_RHS::base_t, scaling_t _F_RHS = _SQ_RHS::F,
-            double _REAL_V_MIN_RHS = _SQ_RHS::REAL_V_MIN, double _REAL_V_MAX_RHS = _SQ_RHS::REAL_V_MAX,
+    template< class SqRhs,
+        typename BaseTRhs = SqRhs::base_t, scaling_t fRhs = SqRhs::f,
+        double realVMinRhs = SqRhs::realVMin, double realVMaxRhs = SqRhs::realVMax,
         // common type is larger type, or unsigned type if same size, or type if same types
-        typename _BASE_T_R = std::common_type_t<base_t, _BASE_T_RHS>,
-        scaling_t _F_R = _i::max(_F_RHS, F),
-        double _REAL_V_MIN_R = _i::min(_i::min(REAL_V_MIN * _REAL_V_MAX_RHS, _REAL_V_MIN_RHS * REAL_V_MAX),
-                                       _i::min(REAL_V_MIN * _REAL_V_MIN_RHS, REAL_V_MAX * _REAL_V_MAX_RHS)),
-        double _REAL_V_MAX_R = _i::max(_i::max(REAL_V_MAX * _REAL_V_MIN_RHS, _REAL_V_MAX_RHS * REAL_V_MIN),
-                                       _i::max(REAL_V_MIN * _REAL_V_MIN_RHS, REAL_V_MAX * _REAL_V_MAX_RHS)) >
+        typename BaseTR = std::common_type_t<base_t, BaseTRhs>,
+        scaling_t fR = _i::max(fRhs, f),
+        double realVMinR = _i::min(_i::min(realVMin * realVMaxRhs, realVMinRhs * realVMax),
+                                       _i::min(realVMin * realVMinRhs, realVMax * realVMaxRhs)),
+        double realVMaxR = _i::max(_i::max(realVMax * realVMinRhs, realVMaxRhs * realVMin),
+                                       _i::max(realVMin * realVMinRhs, realVMax * realVMaxRhs)) >
     requires (
-        RealLimitsInRangeOfBaseType<_BASE_T_R, _F_R, _REAL_V_MIN_R, _REAL_V_MAX_R>
+        RealLimitsInRangeOfBaseType<BaseTR, fR, realVMinR, realVMaxR>
     )
-    friend
-    sq<_BASE_T_R, _F_R, _REAL_V_MIN_R, _REAL_V_MAX_R>
+    friend constexpr
+    sq<BaseTR, fR, realVMinR, realVMaxR>
     // Note: Passing lhs by value helps optimize chained a*b*c.
-    operator*(sq const lhs, _SQ_RHS const &rhs) noexcept {
-        using rhs_sq = sq<_BASE_T_RHS, _F_RHS, _REAL_V_MIN_RHS, _REAL_V_MAX_RHS>;
-        using result_sq = sq<_BASE_T_R, _F_R, _REAL_V_MIN_R, _REAL_V_MAX_R>;
-        using interm_m_t = interm_t<_BASE_T_R>;
+    operator*(sq const lhs, SqRhs const &rhs) noexcept {
+        using rhs_sq = sq<BaseTRhs, fRhs, realVMinRhs, realVMaxRhs>;
+        using result_sq = sq<BaseTR, fR, realVMinR, realVMaxR>;
+        using interm_m_t = interm_t<BaseTR>;
 
         // multiply lhs with rhs in intermediate type and correct scaling to obtain result
-        auto intermediate = s2s<interm_m_t, F, result_sq::F>(lhs.value) * s2s<interm_m_t, rhs_sq::F, result_sq::F>(rhs.value);
-        auto result = s2s<typename result_sq::base_t, 2*result_sq::F, result_sq::F>(intermediate);
+        auto intermediate = s2s<interm_m_t, f, result_sq::f>(lhs.value) * s2s<interm_m_t, rhs_sq::f, result_sq::f>(rhs.reveal());
+        auto result = s2s<typename result_sq::base_t, 2*result_sq::f, result_sq::f>(intermediate);
         return result_sq( result );
     }
-
-#if 0
-    /// Multiplies the lhs sq value with a rhs integer.
-    /// \returns a value of a new sq type with the user value range multiplied. If the base types are
-    /// different, integral promotion rules will be applied.
-    template< typename _BASE_T_RHS,
-        // common type is larger type, or unsigned type if same size, or type if same types
-        typename _BASE_T_R = std::common_type_t<base_t, _BASE_T_RHS> >
-    requires (
-        std::is_integral_v<_BASE_T_RHS>
-    )
-    friend consteval
-    // Note: Passing lhs by value helps optimize chained a*b*c.
-    auto operator*(sq const lhs, _BASE_T_RHS const rhs) noexcept {
-        double _REAL_V_MIN_R = REAL_V_MIN * rhs;
-        double _REAL_V_MAX_R = REAL_V_MAX * rhs;
-        static_assert(RealLimitsInRangeOfBaseType<_BASE_T_R, F, _REAL_V_MIN_R, _REAL_V_MAX_R>);
-        using result_sq = sq<_BASE_T_R, F, _REAL_V_MIN_R, _REAL_V_MAX_R>;
-        using interm_m_t = interm_t<_BASE_T_R>;
-
-        // multiply lhs with integral rhs to obtain result
-        auto result = static_cast<result_sq::base_t>(lhs.value) * static_cast<result_sq::base_t>(rhs);
-        return result_sq( result );
-    }
-
-    /// Multiplies a lhs integer with a rhs sq value.
-    /// \returns a value of a new sq type with the user value range multiplied. If the base types are
-    /// different, integral promotion rules will be applied.
-    template< typename _BASE_T_LHS, class _SQ_RHS,
-        typename _BASE_T_RHS = _SQ_RHS::base_t, scaling_t _F_R = _SQ_RHS::F,
-        double _REAL_V_MIN_RHS = _SQ_RHS::REAL_V_MIN, double _REAL_V_MAX_RHS = _SQ_RHS::REAL_V_MAX,
-        // common type is larger type, or unsigned type if same size, or type if same types
-        typename _BASE_T_R = std::common_type_t<_BASE_T_LHS, _BASE_T_RHS> >
-    requires (
-        std::is_integral_v<_BASE_T_LHS>
-    )
-    friend consteval
-    // Note: Passing lhs by value helps optimize chained a*b*c.
-    auto operator*(_BASE_T_LHS const lhs, _SQ_RHS const &rhs) noexcept {
-        double _REAL_V_MIN_R = _REAL_V_MIN_RHS * rhs;
-        double _REAL_V_MAX_R = _REAL_V_MAX_RHS * rhs;
-        static_assert(RealLimitsInRangeOfBaseType<_BASE_T_R, F, _REAL_V_MIN_R, _REAL_V_MAX_R>);
-        using rhs_sq = sq<_BASE_T_RHS, _F_R, _REAL_V_MIN_RHS, _REAL_V_MAX_RHS>;
-        using result_sq = sq<_BASE_T_R, _F_R, _REAL_V_MIN_R, _REAL_V_MAX_R>;
-
-        // multiply integral lhs with rhs to obtain result
-        auto result = static_cast<result_sq::base_t>(lhs) * static_cast<result_sq::base_t>(rhs.value);
-        return result_sq( result );
-    }
-#endif
 
     /// Reveals the integer value stored in memory.
     base_t reveal() const noexcept {
@@ -286,12 +228,12 @@ public:
     ///          If the target type is an integral type, there can be a significant loss of precision.
     ///          Use carefully!
 #   if defined FPM_USE_SH
-    template< typename TARGET_T = int >
+    template< typename TargetT = int >
 #   else
-    template< typename TARGET_T = double >
+    template< typename TargetT = double >
 #   endif
-    TARGET_T to_real() const noexcept {
-        return v2s<TARGET_T, -F>(value);
+    TargetT toReal() const noexcept {
+        return v2s<TargetT, -f>(value);
     }
 
 private:
@@ -309,37 +251,48 @@ private:
 
 /// Explicit static cast to another sq type with a different base type.
 /// Uses static_cast internally. Exists for consistency reasons.
-template< class SQ_C,
-    typename _BASE_T, scaling_t _F, double _REAL_V_MIN, double _REAL_V_MAX,
-    typename _BASE_T_C = SQ_C::base_t, scaling_t _F_C = SQ_C::F, double _REAL_V_MIN_C = SQ_C::REAL_V_MIN,
-    double _REAL_V_MAX_C = SQ_C::REAL_V_MAX >
+template< class SqC,
+    typename BaseT, scaling_t f, double realVMin, double realVMax,
+    typename BaseTC = SqC::base_t, scaling_t fC = SqC::f, double realVMinC = SqC::realVMin,
+    double realVMaxC = SqC::realVMax >
 requires (
-    !std::is_same_v<_BASE_T, _BASE_T_C>
-    // scaling is only possible if the F difference allows scaling and the real value
+    !std::is_same_v<BaseT, BaseTC>
+    // scaling is only possible if the f difference allows scaling and the real value
     // can be represented by the target type
-    && ScalingIsPossible<_BASE_T, _F, _BASE_T_C, _F_C>
-    && _REAL_V_MIN_C <= _REAL_V_MIN && _REAL_V_MAX <= _REAL_V_MAX_C
+    && ScalingIsPossible<BaseT, f, BaseTC, fC>
+    && realVMinC <= realVMin && realVMax <= realVMaxC
 )
 constexpr
-SQ_C static_sq_cast(sq<_BASE_T, _F, _REAL_V_MIN, _REAL_V_MAX> from) noexcept {
-    return static_cast<SQ_C>(from);
+SqC static_sq_cast(sq<BaseT, f, realVMin, realVMax> from) noexcept {
+    return static_cast<SqC>(from);
 }
 
 /// Explicit safe cast to another sq type with a different base type.
 /// Uses static_cast internally. Exists for consistency reasons.
-template< class SQ_C,
-    typename _BASE_T, scaling_t _F, double _REAL_V_MIN, double _REAL_V_MAX,
-    typename _BASE_T_C = SQ_C::base_t, scaling_t _F_C = SQ_C::F, double _REAL_V_MIN_C = SQ_C::REAL_V_MIN, double _REAL_V_MAX_C = SQ_C::REAL_V_MAX >
+template< class SqC,
+    typename BaseT, scaling_t f, double realVMin, double realVMax,
+    typename BaseTC = SqC::base_t, scaling_t fC = SqC::f, double realVMinC = SqC::realVMin, double realVMaxC = SqC::realVMax >
 requires (
-    !std::is_same_v<_BASE_T, _BASE_T_C>
-    // scaling is only possible if the F difference allows scaling and the real value
+    !std::is_same_v<BaseT, BaseTC>
+    // scaling is only possible if the f difference allows scaling and the real value
     // can be represented by the target type
-    && ScalingIsPossible<_BASE_T, _F, _BASE_T_C, _F_C>
-    && _REAL_V_MIN_C <= _REAL_V_MIN && _REAL_V_MAX <= _REAL_V_MAX_C
+    && ScalingIsPossible<BaseT, f, BaseTC, fC>
+    && realVMinC <= realVMin && realVMax <= realVMaxC
 )
 constexpr
-SQ_C safe_sq_cast(sq<_BASE_T, _F, _REAL_V_MIN, _REAL_V_MAX> from) noexcept {
-    return static_cast<SQ_C>(from);
+SqC safe_sq_cast(sq<BaseT, f, realVMin, realVMax> from) noexcept {
+    return static_cast<SqC>(from);
+}
+
+/// Converts a literal integer into the corresponding best-fit sq type.
+/// Best-fit means that the literal integer represents both limits and the value.
+template< typename BaseT, scaling_t f, char ...charArray >
+consteval auto sqFromLiteral() {
+    constexpr std::size_t length = sizeof...(charArray);
+    constexpr char chars[length]{ charArray... };
+    static_assert(std::all_of(chars, chars + length, [](char c) { return isdigit(c); }), "The argument to _sq must be a positive integer");
+    constexpr double value = static_cast<double>( _i::charArrayTo<BaseT, length>(chars) );
+    return sq<BaseT, f, value, value>::template fromReal<value>;
 }
 
 }

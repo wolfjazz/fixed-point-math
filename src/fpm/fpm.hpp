@@ -7,6 +7,7 @@
 
 #include <algorithm>
 #include <cassert>
+#include <cctype>
 #include <climits>
 #include <cmath>
 #include <cstdint>
@@ -52,24 +53,24 @@ enum class overflow : uint8_t {
 using ovf = overflow;
 
 /** Checks if overflow behavior a is stricter than overflow behavior b. */
-template< overflow A, overflow B >
-struct is_ovf_stricter { static constexpr bool value = A < B; };
-template< overflow A, overflow B >
-static constexpr bool is_ovf_stricter_v = is_ovf_stricter<A, B>::value;
+template< overflow a, overflow b >
+struct is_ovf_stricter { static constexpr bool value = a < b; };
+template< overflow a, overflow b >
+static constexpr bool is_ovf_stricter_v = is_ovf_stricter<a, b>::value;
 
 
 /// Scaling factor type.
 using scaling_t = int8_t;
 
 /// Intermediate type used for compile-time and runtime calculations with (s)q values.
-template< typename BASE_T >
-using interm_t = typename std::conditional_t<std::is_signed_v<BASE_T>, int64_t, uint64_t>;
+template< typename BaseT >
+using interm_t = typename std::conditional_t<std::is_signed_v<BaseT>, int64_t, uint64_t>;
 
 /// Maximal supported size of a (s)q-type's base type.
 /// TODO: Support uint64_t.
 constexpr size_t MAX_BASETYPE_SIZE = sizeof(uint32_t);
 
-/// Maximum possible value of F to support correct scaling of floating-point types with double precision.
+/// Maximum possible value of f to support correct scaling of floating-point types with double precision.
 /// Corresponds to the effective size of double's mantissa (significant double precision).
 /// \note Absolute integers between 2^-53 and 2^53 can be exactly represented in double.
 constexpr scaling_t MAX_F = 53;
@@ -83,22 +84,22 @@ namespace _i {
     inline namespace {
 
         /** Returns the absolute value of the given input value. Treats minimum numeric limits correctly. */
-        template< typename VALUE_T, typename _TARGET_T = typename std::make_unsigned<VALUE_T>::type >
-        requires ( std::is_signed_v<VALUE_T> )
-        consteval _TARGET_T abs(VALUE_T const input) noexcept {
-            // note: cast to unsigned first when value is negative to handle numeric_limits<VALUE_T>::min() correctly
-            return static_cast<_TARGET_T>( input >= 0 ? input : -static_cast<_TARGET_T>(input) );
+        template< typename ValueT, typename TargetT = typename std::make_unsigned<ValueT>::type >
+        requires ( std::is_signed_v<ValueT> )
+        consteval TargetT abs(ValueT const input) noexcept {
+            // note: cast to unsigned first when value is negative to handle numeric_limits<ValueT>::min() correctly
+            return static_cast<TargetT>( input >= 0 ? input : -static_cast<TargetT>(input) );
         }
 
         /** Returns the smaller value of the two input values. */
-        template< typename VALUE_T >
-        consteval VALUE_T min(VALUE_T a, VALUE_T b) noexcept {
+        template< typename ValueT >
+        consteval ValueT min(ValueT a, ValueT b) noexcept {
             return a < b ? a : b;
         }
 
         /** Returns the larger value of the two input values. */
-        template< typename VALUE_T >
-        consteval VALUE_T max(VALUE_T a, VALUE_T b) noexcept {
+        template< typename ValueT >
+        consteval ValueT max(ValueT a, ValueT b) noexcept {
             return a > b ? a : b;
         }
     }
@@ -106,12 +107,12 @@ namespace _i {
     /** Overflow check function.
      * \note Works for signed and unsigned value type. */
     template<
-        overflow OVF_BX,   ///< overflow behavior
-        typename VALUE_T,  ///< type of the value to check (after a scaling/casting operation)
-        typename SRC_V_T = VALUE_T  ///< type of the value before scaling/casting operation; required if different
+        overflow ovfBx,   ///< overflow behavior
+        typename ValueT,  ///< type of the value to check (after a scaling/casting operation)
+        typename SrcValueT = ValueT  ///< type of the value before scaling/casting operation; required if different
     >
-    requires ( std::is_integral_v<VALUE_T> && std::is_integral_v<SRC_V_T> )
-    constexpr void check_overflow(VALUE_T &value, VALUE_T const MIN, VALUE_T const MAX) noexcept {
+    requires ( std::is_integral_v<ValueT> && std::is_integral_v<SrcValueT> )
+    constexpr void checkOverflow(ValueT &value, ValueT const min, ValueT const max) noexcept {
         // Overflow check types.
         enum checktype : uint8_t {
             CHECKTYPE_SIGN_UNCHANGED = 0u,  ///< default overflow check
@@ -119,48 +120,48 @@ namespace _i {
             CHECKTYPE_UNSIGNED_TO_SIGNED = 2u,  ///< sign has changed from unsigned to signed
         };
 
-        if constexpr (overflow::ASSERT == OVF_BX) {
-            if (value < MIN || value > MAX) {
+        if constexpr (overflow::ASSERT == ovfBx) {
+            if (value < min || value > max) {
                 assert(false);  // value is out of range
             }
         }
-        else if constexpr (overflow::SATURATE == OVF_BX) {
+        else if constexpr (overflow::SATURATE == ovfBx) {
             // determine check type
-            constexpr auto CHECKTYPE = (std::is_signed_v<SRC_V_T> && std::is_unsigned_v<VALUE_T>)
+            constexpr auto checkType = (std::is_signed_v<SrcValueT> && std::is_unsigned_v<ValueT>)
                 ? CHECKTYPE_SIGNED_TO_UNSIGNED
-                : (std::is_unsigned_v<SRC_V_T> && std::is_signed_v<VALUE_T>)
+                : (std::is_unsigned_v<SrcValueT> && std::is_signed_v<ValueT>)
                     ? CHECKTYPE_UNSIGNED_TO_SIGNED
                     : CHECKTYPE_SIGN_UNCHANGED;
 
             // if the value was cast from a signed to an unsigned type and is in the upper half of the
             // unsigned value range, the value was negative before; saturate it to the lower limit
-            if constexpr (CHECKTYPE_SIGNED_TO_UNSIGNED == CHECKTYPE) {
-                constexpr VALUE_T SIGNED_MAX = static_cast<VALUE_T>(std::numeric_limits<std::make_signed_t<VALUE_T>>::max());
-                if (value < MIN || value > SIGNED_MAX) {
-                    value = MIN;
+            if constexpr (CHECKTYPE_SIGNED_TO_UNSIGNED == checkType) {
+                constexpr ValueT signedMax = static_cast<ValueT>(std::numeric_limits<std::make_signed_t<ValueT>>::max());
+                if (value < min || value > signedMax) {
+                    value = min;
                 }
-                else if (value > MAX) {
-                    value = MAX;
+                else if (value > max) {
+                    value = max;
                 }
                 else { /* okay */ }
             }
             // if the value was cast from an unsigned to a signed type and is negative, the value was
             // positive before; saturate it to the upper limit
-            else if constexpr (CHECKTYPE_UNSIGNED_TO_SIGNED == CHECKTYPE) {
-                if (value < 0 || value > MAX) {
-                    value = MAX;
+            else if constexpr (CHECKTYPE_UNSIGNED_TO_SIGNED == checkType) {
+                if (value < 0 || value > max) {
+                    value = max;
                 }
-                else if (value < MIN) {
-                    value = MIN;
+                else if (value < min) {
+                    value = min;
                 }
                 else { /* okay */ }
             }
             else /* checktype sign unchanged */ {
-                if (value < MIN) {
-                    value = MIN;
+                if (value < min) {
+                    value = min;
                 }
-                else if (value > MAX) {
-                    value = MAX;
+                else if (value > max) {
+                    value = max;
                 }
                 else { /* okay */ }
             }
@@ -168,12 +169,36 @@ namespace _i {
         else { /* overflow::ALLOWED, overflow::NO_CHECK: no checks performed */ }
     }
 
+    /// Converts a given digit c in character representation into an integer of the given type.
+    // The digit will be multiplied by the given power of 10 before it is returned.
+    template< typename T >
+    requires std::is_integral_v<T>
+    consteval T charDigitTo(char c, std::size_t power = 0u) {
+        T result = c - '0';
+        for (size_t i = 0u; i < power; ++i) {
+            result *= 10;
+        }
+        return result;
+    }
+
+    /// Converts a given character array into an integral number of the given type.
+    template< typename T, std::size_t size, std::size_t digit = size >
+    requires ( std::is_integral_v<T> && size > 0u && digit <= size )
+    consteval T charArrayTo(const char chars[size]) {
+        if constexpr (digit == 0) {
+            return 0;
+        }
+        else {
+            return charDigitTo<T>(chars[size - digit], digit-1) + charArrayTo<T, size, digit-1>(chars);
+        }
+    }
+
     /// Functions defined for testing purposes.
     namespace testing {
         /** Returns the minimum distance between doubles (epsilon) for numbers of the magnitude
          * of the given value.
          * \warning Expensive when used in production code! */
-        inline double floatp_epsilon_for(double value) noexcept {
+        inline double floatpEpsilonFor(double value) noexcept {
             double epsilon = nextafter(value, std::numeric_limits<double>::infinity()) - value;
             return epsilon;
         }
@@ -181,19 +206,19 @@ namespace _i {
 }
 
 
-/** Concept of a valid difference between two types and two scaling factors to support scaling
+/** Concept of a valid difference between two integral types and two scaling factors to support scaling
  * without overflow or significant loss of precision.
  * Scaling is possible if:
  *  - target and source type are of equal size and the effective target value range is not outshifted, or
  *  - target and source type are of different size and the effective size difference is not outshifted, or
  *  - both types are equal and the number of shifted bits is at most the number of bits in each type
  * \note If this fails, none of the conditions listed above is fulfilled. Double-check! */
-template< typename from_t, scaling_t F_FROM, typename to_t, scaling_t F_TO >
+template< typename from_t, scaling_t fFrom, typename to_t, scaling_t fTo >
 concept ScalingIsPossible = (
-    ( sizeof(from_t) == sizeof(to_t) && _i::abs(F_TO - F_FROM) <= std::numeric_limits<to_t>::digits )
+    ( sizeof(from_t) == sizeof(to_t) && _i::abs(fTo - fFrom) <= std::numeric_limits<to_t>::digits )
     || ( sizeof(from_t) != sizeof(to_t)
-         && _i::abs(F_TO - F_FROM) <= _i::abs(std::numeric_limits<to_t>::digits - std::numeric_limits<from_t>::digits) )
-    || ( std::is_same_v<from_t, to_t> && _i::abs(F_TO - F_FROM) <= sizeof(to_t) * CHAR_BIT )
+         && _i::abs(fTo - fFrom) <= _i::abs(std::numeric_limits<to_t>::digits - std::numeric_limits<from_t>::digits) )
+    || ( std::is_same_v<from_t, to_t> && _i::abs(fTo - fFrom) <= sizeof(to_t) * CHAR_BIT )
 );
 
 
@@ -205,22 +230,22 @@ concept ScalingIsPossible = (
  *       Besides, floating-point types are also possible this way.
  * \warning Floating-point types are possible, however quite expensive at runtime!
  *          Use carefully! */
-template< typename TARGET_T, scaling_t FROM, scaling_t TO, typename VALUE_T >
-constexpr TARGET_T s2smd(VALUE_T value) noexcept {
+template< typename TargetT, scaling_t from, scaling_t to, typename ValueT >
+constexpr TargetT s2smd(ValueT value) noexcept {
     // use common type for calculation to avoid loss of precision
-    using COMMON_T = typename std::common_type<VALUE_T, TARGET_T>::type;
-    using SCALING_T = typename std::conditional_t<sizeof(COMMON_T) <= 4u,
-        std::conditional_t<std::is_signed_v<COMMON_T>, int32_t, uint32_t>,
-        std::conditional_t<std::is_signed_v<COMMON_T>, int64_t, uint64_t>>;
+    using CommonT = typename std::common_type<ValueT, TargetT>::type;
+    using ScalingT = typename std::conditional_t<sizeof(CommonT) <= 4u,
+        std::conditional_t<std::is_signed_v<CommonT>, int32_t, uint32_t>,
+        std::conditional_t<std::is_signed_v<CommonT>, int64_t, uint64_t>>;
 
-    if constexpr (FROM > TO) {
-        return static_cast<TARGET_T>( static_cast<COMMON_T>(value) / (static_cast<SCALING_T>(1) << (unsigned)(FROM - TO)) );
+    if constexpr (from > to) {
+        return static_cast<TargetT>( static_cast<CommonT>(value) / (static_cast<ScalingT>(1) << (unsigned)(from - to)) );
     }
-    else if constexpr (TO > FROM) {
-        return static_cast<TARGET_T>( static_cast<COMMON_T>(value) * (static_cast<SCALING_T>(1) << (unsigned)(TO - FROM)) );
+    else if constexpr (to > from) {
+        return static_cast<TargetT>( static_cast<CommonT>(value) * (static_cast<ScalingT>(1) << (unsigned)(to - from)) );
     }
-    else /* FROM == TO */ {
-        return static_cast<TARGET_T>(value);
+    else /* from == TO */ {
+        return static_cast<TargetT>(value);
     }
 }
 
@@ -233,21 +258,21 @@ constexpr TARGET_T s2smd(VALUE_T value) noexcept {
  * \warning Be aware that arithmetic right shift always rounds down. Consequently, the scaled result
  *          is not symmetric for the same value with a different sign
  *          (e.g. -514 >> 4u is -33 but +514 >> 4u is +32). */
-template< typename TARGET_T, scaling_t FROM, scaling_t TO, typename VALUE_T >
-constexpr TARGET_T s2sh(VALUE_T value) noexcept {
-    static_assert(std::is_integral_v<VALUE_T> && std::is_integral_v<TARGET_T>, "s2sh only supports integer types");
+template< typename TargetT, scaling_t from, scaling_t to, typename ValueT >
+constexpr TargetT s2sh(ValueT value) noexcept {
+    static_assert(std::is_integral_v<ValueT> && std::is_integral_v<TargetT>, "s2sh only supports integer types");
 
     // use common type for shift to avoid loss of precision
-    using COMMON_T = typename std::common_type<VALUE_T, TARGET_T>::type;
+    using CommonT = typename std::common_type<ValueT, TargetT>::type;
 
-    if constexpr (FROM > TO) {
-        return static_cast<TARGET_T>( static_cast<COMMON_T>(value) >> (unsigned)(FROM - TO) );
+    if constexpr (from > to) {
+        return static_cast<TargetT>( static_cast<CommonT>(value) >> (unsigned)(from - to) );
     }
-    else if constexpr (TO > FROM) {
-        return static_cast<TARGET_T>( static_cast<COMMON_T>(value) << (unsigned)(TO - FROM) );
+    else if constexpr (to > from) {
+        return static_cast<TargetT>( static_cast<CommonT>(value) << (unsigned)(to - from) );
     }
-    else /* FROM == TO */ {
-        return static_cast<TARGET_T>(value);
+    else /* from == TO */ {
+        return static_cast<TargetT>(value);
     }
 }
 
@@ -256,11 +281,11 @@ constexpr TARGET_T s2sh(VALUE_T value) noexcept {
 /// \note FPM_USE_SH can be predefined before this header is included into a source file.
 /// \note constexpr implies inline.
 #if !defined FPM_USE_SH
-template< typename TARGET_T, scaling_t FROM, scaling_t TO, typename VALUE_T >
-constexpr TARGET_T s2s(VALUE_T value) noexcept { return s2smd<TARGET_T, FROM, TO>(value); }
+template< typename TargetT, scaling_t from, scaling_t to, typename ValueT >
+constexpr TargetT s2s(ValueT value) noexcept { return s2smd<TargetT, from, to>(value); }
 #else
-template< typename TARGET_T, scaling_t FROM, scaling_t TO, typename VALUE_T >
-constexpr TARGET_T s2s(VALUE_T value) noexcept { return s2sh<TARGET_T, FROM, TO>(value); }
+template< typename TargetT, scaling_t from, scaling_t TO, typename ValueT >
+constexpr TargetT s2s(ValueT value) noexcept { return s2sh<TargetT, from, TO>(value); }
 #endif
 
 
@@ -268,22 +293,22 @@ constexpr TARGET_T s2s(VALUE_T value) noexcept { return s2sh<TARGET_T, FROM, TO>
  * Used to scale a given compile-time floating-point value to a scaled runtime value of target type.
  * \warning Floating-point target types are possible, however quite expensive at runtime!
  *          Use carefully! */
-template< typename TARGET_T, scaling_t TO, typename VALUE_T >
-constexpr TARGET_T v2smd(VALUE_T value) noexcept {
+template< typename TargetT, scaling_t to, typename ValueT >
+constexpr TargetT v2smd(ValueT value) noexcept {
     // use common type for shift to avoid loss of precision
-    using COMMON_T = typename std::common_type<VALUE_T, TARGET_T>::type;
-    using SCALING_T = typename std::conditional_t<sizeof(COMMON_T) <= 4u,
-        std::conditional_t<std::is_signed_v<COMMON_T>, int32_t, uint32_t>,
-        std::conditional_t<std::is_signed_v<COMMON_T>, int64_t, uint64_t>>;
+    using CommonT = typename std::common_type<ValueT, TargetT>::type;
+    using ScalingT = typename std::conditional_t<sizeof(CommonT) <= 4u,
+        std::conditional_t<std::is_signed_v<CommonT>, int32_t, uint32_t>,
+        std::conditional_t<std::is_signed_v<CommonT>, int64_t, uint64_t>>;
 
-    if constexpr (TO < 0) {
-        return static_cast<TARGET_T>( static_cast<COMMON_T>(value) / (static_cast<SCALING_T>(1) << (unsigned)(-TO)) );
+    if constexpr (to < 0) {
+        return static_cast<TargetT>( static_cast<CommonT>(value) / (static_cast<ScalingT>(1) << (unsigned)(-to)) );
     }
-    else if constexpr (TO > 0) {
-        return static_cast<TARGET_T>( static_cast<COMMON_T>(value) * (static_cast<SCALING_T>(1) << (unsigned)TO) );
+    else if constexpr (to > 0) {
+        return static_cast<TargetT>( static_cast<CommonT>(value) * (static_cast<ScalingT>(1) << (unsigned)to) );
     }
     else /* TO == 0 */ {
-        return static_cast<TARGET_T>(value);
+        return static_cast<TargetT>(value);
     }
 }
 
@@ -294,21 +319,21 @@ constexpr TARGET_T v2smd(VALUE_T value) noexcept {
  * \warning Be aware that arithmetic right shift always rounds down. Consequently, the scaled result
  *          is not symmetric for the same value with a different sign
  *          (e.g. -514 >> 4u is -33 but +514 >> 4u is +32). */
-template< typename TARGET_T, scaling_t TO, typename VALUE_T >
-constexpr TARGET_T v2sh(VALUE_T value) noexcept {
-    static_assert(std::is_integral_v<VALUE_T> && std::is_integral_v<TARGET_T>, "v2sh only supports integer types");
+template< typename TargetT, scaling_t to, typename ValueT >
+constexpr TargetT v2sh(ValueT value) noexcept {
+    static_assert(std::is_integral_v<ValueT> && std::is_integral_v<TargetT>, "v2sh only supports integer types");
 
     // use common type for calculation to avoid loss of precision
-    using COMMON_T = typename std::common_type<VALUE_T, TARGET_T>::type;
+    using CommonT = typename std::common_type<ValueT, TargetT>::type;
 
-    if constexpr (TO < 0) {
-        return static_cast<TARGET_T>( static_cast<COMMON_T>(value) >> (unsigned)(-TO) );
+    if constexpr (to < 0) {
+        return static_cast<TargetT>( static_cast<CommonT>(value) >> (unsigned)(-to) );
     }
-    else if constexpr (TO > 0) {
-        return static_cast<TARGET_T>( static_cast<COMMON_T>(value) << (unsigned)TO );
+    else if constexpr (to > 0) {
+        return static_cast<TargetT>( static_cast<CommonT>(value) << (unsigned)to );
     }
     else /* TO == 0 */ {
-        return static_cast<TARGET_T>(value);
+        return static_cast<TargetT>(value);
     }
 }
 
@@ -317,31 +342,31 @@ constexpr TARGET_T v2sh(VALUE_T value) noexcept {
 /// \note FPM_USE_SH can be predefined before this header is included into a source file.
 /// \note constexpr implies inline.
 #if !defined FPM_USE_SH
-template< typename TARGET_T, scaling_t TO, typename VALUE_T >
-constexpr TARGET_T v2s(VALUE_T value) noexcept { return v2smd<TARGET_T, TO>(value); }
+template< typename TargetT, scaling_t to, typename ValueT >
+constexpr TargetT v2s(ValueT value) noexcept { return v2smd<TargetT, to>(value); }
 #else
-template< typename TARGET_T, scaling_t TO, typename VALUE_T >
-constexpr TARGET_T v2s(VALUE_T value) noexcept { return v2sh<TARGET_T, TO>(value); }
+template< typename TargetT, scaling_t TO, typename ValueT >
+constexpr TargetT v2s(ValueT value) noexcept { return v2sh<TargetT, TO>(value); }
 #endif
 
 
 /** Concept of a valid (s)q base-type.
  * \note If this fails, the selected base type is not integral, or too large.
          Use an integer with a proper size! */
-template< typename BASE_T >
+template< typename BaseT >
 concept ValidBaseType = (
-       std::is_integral_v<BASE_T>
-    && sizeof(BASE_T) <= MAX_BASETYPE_SIZE
+       std::is_integral_v<BaseT>
+    && sizeof(BaseT) <= MAX_BASETYPE_SIZE
 );
 
 /** Concept of a valid (s)q scaling value.
  * Types can be scaled by maximal the number of bits in the base type minus one bit, limited by the
  * size of double's mantissa.
  * \note If this fails, the selected scaling factor is too large. Use a smaller scaling factor! */
-template< typename BASE_T, scaling_t SCALING >
+template< typename BaseT, scaling_t f >
 concept ValidScaling = (
-    SCALING <= std::numeric_limits<std::make_signed_t<BASE_T>>::digits  // CHAR_BIT * sizeof(BASE_T) - 1
-    && SCALING <= MAX_F
+    f <= std::numeric_limits<std::make_signed_t<BaseT>>::digits  // CHAR_BIT * sizeof(BaseT) - 1
+    && f <= MAX_F
 );
 
 /** Concept of a valid (s)q type value range that fits the specified base type.
@@ -349,38 +374,38 @@ concept ValidScaling = (
  *       base type when scaled with the desired scaling factor.
  *       Use a larger base type, a smaller scaling factor, or double-check the sign and value of
  *       your selected real limits! */
-template< typename BASE_T, scaling_t F, double REAL_V_MIN, double REAL_V_MAX >
+template< typename BaseT, scaling_t f, double realVMin, double realVMax >
 concept RealLimitsInRangeOfBaseType = (
-       std::in_range<BASE_T>(v2s<interm_t<BASE_T>, F>(REAL_V_MIN))
-    && std::in_range<BASE_T>(v2s<interm_t<BASE_T>, F>(REAL_V_MAX))
-    && REAL_V_MIN <= REAL_V_MAX
-    && (std::is_signed_v<BASE_T> || REAL_V_MIN >= 0.)
+       std::in_range<BaseT>(v2s<interm_t<BaseT>, f>(realVMin))
+    && std::in_range<BaseT>(v2s<interm_t<BaseT>, f>(realVMax))
+    && realVMin <= realVMax
+    && (std::is_signed_v<BaseT> || realVMin >= 0.)
 );
 
 /** Concept of a type that can overflow when allowed. Typically used in the context of casting.
  * \note In C++23, signed int overflow (i.e. the value does not fit in the type) is still undefined.
  * \note If this fails, a signed base type is used in the context of a potential overflow. This is
  *       not allowed. Use an unsigned target base type. */
-template< typename BASE_T, overflow OVF_BX >
-concept CanBaseTypeOverflow = ( std::is_unsigned_v<BASE_T> && OVF_BX == overflow::ALLOWED );
+template< typename BaseT, overflow ovfBx >
+concept CanBaseTypeOverflow = ( std::is_unsigned_v<BaseT> && ovfBx == overflow::ALLOWED );
 
 /** Concept of a valid value that fits the specified base type.
  * \note If this fails, the scaled integer value exceeds the value range of the specified base type.
  *       Use a larger base type or a smaller real value! */
-template< typename BASE_T, scaling_t F, double REAL_VALUE >
-concept RealValueScaledFitsBaseType = ( std::in_range<BASE_T>(v2s<interm_t<BASE_T>, F>(REAL_VALUE)) );
+template< typename BaseT, scaling_t f, double realValue >
+concept RealValueScaledFitsBaseType = ( std::in_range<BaseT>(v2s<interm_t<BaseT>, f>(realValue)) );
 
 /** Concept: Compile-time-only check is possible.
  * \note If this fails, a runtime overflow check is probably needed but not allowed in the context
  *       where this concept is required. Use a different overflow check! */
-template< overflow OVF_BX >
-concept CompileTimeOnlyOverflowCheckPossible = ( overflow::ASSERT != OVF_BX );
+template< overflow ovfBx >
+concept CompileTimeOnlyOverflowCheckPossible = ( overflow::ASSERT != ovfBx );
 
 /** Concept: Runtime overflow check required when needed.
  * \note If this fails, a runtime overflow check is needed but not allowed for the desired q type.
  *       Allow for type, or specify the overflow-override template argument (to be preferred)! */
-template< overflow OVF_BX, bool CHECK_NEEDED = true >
-concept RuntimeOverflowCheckAllowedWhenNeeded = ( !CHECK_NEEDED || overflow::FORBIDDEN != OVF_BX );
+template< overflow ovfBx, bool checkNeeded = true >
+concept RuntimeOverflowCheckAllowedWhenNeeded = ( !checkNeeded || overflow::FORBIDDEN != ovfBx );
 
 }
 /**\}*/

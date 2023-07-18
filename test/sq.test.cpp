@@ -17,10 +17,10 @@ using namespace fpm;
 
 class SQTest_Construct : public ::testing::Test {
 protected:
-    using i16sq4 = sq<int16_t, 4, -2048., 2047.9>;
-    using i32sq4 = sq<int32_t, 4, -2048., 2048.>;
-    using i32sqm2 = sq<int32_t, -2, -2048., 2048.>;
-    using i32sq8 = sq<int32_t, 8, -2048.1, 2048.1>;
+    using i16sq4_2k = i16sq4<-2048., 2047.9>;
+    using i32sq4_2k = i32sq4<-2048., 2048.>;
+    using i32sqm2_2k = i32sqm2<-2048., 2048.>;
+    using i32sq8_2k = i32sq8<-2048.1, 2048.1>;
 
     void SetUp() override
     {
@@ -31,87 +31,87 @@ protected:
 };
 
 TEST_F(SQTest_Construct, sq_relimit__some_sq_type__relimited_sq_type) {
-    constexpr double RESTRICTED_LIMIT = 1024.;
-    constexpr double EXTENDED_LIMIT = 4096.;
-    using restricted_sq_t   = i32sq4::relimit_t<-RESTRICTED_LIMIT,  +RESTRICTED_LIMIT>;
-    using restricted_l_sq_t = i32sq4::relimit_t<-RESTRICTED_LIMIT,  i32sq4::REAL_V_MAX>;
-    using restricted_r_sq_t = i32sq4::relimit_t<i32sq4::REAL_V_MIN, +RESTRICTED_LIMIT>;
-    using extended_sq_t     = i32sq4::relimit_t<-EXTENDED_LIMIT,    +EXTENDED_LIMIT>;
-    using extended_l_sq_t   = i32sq4::relimit_t<-EXTENDED_LIMIT,    i32sq4::REAL_V_MAX>;
-    using extended_r_sq_t   = i32sq4::relimit_t<i32sq4::REAL_V_MIN, +EXTENDED_LIMIT>;
-    using shifted_sq_l_t    = i32sq4::relimit_t<-EXTENDED_LIMIT,    +RESTRICTED_LIMIT>;
-    using shifted_sq_r_t    = i32sq4::relimit_t<-RESTRICTED_LIMIT,  +EXTENDED_LIMIT>;
+    constexpr double restrictedLimit = 1024.;
+    constexpr double extendedLimit = 4096.;
+    using restricted_sq_t   = i32sq4_2k::relimit_t<-restrictedLimit,    +restrictedLimit>;
+    using restricted_l_sq_t = i32sq4_2k::relimit_t<-restrictedLimit,    i32sq4_2k::realVMax>;
+    using restricted_r_sq_t = i32sq4_2k::relimit_t<i32sq4_2k::realVMin, +restrictedLimit>;
+    using extended_sq_t     = i32sq4_2k::relimit_t<-extendedLimit,      +extendedLimit>;
+    using extended_l_sq_t   = i32sq4_2k::relimit_t<-extendedLimit,      i32sq4_2k::realVMax>;
+    using extended_r_sq_t   = i32sq4_2k::relimit_t<i32sq4_2k::realVMin, +extendedLimit>;
+    using shifted_sq_l_t    = i32sq4_2k::relimit_t<-extendedLimit,      +restrictedLimit>;
+    using shifted_sq_r_t    = i32sq4_2k::relimit_t<-restrictedLimit,    +extendedLimit>;
 
-    ASSERT_TRUE((std::is_same_v< sq<int32_t, 4, -RESTRICTED_LIMIT,  +RESTRICTED_LIMIT >, restricted_sq_t >));
-    ASSERT_TRUE((std::is_same_v< sq<int32_t, 4, -RESTRICTED_LIMIT,  i32sq4::REAL_V_MAX>, restricted_l_sq_t >));
-    ASSERT_TRUE((std::is_same_v< sq<int32_t, 4, i32sq4::REAL_V_MIN, +RESTRICTED_LIMIT >, restricted_r_sq_t >));
-    ASSERT_TRUE((std::is_same_v< sq<int32_t, 4, -EXTENDED_LIMIT,    +EXTENDED_LIMIT   >, extended_sq_t >));
-    ASSERT_TRUE((std::is_same_v< sq<int32_t, 4, -EXTENDED_LIMIT,    i32sq4::REAL_V_MAX>, extended_l_sq_t >));
-    ASSERT_TRUE((std::is_same_v< sq<int32_t, 4, i32sq4::REAL_V_MIN, +EXTENDED_LIMIT   >, extended_r_sq_t >));
-    ASSERT_TRUE((std::is_same_v< sq<int32_t, 4, -EXTENDED_LIMIT,    +RESTRICTED_LIMIT >, shifted_sq_l_t >));
-    ASSERT_TRUE((std::is_same_v< sq<int32_t, 4, -RESTRICTED_LIMIT,  +EXTENDED_LIMIT   >, shifted_sq_r_t >));
+    ASSERT_TRUE((std::is_same_v< sq<int32_t, 4, -restrictedLimit,    +restrictedLimit >,   restricted_sq_t >));
+    ASSERT_TRUE((std::is_same_v< sq<int32_t, 4, -restrictedLimit,    i32sq4_2k::realVMax>, restricted_l_sq_t >));
+    ASSERT_TRUE((std::is_same_v< sq<int32_t, 4, i32sq4_2k::realVMin, +restrictedLimit >,   restricted_r_sq_t >));
+    ASSERT_TRUE((std::is_same_v< sq<int32_t, 4, -extendedLimit,      +extendedLimit   >,   extended_sq_t >));
+    ASSERT_TRUE((std::is_same_v< sq<int32_t, 4, -extendedLimit,      i32sq4_2k::realVMax>, extended_l_sq_t >));
+    ASSERT_TRUE((std::is_same_v< sq<int32_t, 4, i32sq4_2k::realVMin, +extendedLimit   >,   extended_r_sq_t >));
+    ASSERT_TRUE((std::is_same_v< sq<int32_t, 4, -extendedLimit,      +restrictedLimit >,   shifted_sq_l_t >));
+    ASSERT_TRUE((std::is_same_v< sq<int32_t, 4, -restrictedLimit,    +extendedLimit   >,   shifted_sq_r_t >));
 }
 
 TEST_F(SQTest_Construct, sq_from_real__constexpr_int16_positiveF__expected_value) {
-    constexpr double REAL_VALUE = -2047.6;
-    auto sqValue = i16sq4::from_real<REAL_VALUE>;
+    constexpr double realValue = -2047.6;
+    auto sqValue = i16sq4_2k::fromReal<realValue>;
 
     EXPECT_TRUE((std::is_same_v<int16_t, decltype(sqValue.reveal())>));
-    EXPECT_TRUE((std::is_same_v<int, decltype(sqValue.to_real<int>())>));
-    EXPECT_TRUE((std::is_same_v<double, decltype(sqValue.to_real())>));
+    EXPECT_TRUE((std::is_same_v<int, decltype(sqValue.toReal<int>())>));
+    EXPECT_TRUE((std::is_same_v<double, decltype(sqValue.toReal())>));
 
-    constexpr int16_t RESULT_MEM_VALUE = -32761;
-    ASSERT_EQ(RESULT_MEM_VALUE, sqValue.reveal());
-    ASSERT_EQ(-2047, sqValue.to_real<int>());
-    ASSERT_NEAR(REAL_VALUE, sqValue.to_real(), i16sq4::RESOLUTION);
+    constexpr int16_t resultMemValue = -32761;
+    ASSERT_EQ(resultMemValue, sqValue.reveal());
+    ASSERT_EQ(-2047, sqValue.toReal<int>());
+    ASSERT_NEAR(realValue, sqValue.toReal(), i16sq4_2k::resolution);
 }
 
 TEST_F(SQTest_Construct, sq_from_scaled__constexpr_int16_positiveF__expected_value) {
-    constexpr int16_t MEM_VALUE = 31686;
-    auto a = i16sq4::from_scaled<+MEM_VALUE>;
-    auto b = i16sq4::from_scaled<-MEM_VALUE>;
+    constexpr int16_t memValue = 31686;
+    auto a = i16sq4_2k::fromScaled<+memValue>;
+    auto b = i16sq4_2k::fromScaled<-memValue>;
 
     constexpr double RESULT_REAL_VALUE = 1980.375;
-    ASSERT_EQ(+MEM_VALUE, a.reveal());
-    ASSERT_EQ(-MEM_VALUE, b.reveal());
-    ASSERT_NEAR(+RESULT_REAL_VALUE, a.to_real(), i16sq4::RESOLUTION);
-    ASSERT_NEAR(-RESULT_REAL_VALUE, b.to_real(), i16sq4::RESOLUTION);
+    ASSERT_EQ(+memValue, a.reveal());
+    ASSERT_EQ(-memValue, b.reveal());
+    ASSERT_NEAR(+RESULT_REAL_VALUE, a.toReal(), i16sq4_2k::resolution);
+    ASSERT_NEAR(-RESULT_REAL_VALUE, b.toReal(), i16sq4_2k::resolution);
 }
 
 TEST_F(SQTest_Construct, sq_copy_constructor__int16_someF__int16_sameF) {
-    constexpr double REAL_VALUE_A = -1024.2;
-    auto a = i16sq4::from_real<REAL_VALUE_A>;
-    auto b = i16sq4::from_sq(a);
+    constexpr double realValueA = -1024.2;
+    auto a = i16sq4_2k::fromReal<realValueA>;
+    auto b = i16sq4_2k::fromSq(a);
 
-    ASSERT_NEAR(REAL_VALUE_A, b.to_real(), i16sq4::RESOLUTION);
+    ASSERT_NEAR(realValueA, b.toReal(), i16sq4_2k::resolution);
 }
 
 TEST_F(SQTest_Construct, sq_move_constructor__int16_someF__int16_sameF) {
-    constexpr double REAL_VALUE_A = -1024.2;
-    auto a = i16sq4::from_real<REAL_VALUE_A>;
-    i16sq4 b = std::move(a);
+    constexpr double realValueA = -1024.2;
+    auto a = i16sq4_2k::fromReal<realValueA>;
+    i16sq4_2k b = std::move(a);
 
-    ASSERT_NEAR(REAL_VALUE_A, b.to_real(), i16sq4::RESOLUTION);
+    ASSERT_NEAR(realValueA, b.toReal(), i16sq4_2k::resolution);
 }
 
 TEST_F(SQTest_Construct, sq_upscale_copy_constructor__int16_someF__int16_largerF) {
-    constexpr double REAL_VALUE_A = -1024.2;
-    auto a = i32sq4::from_real<REAL_VALUE_A>;
-    auto b = i32sq8::from_sq(a);
+    constexpr double realValueA = -1024.2;
+    auto a = i32sq4_2k::fromReal<realValueA>;
+    auto b = i32sq8_2k::fromSq(a);
 
     // note: the representation error due to rounding is determined by the resolution of the initial
     //       sq4 type and does not change if the value is up-scaled to another sq type
-    ASSERT_NEAR(REAL_VALUE_A, b.to_real(), i32sq4::RESOLUTION);
+    ASSERT_NEAR(realValueA, b.toReal(), i32sq4_2k::resolution);
 }
 
 TEST_F(SQTest_Construct, sq_downscale_copy_constructor__int16_someF__int16_smallerF) {
-    constexpr double REAL_VALUE_A = -1024.2;
-    auto a = i32sq4::from_real<REAL_VALUE_A>;
-    auto b = i32sqm2::from_sq(a);
+    constexpr double realValueA = -1024.2;
+    auto a = i32sq4_2k::fromReal<realValueA>;
+    auto b = i32sqm2_2k::fromSq(a);
 
     // note: for down-scaling, the representation error is at most the sum of the two resolutions
     //       before and after the scaling operation
-    ASSERT_NEAR(REAL_VALUE_A, b.to_real(), i32sq4::RESOLUTION + i32sqm2::RESOLUTION);
+    ASSERT_NEAR(realValueA, b.toReal(), i32sq4_2k::resolution + i32sqm2_2k::resolution);
 }
 
 
@@ -141,30 +141,30 @@ TEST_F(SQTest_Casting, sq_static_cast__signed_user_range__unsigned_larger_range_
     //        min            max
     //         ^^^^^^^^^^^^^^^^  <= scaled i16 user value range in u32
 
-    using i16sqm3 = sq<int16_t, -3, 10000., 100000.>;  // i16 -> u32, max delta F is 17
-    using u32sq14 = sq<uint32_t, 14, 10000., 160000.>;
-    auto a = i16sqm3::from_real<i16sqm3::REAL_V_MIN>;
-    auto b = i16sqm3::from_real<70000.>;
-    auto c = i16sqm3::from_real<i16sqm3::REAL_V_MAX>;
-    auto ac = static_cast<u32sq14>(a);
-    auto ac2 = static_sq_cast<u32sq14>(a);
-    auto ac3 = safe_sq_cast<u32sq14>(a);
-    auto bc = static_cast<u32sq14>(b);
-    auto bc2 = static_sq_cast<u32sq14>(b);
-    auto bc3 = safe_sq_cast<u32sq14>(b);
-    auto cc = static_cast<u32sq14>(c);
-    auto cc2 = static_sq_cast<u32sq14>(c);
-    auto cc3 = safe_sq_cast<u32sq14>(c);
+    using i16sqm3_t = i16sqm3<10000., 100000.>;  // i16 -> u32, max delta f is 17
+    using u32sq14_t = u32sq14<10000., 160000.>;
+    auto a = i16sqm3_t::fromReal<i16sqm3_t::realVMin>;
+    auto b = i16sqm3_t::fromReal<70000.>;
+    auto c = i16sqm3_t::fromReal<i16sqm3_t::realVMax>;
+    auto ac = static_cast<u32sq14_t>(a);
+    auto ac2 = static_sq_cast<u32sq14_t>(a);
+    auto ac3 = safe_sq_cast<u32sq14_t>(a);
+    auto bc = static_cast<u32sq14_t>(b);
+    auto bc2 = static_sq_cast<u32sq14_t>(b);
+    auto bc3 = safe_sq_cast<u32sq14_t>(b);
+    auto cc = static_cast<u32sq14_t>(c);
+    auto cc2 = static_sq_cast<u32sq14_t>(c);
+    auto cc3 = safe_sq_cast<u32sq14_t>(c);
 
-    ASSERT_NEAR(i16sqm3::REAL_V_MIN, ac.to_real(), i16sqm3::RESOLUTION);
-    ASSERT_NEAR(i16sqm3::REAL_V_MIN, ac2.to_real(), i16sqm3::RESOLUTION);
-    ASSERT_NEAR(i16sqm3::REAL_V_MIN, ac3.to_real(), i16sqm3::RESOLUTION);
-    ASSERT_NEAR(70000., bc.to_real(), i16sqm3::RESOLUTION);
-    ASSERT_NEAR(70000., bc2.to_real(), i16sqm3::RESOLUTION);
-    ASSERT_NEAR(70000., bc3.to_real(), i16sqm3::RESOLUTION);
-    ASSERT_NEAR(i16sqm3::REAL_V_MAX, cc.to_real(), i16sqm3::RESOLUTION);
-    ASSERT_NEAR(i16sqm3::REAL_V_MAX, cc2.to_real(), i16sqm3::RESOLUTION);
-    ASSERT_NEAR(i16sqm3::REAL_V_MAX, cc3.to_real(), i16sqm3::RESOLUTION);
+    ASSERT_NEAR(i16sqm3_t::realVMin, ac.toReal(), i16sqm3_t::resolution);
+    ASSERT_NEAR(i16sqm3_t::realVMin, ac2.toReal(), i16sqm3_t::resolution);
+    ASSERT_NEAR(i16sqm3_t::realVMin, ac3.toReal(), i16sqm3_t::resolution);
+    ASSERT_NEAR(70000., bc.toReal(), i16sqm3_t::resolution);
+    ASSERT_NEAR(70000., bc2.toReal(), i16sqm3_t::resolution);
+    ASSERT_NEAR(70000., bc3.toReal(), i16sqm3_t::resolution);
+    ASSERT_NEAR(i16sqm3_t::realVMax, cc.toReal(), i16sqm3_t::resolution);
+    ASSERT_NEAR(i16sqm3_t::realVMax, cc2.toReal(), i16sqm3_t::resolution);
+    ASSERT_NEAR(i16sqm3_t::realVMax, cc3.toReal(), i16sqm3_t::resolution);
 }
 
 TEST_F(SQTest_Casting, sq_static_cast__unsigned_user_range__signed_larger_range__same_real_value) {
@@ -179,30 +179,30 @@ TEST_F(SQTest_Casting, sq_static_cast__unsigned_user_range__signed_larger_range_
     //                                 min          max
     //                                  ^^^^^^^^^^^^^^  <= scaled u16 user value range in i32
 
-    using u16sqm3 = sq<uint16_t, -3, 10000., 400000.>;  // u16 -> i32, max delta F is 15
-    using i32sq12 = sq<int32_t, 12, -80000., 500000.>;
-    auto a = u16sqm3::from_real<u16sqm3::REAL_V_MIN>;
-    auto b = u16sqm3::from_real<50000.>;
-    auto c = u16sqm3::from_real<u16sqm3::REAL_V_MAX>;
-    auto ac = static_cast<i32sq12>(a);
-    auto ac2 = static_sq_cast<i32sq12>(a);
-    auto ac3 = safe_sq_cast<i32sq12>(a);
-    auto bc = static_cast<i32sq12>(b);
-    auto bc2 = static_sq_cast<i32sq12>(b);
-    auto bc3 = safe_sq_cast<i32sq12>(b);
-    auto cc = static_cast<i32sq12>(c);
-    auto cc2 = static_sq_cast<i32sq12>(c);
-    auto cc3 = safe_sq_cast<i32sq12>(c);
+    using u16sqm3_t = u16sqm3<10000., 400000.>;  // u16 -> i32, max delta f is 15
+    using i32sq12_t = i32sq12<-80000., 500000.>;
+    auto a = u16sqm3_t::fromReal<u16sqm3_t::realVMin>;
+    auto b = u16sqm3_t::fromReal<50000.>;
+    auto c = u16sqm3_t::fromReal<u16sqm3_t::realVMax>;
+    auto ac = static_cast<i32sq12_t>(a);
+    auto ac2 = static_sq_cast<i32sq12_t>(a);
+    auto ac3 = safe_sq_cast<i32sq12_t>(a);
+    auto bc = static_cast<i32sq12_t>(b);
+    auto bc2 = static_sq_cast<i32sq12_t>(b);
+    auto bc3 = safe_sq_cast<i32sq12_t>(b);
+    auto cc = static_cast<i32sq12_t>(c);
+    auto cc2 = static_sq_cast<i32sq12_t>(c);
+    auto cc3 = safe_sq_cast<i32sq12_t>(c);
 
-    ASSERT_NEAR(u16sqm3::REAL_V_MIN, ac.to_real(), u16sqm3::RESOLUTION);
-    ASSERT_NEAR(u16sqm3::REAL_V_MIN, ac2.to_real(), u16sqm3::RESOLUTION);
-    ASSERT_NEAR(u16sqm3::REAL_V_MIN, ac3.to_real(), u16sqm3::RESOLUTION);
-    ASSERT_NEAR(50000., bc.to_real(), u16sqm3::RESOLUTION);
-    ASSERT_NEAR(50000., bc2.to_real(), u16sqm3::RESOLUTION);
-    ASSERT_NEAR(50000., bc3.to_real(), u16sqm3::RESOLUTION);
-    ASSERT_NEAR(u16sqm3::REAL_V_MAX, cc.to_real(), u16sqm3::RESOLUTION);
-    ASSERT_NEAR(u16sqm3::REAL_V_MAX, cc2.to_real(), u16sqm3::RESOLUTION);
-    ASSERT_NEAR(u16sqm3::REAL_V_MAX, cc3.to_real(), u16sqm3::RESOLUTION);
+    ASSERT_NEAR(u16sqm3_t::realVMin, ac.toReal(), u16sqm3_t::resolution);
+    ASSERT_NEAR(u16sqm3_t::realVMin, ac2.toReal(), u16sqm3_t::resolution);
+    ASSERT_NEAR(u16sqm3_t::realVMin, ac3.toReal(), u16sqm3_t::resolution);
+    ASSERT_NEAR(50000., bc.toReal(), u16sqm3_t::resolution);
+    ASSERT_NEAR(50000., bc2.toReal(), u16sqm3_t::resolution);
+    ASSERT_NEAR(50000., bc3.toReal(), u16sqm3_t::resolution);
+    ASSERT_NEAR(u16sqm3_t::realVMax, cc.toReal(), u16sqm3_t::resolution);
+    ASSERT_NEAR(u16sqm3_t::realVMax, cc2.toReal(), u16sqm3_t::resolution);
+    ASSERT_NEAR(u16sqm3_t::realVMax, cc3.toReal(), u16sqm3_t::resolution);
 }
 
 TEST_F(SQTest_Casting, sq_static_cast__signed_user_range__signed_larger_range__same_real_value) {
@@ -217,30 +217,30 @@ TEST_F(SQTest_Casting, sq_static_cast__signed_user_range__signed_larger_range__s
     //              min                            max
     //               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^  <= scaled i16 user value range in i32
 
-    using i16sqm4 = sq<int16_t, -4, -100000., 400000.>;  // i16 -> i32, max delta F is 16
-    using i32sq12 = sq<int32_t, 12, -120000., 500000.>;
-    auto a = i16sqm4::from_real<i16sqm4::REAL_V_MIN>;
-    auto b = i16sqm4::from_real<-50000.>;
-    auto c = i16sqm4::from_real<i16sqm4::REAL_V_MAX>;
-    auto ac = static_cast<i32sq12>(a);
-    auto ac2 = static_sq_cast<i32sq12>(a);
-    auto ac3 = safe_sq_cast<i32sq12>(a);
-    auto bc = static_cast<i32sq12>(b);
-    auto bc2 = static_sq_cast<i32sq12>(b);
-    auto bc3 = safe_sq_cast<i32sq12>(b);
-    auto cc = static_cast<i32sq12>(c);
-    auto cc2 = static_sq_cast<i32sq12>(c);
-    auto cc3 = safe_sq_cast<i32sq12>(c);
+    using i16sqm4_t = i16sqm4<-100000., 400000.>;  // i16 -> i32, max delta f is 16
+    using i32sq12_t = i32sq12<-120000., 500000.>;
+    auto a = i16sqm4_t::fromReal<i16sqm4_t::realVMin>;
+    auto b = i16sqm4_t::fromReal<-50000.>;
+    auto c = i16sqm4_t::fromReal<i16sqm4_t::realVMax>;
+    auto ac = static_cast<i32sq12_t>(a);
+    auto ac2 = static_sq_cast<i32sq12_t>(a);
+    auto ac3 = safe_sq_cast<i32sq12_t>(a);
+    auto bc = static_cast<i32sq12_t>(b);
+    auto bc2 = static_sq_cast<i32sq12_t>(b);
+    auto bc3 = safe_sq_cast<i32sq12_t>(b);
+    auto cc = static_cast<i32sq12_t>(c);
+    auto cc2 = static_sq_cast<i32sq12_t>(c);
+    auto cc3 = safe_sq_cast<i32sq12_t>(c);
 
-    ASSERT_NEAR(i16sqm4::REAL_V_MIN, ac.to_real(), i16sqm4::RESOLUTION);
-    ASSERT_NEAR(i16sqm4::REAL_V_MIN, ac2.to_real(), i16sqm4::RESOLUTION);
-    ASSERT_NEAR(i16sqm4::REAL_V_MIN, ac3.to_real(), i16sqm4::RESOLUTION);
-    ASSERT_NEAR(-50000., bc.to_real(), i16sqm4::RESOLUTION);
-    ASSERT_NEAR(-50000., bc2.to_real(), i16sqm4::RESOLUTION);
-    ASSERT_NEAR(-50000., bc3.to_real(), i16sqm4::RESOLUTION);
-    ASSERT_NEAR(i16sqm4::REAL_V_MAX, cc.to_real(), i16sqm4::RESOLUTION);
-    ASSERT_NEAR(i16sqm4::REAL_V_MAX, cc2.to_real(), i16sqm4::RESOLUTION);
-    ASSERT_NEAR(i16sqm4::REAL_V_MAX, cc3.to_real(), i16sqm4::RESOLUTION);
+    ASSERT_NEAR(i16sqm4_t::realVMin, ac.toReal(), i16sqm4_t::resolution);
+    ASSERT_NEAR(i16sqm4_t::realVMin, ac2.toReal(), i16sqm4_t::resolution);
+    ASSERT_NEAR(i16sqm4_t::realVMin, ac3.toReal(), i16sqm4_t::resolution);
+    ASSERT_NEAR(-50000., bc.toReal(), i16sqm4_t::resolution);
+    ASSERT_NEAR(-50000., bc2.toReal(), i16sqm4_t::resolution);
+    ASSERT_NEAR(-50000., bc3.toReal(), i16sqm4_t::resolution);
+    ASSERT_NEAR(i16sqm4_t::realVMax, cc.toReal(), i16sqm4_t::resolution);
+    ASSERT_NEAR(i16sqm4_t::realVMax, cc2.toReal(), i16sqm4_t::resolution);
+    ASSERT_NEAR(i16sqm4_t::realVMax, cc3.toReal(), i16sqm4_t::resolution);
 }
 
 TEST_F(SQTest_Casting, q_static_cast__unsigned_user_range__unsigned_larger_range__same_real_value) {
@@ -255,30 +255,30 @@ TEST_F(SQTest_Casting, q_static_cast__unsigned_user_range__unsigned_larger_range
     //              min                            max
     //               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^  <= scaled u16 user value range in u32
 
-    using u16sqm2 = sq<uint16_t, -2, 10000., 100000.>;  // u16 -> u32, max delta F is 16
-    using u32sq14 = sq<uint32_t, 14, 0., 160000.>;
-    auto a = u16sqm2::from_real<u16sqm2::REAL_V_MIN>;
-    auto b = u16sqm2::from_real<50000.>;
-    auto c = u16sqm2::from_real<u16sqm2::REAL_V_MAX>;
-    auto ac = static_cast<u32sq14>(a);
-    auto ac2 = static_sq_cast<u32sq14>(a);
-    auto ac3 = safe_sq_cast<u32sq14>(a);
-    auto bc = static_cast<u32sq14>(b);
-    auto bc2 = static_sq_cast<u32sq14>(b);
-    auto bc3 = safe_sq_cast<u32sq14>(b);
-    auto cc = static_cast<u32sq14>(c);
-    auto cc2 = static_sq_cast<u32sq14>(c);
-    auto cc3 = safe_sq_cast<u32sq14>(c);
+    using u16sqm2_t = u16sqm2<10000., 100000.>;  // u16 -> u32, max delta f is 16
+    using u32sq14_t = u32sq14<0., 160000.>;
+    auto a = u16sqm2_t::fromReal<u16sqm2_t::realVMin>;
+    auto b = u16sqm2_t::fromReal<50000.>;
+    auto c = u16sqm2_t::fromReal<u16sqm2_t::realVMax>;
+    auto ac = static_cast<u32sq14_t>(a);
+    auto ac2 = static_sq_cast<u32sq14_t>(a);
+    auto ac3 = safe_sq_cast<u32sq14_t>(a);
+    auto bc = static_cast<u32sq14_t>(b);
+    auto bc2 = static_sq_cast<u32sq14_t>(b);
+    auto bc3 = safe_sq_cast<u32sq14_t>(b);
+    auto cc = static_cast<u32sq14_t>(c);
+    auto cc2 = static_sq_cast<u32sq14_t>(c);
+    auto cc3 = safe_sq_cast<u32sq14_t>(c);
 
-    ASSERT_NEAR(u16sqm2::REAL_V_MIN, ac.to_real(), u16sqm2::RESOLUTION);
-    ASSERT_NEAR(u16sqm2::REAL_V_MIN, ac2.to_real(), u16sqm2::RESOLUTION);
-    ASSERT_NEAR(u16sqm2::REAL_V_MIN, ac3.to_real(), u16sqm2::RESOLUTION);
-    ASSERT_NEAR(50000., bc.to_real(), u16sqm2::RESOLUTION);
-    ASSERT_NEAR(50000., bc2.to_real(), u16sqm2::RESOLUTION);
-    ASSERT_NEAR(50000., bc3.to_real(), u16sqm2::RESOLUTION);
-    ASSERT_NEAR(u16sqm2::REAL_V_MAX, cc.to_real(), u16sqm2::RESOLUTION);
-    ASSERT_NEAR(u16sqm2::REAL_V_MAX, cc2.to_real(), u16sqm2::RESOLUTION);
-    ASSERT_NEAR(u16sqm2::REAL_V_MAX, cc3.to_real(), u16sqm2::RESOLUTION);
+    ASSERT_NEAR(u16sqm2_t::realVMin, ac.toReal(), u16sqm2_t::resolution);
+    ASSERT_NEAR(u16sqm2_t::realVMin, ac2.toReal(), u16sqm2_t::resolution);
+    ASSERT_NEAR(u16sqm2_t::realVMin, ac3.toReal(), u16sqm2_t::resolution);
+    ASSERT_NEAR(50000., bc.toReal(), u16sqm2_t::resolution);
+    ASSERT_NEAR(50000., bc2.toReal(), u16sqm2_t::resolution);
+    ASSERT_NEAR(50000., bc3.toReal(), u16sqm2_t::resolution);
+    ASSERT_NEAR(u16sqm2_t::realVMax, cc.toReal(), u16sqm2_t::resolution);
+    ASSERT_NEAR(u16sqm2_t::realVMax, cc2.toReal(), u16sqm2_t::resolution);
+    ASSERT_NEAR(u16sqm2_t::realVMax, cc3.toReal(), u16sqm2_t::resolution);
 }
 
 
@@ -297,30 +297,30 @@ protected:
 };
 
 TEST_F(SQTest_Addition, sq_add__three_values_same_sq_type__values_added) {
-    using i32sq16 = sq<int32_t, 16, -10000., 10000.>;
-    auto a = i32sq16::from_real<5000.>;
-    auto b = i32sq16::from_real<-3333.>;
-    auto c = i32sq16::from_real<1333.>;
+    using i32sq16_t = i32sq16<-10000., 10000.>;
+    auto a = i32sq16_t::fromReal<5000.>;
+    auto b = i32sq16_t::fromReal<-3333.>;
+    auto c = i32sq16_t::fromReal<1333.>;
 
     auto d = a + b + c;
 
-    using expected_result_t = i32sq16::relimit_t< 3*i32sq16::REAL_V_MIN, 3*i32sq16::REAL_V_MAX >;
+    using expected_result_t = i32sq16_t::relimit_t< 3*i32sq16_t::realVMin, 3*i32sq16_t::realVMax >;
     ASSERT_TRUE((std::is_same_v<expected_result_t, decltype(d)>));
-    ASSERT_NEAR(3000., d.to_real(), 3*i32sq16::RESOLUTION);
+    ASSERT_NEAR(3000., d.toReal(), 3*i32sq16_t::resolution);
 }
 
 TEST_F(SQTest_Addition, sq_add__three_values_different_sq_type__values_added_largest_resolution) {
-    using i32sq16 = sq<int32_t, 16, -500., 500.>;
-    using i32sq20 = sq<int32_t, 20, -300., 300.>;
-    auto a = i32sq16::from_real<-455.>;
-    auto b = i32sq20::from_real<233.>;
-    auto c = i32sq16::from_real<167.>;
+    using i32sq16_t = i32sq16<-500., 500.>;
+    using i32sq20_t = i32sq20<-300., 300.>;
+    auto a = i32sq16_t::fromReal<-455.>;
+    auto b = i32sq20_t::fromReal<233.>;
+    auto c = i32sq16_t::fromReal<167.>;
 
     auto d = a + b + c;
 
-    using expected_result_t = i32sq20::relimit_t<-1300., 1300.>;
+    using expected_result_t = i32sq20_t::relimit_t<-1300., 1300.>;
     ASSERT_TRUE((std::is_same_v<expected_result_t, decltype(d)>));
-    ASSERT_NEAR(-55., d.to_real(), 2*i32sq16::RESOLUTION + i32sq20::RESOLUTION);
+    ASSERT_NEAR(-55., d.toReal(), 2*i32sq16_t::resolution + i32sq20_t::resolution);
 }
 
 
@@ -339,30 +339,30 @@ protected:
 };
 
 TEST_F(SQTest_Subtraction, sq_subtract__three_values_same_sq_type__values_subtracted) {
-    using i32sq16 = sq<int32_t, 16, -500., 500.>;
-    auto a = i32sq16::from_real<-455.>;
-    auto b = i32sq16::from_real<233.>;
-    auto c = i32sq16::from_real<167.>;
+    using i32sq16_t = i32sq16<-500., 500.>;
+    auto a = i32sq16_t::fromReal<-455.>;
+    auto b = i32sq16_t::fromReal<233.>;
+    auto c = i32sq16_t::fromReal<167.>;
 
     auto d = a - b - c;
 
-    using expected_result_t = i32sq16::relimit_t<-1500., +1500.>;
+    using expected_result_t = i32sq16_t::relimit_t<-1500., +1500.>;
     ASSERT_TRUE((std::is_same_v<expected_result_t, decltype(d)>));
-    ASSERT_NEAR(-855., d.to_real(), 3*i32sq16::RESOLUTION);
+    ASSERT_NEAR(-855., d.toReal(), 3*i32sq16_t::resolution);
 }
 
 TEST_F(SQTest_Subtraction, sq_subtract__three_values_different_sq_type__values_subtracted_largest_resolution) {
-    using i32sq16 = sq<int32_t, 16, -500., 500.>;
-    using i32sq20 = sq<int32_t, 20, -300., 300.>;
-    auto a = i32sq16::from_real<255.1111>;
-    auto b = i32sq20::from_real<233.2222>;
-    auto c = i32sq16::from_real<167.3333>;
+    using i32sq16_t = i32sq16<-500., 500.>;
+    using i32sq20_t = i32sq20<-300., 300.>;
+    auto a = i32sq16_t::fromReal<255.1111>;
+    auto b = i32sq20_t::fromReal<233.2222>;
+    auto c = i32sq16_t::fromReal<167.3333>;
 
     auto d = a - b - c;
 
-    using expected_result_t = i32sq20::relimit_t<-1300., +1300.>;
+    using expected_result_t = i32sq20_t::relimit_t<-1300., +1300.>;
     ASSERT_TRUE((std::is_same_v<expected_result_t, decltype(d)>));
-    ASSERT_NEAR(-145.4444, d.to_real(), 2*i32sq16::RESOLUTION + i32sq20::RESOLUTION);
+    ASSERT_NEAR(-145.4444, d.toReal(), 2*i32sq16_t::resolution + i32sq20_t::resolution);
 }
 
 
@@ -381,48 +381,48 @@ protected:
 };
 
 TEST_F(SQTest_Multiplication, sq_multiplicate__three_values_same_sq_type__values_multiplied) {
-    using i32sq16 = sq<int32_t, 16, -8., 8.>;
-    auto a = i32sq16::from_real< -4.5 >;
-    auto b = i32sq16::from_real<  7./3 >;
-    auto c = i32sq16::from_real<  5./3 >;
+    using i32sq16_t = i32sq16<-8., 8.>;
+    auto a = i32sq16_t::fromReal< -4.5 >;
+    auto b = i32sq16_t::fromReal<  7./3 >;
+    auto c = i32sq16_t::fromReal<  5./3 >;
 
     auto d = a * b * c;
 
-    using expected_result_t = i32sq16::relimit_t<-512., +512.>;
+    using expected_result_t = i32sq16_t::relimit_t<-512., +512.>;
     ASSERT_TRUE((std::is_same_v<expected_result_t, decltype(d)>));
-    ASSERT_NEAR(-17.5, d.to_real(), 12*i32sq16::RESOLUTION);
+    ASSERT_NEAR(-17.5, d.toReal(), 12*i32sq16_t::resolution);
 }
 
 TEST_F(SQTest_Multiplication, sq_multiplicate__three_values_different_sq_type__values_multiplied_largest_resolution) {
-    using i32sq16 = sq<int32_t, 16, -8., -2.>;
-    using i32sq20 = sq<int32_t, 20, -9., 10.>;
-    auto a = i32sq16::from_real< -7.888 >;
-    auto b = i32sq20::from_real< -2.666 >;
-    auto c = i32sq20::from_real<  8.123 >;
+    using i32sq16_t = i32sq16<-8., -2.>;
+    using i32sq20_t = i32sq20<-9., 10.>;
+    auto a = i32sq16_t::fromReal< -7.888 >;
+    auto b = i32sq20_t::fromReal< -2.666 >;
+    auto c = i32sq20_t::fromReal<  8.123 >;
 
     auto d = a * b * c;
 
-    using expected_result_t = i32sq20::relimit_t<-800., +720.>;
+    using expected_result_t = i32sq20_t::relimit_t<-800., +720.>;
     ASSERT_TRUE((std::is_same_v<expected_result_t, decltype(d)>));
-    ASSERT_NEAR(170.8218812, d.to_real(), 26*i32sq16::RESOLUTION);
+    ASSERT_NEAR(170.8218812, d.toReal(), 26*i32sq16_t::resolution);
 }
 
 TEST_F(SQTest_Multiplication, sq_multiplicate__three_values_same_type_and_int_constant__values_multiplied) {
-    // using i32sq16 = sq<int32_t, 16, -8., 8.>;
-    // auto a = i32sq16::from_real<  5.5 >;
-    // auto b = i32sq16::from_real< -2.6 >;
+    using i32sq16_t = i32sq16<-8., 8.>;
+    auto a = i32sq16_t::fromReal<  5.5 >;
+    auto b = i32sq16_t::fromReal< -2.6 >;
 
-    // auto d = a * b * 15;
-    // auto e = a * 15 * b;
-    // auto f = 15 * a * b;
+    auto d = a * b * 15_i32sq16;
+    auto e = a * 15_i32sq16 * b;
+    auto f = 15_i32sq16 * a * b;
 
-    // using expected_result_t = i32sq16::relimit_t<-960., +960.>;
-    // ASSERT_TRUE((std::is_same_v<expected_result_t, decltype(d)>));
-    // ASSERT_TRUE((std::is_same_v<expected_result_t, decltype(e)>));
-    // ASSERT_TRUE((std::is_same_v<expected_result_t, decltype(f)>));
-    // ASSERT_NEAR(-214.5, d.to_real(), 8*i32sq16::RESOLUTION);
-    // ASSERT_NEAR(-214.5, e.to_real(), 8*i32sq16::RESOLUTION);
-    // ASSERT_NEAR(-214.5, f.to_real(), 8*i32sq16::RESOLUTION);
+    using expected_result_t = i32sq16_t::relimit_t<-960., +960.>;
+    ASSERT_TRUE((std::is_same_v<expected_result_t, decltype(d)>));
+    ASSERT_TRUE((std::is_same_v<expected_result_t, decltype(e)>));
+    ASSERT_TRUE((std::is_same_v<expected_result_t, decltype(f)>));
+    ASSERT_NEAR(-214.5, d.toReal(), 60*i32sq16_t::resolution);
+    ASSERT_NEAR(-214.5, e.toReal(), 60*i32sq16_t::resolution);
+    ASSERT_NEAR(-214.5, f.toReal(), 60*i32sq16_t::resolution);
 }
 
 

@@ -95,233 +95,233 @@ protected:
 };
 
 TEST_F(S2STest, s2smd__constexpr_double_negativeF__double_positiveF) {
-    constexpr scaling_t FROM = -2, TO = 5;
-    auto result = s2smd<double,FROM,TO>(-564.1);
+    constexpr scaling_t from = -2, to = 5;
+    auto result = s2smd<double,from,to>(-564.1);
 
-    constexpr double EXPECTED_RESULT = -72204.8;
-    ASSERT_NEAR(EXPECTED_RESULT, result, 0.1);
+    constexpr double expectedResult = -72204.8;
+    ASSERT_NEAR(expectedResult, result, 0.1);
 }
 
 TEST_F(S2STest, s2smd__constexpr_double_positiveF__double_negativeF) {
-    constexpr scaling_t FROM = 4, TO = -2;
-    auto result = s2smd<double,FROM,TO>(-29876.1);
+    constexpr scaling_t from = 4, to = -2;
+    auto result = s2smd<double,from,to>(-29876.1);
 
-    constexpr double EXPECTED_RESULT = -466.8;
-    ASSERT_NEAR(EXPECTED_RESULT, result, 0.1);
+    constexpr double expectedResult = -466.8;
+    ASSERT_NEAR(expectedResult, result, 0.1);
 }
 
 TEST_F(S2STest, s2smd__constexpr_double_sameF__sameF_same_double) {
-    constexpr scaling_t FROM = -2, TO = -2;
-    constexpr double REAL_VALUE = -564.1;
-    auto result = s2smd<double,FROM,TO>(REAL_VALUE);
+    constexpr scaling_t from = -2, to = -2;
+    constexpr double realValue = -564.1;
+    auto result = s2smd<double,from,to>(realValue);
 
-    ASSERT_NEAR(REAL_VALUE, result, 0.1);
+    ASSERT_NEAR(realValue, result, 0.1);
 }
 
 TEST_F(S2STest, s2smd__var_signed_negativeF__int_positiveF) {
-    constexpr scaling_t FROM = -2, TO = 5;
-    auto result = s2smd<int,FROM,TO>(a);  // generates a function call when runtime variable is used
+    constexpr scaling_t from = -2, to = 5;
+    auto result = s2smd<int,from,to>(a);  // generates a function call when runtime variable is used
 
-    constexpr int EXPECTED_RESULT = 512;
-    ASSERT_EQ(EXPECTED_RESULT, result);
+    constexpr int expectedResult = 512;
+    ASSERT_EQ(expectedResult, result);
 }
 
 TEST_F(S2STest, s2sh__var_signed_negativeF__int_positiveF) {
-    constexpr scaling_t FROM = -2, TO = 5;
-    auto result = s2sh<int,FROM,TO>(a);  // generates a function call when runtime variable is used
+    constexpr scaling_t from = -2, to = 5;
+    auto result = s2sh<int,from,to>(a);  // generates a function call when runtime variable is used
 
-    constexpr int EXPECTED_RESULT = 512;
-    ASSERT_EQ(EXPECTED_RESULT, result);
+    constexpr int expectedResult = 512;
+    ASSERT_EQ(expectedResult, result);
 }
 
 TEST_F(S2STest, s2smd__var_signed_positiveF__int_largerF) {
-    constexpr scaling_t FROM = 2, TO = 7;
-    auto result = s2smd<int,FROM,TO>(a);
+    constexpr scaling_t from = 2, to = 7;
+    auto result = s2smd<int,from,to>(a);
 
-    constexpr int EXPECTED_RESULT = 128;
-    ASSERT_EQ(EXPECTED_RESULT, result);
+    constexpr int expectedResult = 128;
+    ASSERT_EQ(expectedResult, result);
 }
 
 TEST_F(S2STest, s2sh__var_signed_positiveF__int_largerF) {
-    constexpr scaling_t FROM = 2, TO = 7;
-    auto result = s2sh<int,FROM,TO>(a);
+    constexpr scaling_t from = 2, to = 7;
+    auto result = s2sh<int,from,to>(a);
 
-    constexpr int EXPECTED_RESULT = 128;
-    ASSERT_EQ(EXPECTED_RESULT, result);
+    constexpr int expectedResult = 128;
+    ASSERT_EQ(expectedResult, result);
 }
 
 TEST_F(S2STest, s2smd__var_signed_positiveF__int_smallerF) {
-    constexpr scaling_t FROM = 6, TO = 2;
-    auto result = s2smd<int,FROM,TO>(b);
+    constexpr scaling_t from = 6, to = 2;
+    auto result = s2smd<int,from,to>(b);
 
-    constexpr int EXPECTED_RESULT = -32;
-    ASSERT_EQ(EXPECTED_RESULT, result);
+    constexpr int expectedResult = -32;
+    ASSERT_EQ(expectedResult, result);
 }
 
 TEST_F(S2STest, s2sh__var_signed_positiveF__int_smallerF) {
-    constexpr scaling_t FROM = 6, TO = 2;
-    auto result = s2sh<int,FROM,TO>(b);
+    constexpr scaling_t from = 6, to = 2;
+    auto result = s2sh<int,from,to>(b);
 
-    constexpr int EXPECTED_RESULT = -32;
-    ASSERT_EQ(EXPECTED_RESULT, result);
+    constexpr int expectedResult = -32;
+    ASSERT_EQ(expectedResult, result);
 }
 
 TEST_F(S2STest, s2smd__var_signed_positiveF__int_negativeF) {
-    constexpr scaling_t FROM = 4, TO = -2;
-    auto result = s2smd<int,FROM,TO>(b);
+    constexpr scaling_t from = 4, to = -2;
+    auto result = s2smd<int,from,to>(b);
 
-    constexpr int EXPECTED_RESULT = -8;
-    ASSERT_EQ(EXPECTED_RESULT, result);
+    constexpr int expectedResult = -8;
+    ASSERT_EQ(expectedResult, result);
 }
 
 TEST_F(S2STest, s2sh__var_signed_positiveF__int_negativeF) {
-    constexpr scaling_t FROM = 4, TO = -2;
-    auto result = s2sh<int,FROM,TO>(b);
+    constexpr scaling_t from = 4, to = -2;
+    auto result = s2sh<int,from,to>(b);
 
-    constexpr int EXPECTED_RESULT = -8;
-    ASSERT_EQ(EXPECTED_RESULT, result);
+    constexpr int expectedResult = -8;
+    ASSERT_EQ(expectedResult, result);
 }
 
 TEST_F(S2STest, s2smd__var_signed_positiveF__int_sameF) {
-    constexpr scaling_t FROM = 4, TO = 4;
-    auto result = s2smd<int,FROM,TO>(b);
+    constexpr scaling_t from = 4, to = 4;
+    auto result = s2smd<int,from,to>(b);
 
     ASSERT_EQ(b, result);
 }
 
 TEST_F(S2STest, s2sh__var_signed_positiveF__int_sameF) {
-    constexpr scaling_t FROM = 4, TO = 4;
-    auto result = s2sh<int,FROM,TO>(b);
+    constexpr scaling_t from = 4, to = 4;
+    auto result = s2sh<int,from,to>(b);
 
     ASSERT_EQ(b, result);
 }
 
 TEST_F(S2STest, s2smd__var_signed_positiveF__double_zeroF) {
-    constexpr scaling_t FROM = 4, TO = 0;
-    auto result = s2smd<double,FROM,TO>(c);
+    constexpr scaling_t from = 4, to = 0;
+    auto result = s2smd<double,from,to>(c);
 
-    constexpr double EXPECTED_RESULT = -34.1875;
-    ASSERT_NEAR(EXPECTED_RESULT, result, 0.0625);  // precision = 2^-4 = 1/16 = 0.0625
+    constexpr double expectedResult = -34.1875;
+    ASSERT_NEAR(expectedResult, result, 0.0625);  // precision = 2^-4 = 1/16 = 0.0625
 }
 
 TEST_F(S2STest, s2smd__constexpr_signed_negativeF__int_positiveF) {
-    constexpr scaling_t FROM = -4, TO = 5;
-    constexpr int8_t VALUE = 4;
-    auto result = s2smd<int,FROM,TO>(VALUE);  // expands to a compile-time const expr. when possible
+    constexpr scaling_t from = -4, to = 5;
+    constexpr int8_t value = 4;
+    auto result = s2smd<int,from,to>(value);  // expands to a compile-time const expr. when possible
 
-    constexpr int EXPECTED_RESULT = 2048;
-    ASSERT_EQ(EXPECTED_RESULT, result);
+    constexpr int expectedResult = 2048;
+    ASSERT_EQ(expectedResult, result);
 }
 
 TEST_F(S2STest, s2sh__constexpr_signed_negativeF__int_positiveF) {
-    constexpr scaling_t FROM = -4, TO = 5;
-    constexpr int8_t VALUE = 4;
-    auto result = s2sh<int,FROM,TO>(VALUE);  // expands to a compile-time const expr. when possible
+    constexpr scaling_t from = -4, to = 5;
+    constexpr int8_t value = 4;
+    auto result = s2sh<int,from,to>(value);  // expands to a compile-time const expr. when possible
 
-    constexpr int EXPECTED_RESULT = 2048;
-    ASSERT_EQ(EXPECTED_RESULT, result);
+    constexpr int expectedResult = 2048;
+    ASSERT_EQ(expectedResult, result);
 }
 
 TEST_F(S2STest, s2smd__constexpr_signed_positiveF__int_largerF) {
-    constexpr scaling_t FROM = 3, TO = 7;
-    constexpr int8_t VALUE = 4;
-    auto result = s2smd<int,FROM,TO>(VALUE);
+    constexpr scaling_t from = 3, to = 7;
+    constexpr int8_t value = 4;
+    auto result = s2smd<int,from,to>(value);
 
-    constexpr int EXPECTED_RESULT = 64;
-    ASSERT_EQ(EXPECTED_RESULT, result);
+    constexpr int expectedResult = 64;
+    ASSERT_EQ(expectedResult, result);
 }
 
 TEST_F(S2STest, s2sh__constexpr_signed_positiveF__int_largerF) {
-    constexpr scaling_t FROM = 3, TO = 7;
-    constexpr int8_t VALUE = 4;
-    auto result = s2sh<int,FROM,TO>(VALUE);
+    constexpr scaling_t from = 3, to = 7;
+    constexpr int8_t value = 4;
+    auto result = s2sh<int,from,to>(value);
 
-    constexpr int EXPECTED_RESULT = 64;
-    ASSERT_EQ(EXPECTED_RESULT, result);
+    constexpr int expectedResult = 64;
+    ASSERT_EQ(expectedResult, result);
 }
 
 TEST_F(S2STest, s2smd__constexpr_signed_positiveF__int_smallerF) {
-    constexpr scaling_t FROM = 9, TO = 2;
-    constexpr int16_t VALUE = -512;
-    auto result = s2smd<int,FROM,TO>(VALUE);
+    constexpr scaling_t from = 9, to = 2;
+    constexpr int16_t value = -512;
+    auto result = s2smd<int,from,to>(value);
 
-    constexpr int EXPECTED_RESULT = -4;
-    ASSERT_EQ(EXPECTED_RESULT, result);
+    constexpr int expectedResult = -4;
+    ASSERT_EQ(expectedResult, result);
 }
 
 TEST_F(S2STest, s2sh__constexpr_signed_positiveF__int_smallerF) {
-    constexpr scaling_t FROM = 9, TO = 2;
-    constexpr int16_t VALUE = -512;
-    auto result = s2sh<int,FROM,TO>(VALUE);
+    constexpr scaling_t from = 9, to = 2;
+    constexpr int16_t value = -512;
+    auto result = s2sh<int,from,to>(value);
 
-    constexpr int EXPECTED_RESULT = -4;
-    ASSERT_EQ(EXPECTED_RESULT, result);
+    constexpr int expectedResult = -4;
+    ASSERT_EQ(expectedResult, result);
 }
 
 TEST_F(S2STest, s2smd__constexpr_signed_positiveF__int_negativeF) {
-    constexpr scaling_t FROM = 3, TO = -3;
-    constexpr int16_t VALUE = -512;
-    auto result = s2smd<int,FROM,TO>(VALUE);
+    constexpr scaling_t from = 3, to = -3;
+    constexpr int16_t value = -512;
+    auto result = s2smd<int,from,to>(value);
 
-    constexpr int EXPECTED_RESULT = -8;
-    ASSERT_EQ(EXPECTED_RESULT, result);
+    constexpr int expectedResult = -8;
+    ASSERT_EQ(expectedResult, result);
 }
 
 TEST_F(S2STest, s2sh__constexpr_signed_positiveF__int_negativeF) {
-    constexpr scaling_t FROM = 3, TO = -3;
-    constexpr int16_t VALUE = -512;
-    auto result = s2sh<int,FROM,TO>(VALUE);
+    constexpr scaling_t from = 3, to = -3;
+    constexpr int16_t value = -512;
+    auto result = s2sh<int,from,to>(value);
 
-    constexpr int EXPECTED_RESULT = -8;
-    ASSERT_EQ(EXPECTED_RESULT, result);
+    constexpr int expectedResult = -8;
+    ASSERT_EQ(expectedResult, result);
 }
 
 TEST_F(S2STest, s2smd__constexpr_signed_positiveF__int_sameF) {
-    constexpr scaling_t FROM = 0, TO = 0;
-    constexpr int16_t VALUE = -512;
-    auto result = s2smd<int,FROM,TO>(VALUE);
+    constexpr scaling_t from = 0, to = 0;
+    constexpr int16_t value = -512;
+    auto result = s2smd<int,from,to>(value);
 
-    ASSERT_EQ(VALUE, result);
+    ASSERT_EQ(value, result);
 }
 
 TEST_F(S2STest, s2sh__constexpr_signed_positiveF__int_sameF) {
-    constexpr scaling_t FROM = 0, TO = 0;
-    constexpr int16_t VALUE = -512;
-    auto result = s2sh<int,FROM,TO>(VALUE);
+    constexpr scaling_t from = 0, to = 0;
+    constexpr int16_t value = -512;
+    auto result = s2sh<int,from,to>(value);
 
-    ASSERT_EQ(VALUE, result);
+    ASSERT_EQ(value, result);
 }
 
 TEST_F(S2STest, s2smd__constexpr_signed_positiveF__double_zeroF) {
-    constexpr scaling_t FROM = 6, TO = 0;
-    constexpr int16_t VALUE = 547;
-    auto result = s2smd<double,FROM,TO>(VALUE);
+    constexpr scaling_t from = 6, to = 0;
+    constexpr int16_t value = 547;
+    auto result = s2smd<double,from,to>(value);
 
-    constexpr double EXPECTED_RESULT = 8.546875;
-    ASSERT_NEAR(EXPECTED_RESULT, result, 0.016);  // precision = 2^-6 = 1/64 ~ 0.016
+    constexpr double expectedResult = 8.546875;
+    ASSERT_NEAR(expectedResult, result, 0.016);  // precision = 2^-6 = 1/64 ~ 0.016
 }
 
 TEST_F(S2STest, s2smd__constexpr_signed__int_symmetric_output) {
-    constexpr scaling_t FROM = 8, TO = 4;
-    constexpr int16_t VALUE = 514;
-    auto resultP = s2smd<int,FROM,TO>(+VALUE);
-    auto resultN = s2smd<int,FROM,TO>(-VALUE);
+    constexpr scaling_t from = 8, to = 4;
+    constexpr int16_t value = 514;
+    auto resultP = s2smd<int,from,to>(+value);
+    auto resultN = s2smd<int,from,to>(-value);
 
-    constexpr int EXPECTED_RESULT = 32;
-    ASSERT_EQ(+EXPECTED_RESULT, resultP);
-    ASSERT_EQ(-EXPECTED_RESULT, resultN);
+    constexpr int expectedResult = 32;
+    ASSERT_EQ(+expectedResult, resultP);
+    ASSERT_EQ(-expectedResult, resultN);
 }
 
 TEST_F(S2STest, s2sh__constexpr_signed__int_asymmetric_output) {
-    constexpr scaling_t FROM = 8, TO = 4;
-    constexpr int16_t VALUE = 514;
-    auto resultP = s2sh<int,FROM,TO>(+VALUE);
-    auto resultN = s2sh<int,FROM,TO>(-VALUE);
+    constexpr scaling_t from = 8, to = 4;
+    constexpr int16_t value = 514;
+    auto resultP = s2sh<int,from,to>(+value);
+    auto resultN = s2sh<int,from,to>(-value);
 
-    constexpr int EXPECTED_RESULT_P = +32;
-    constexpr int EXPECTED_RESULT_N = -33;
-    ASSERT_EQ(EXPECTED_RESULT_P, resultP);
-    ASSERT_EQ(EXPECTED_RESULT_N, resultN);
+    constexpr int expectedResultP = +32;
+    constexpr int expectedResultN = -33;
+    ASSERT_EQ(expectedResultP, resultP);
+    ASSERT_EQ(expectedResultN, resultN);
 }
 
 
@@ -340,66 +340,66 @@ protected:
 };
 
 TEST_F(V2STest, v2s__constexpr_double_positiveF__scaled_int) {
-    constexpr scaling_t TO = 5;
-    constexpr double REAL_VALUE = 4.8971;
-    auto result = v2s<int,TO>(REAL_VALUE);
+    constexpr scaling_t to = 5;
+    constexpr double realValue = 4.8971;
+    auto result = v2s<int,to>(realValue);
 
-    constexpr int EXPECTED_RESULT = 156;
-    ASSERT_EQ(EXPECTED_RESULT, result);
+    constexpr int expectedResult = 156;
+    ASSERT_EQ(expectedResult, result);
 }
 
 TEST_F(V2STest, v2s__constexpr_double_negativeF__scaled_int) {
-    constexpr scaling_t TO = -4;
-    constexpr double REAL_VALUE = 4897.1;
-    auto result = v2s<int,TO>(REAL_VALUE);
+    constexpr scaling_t to = -4;
+    constexpr double realValue = 4897.1;
+    auto result = v2s<int,to>(realValue);
 
-    constexpr int EXPECTED_RESULT = 306;
-    ASSERT_EQ(EXPECTED_RESULT, result);
+    constexpr int expectedResult = 306;
+    ASSERT_EQ(expectedResult, result);
 }
 
 TEST_F(V2STest, v2s__constexpr_double_zeroF__scaled_int) {
-    constexpr scaling_t TO = 0;
-    constexpr double REAL_VALUE = 4897.1;
-    auto result = v2s<int,TO>(REAL_VALUE);
+    constexpr scaling_t to = 0;
+    constexpr double realValue = 4897.1;
+    auto result = v2s<int,to>(realValue);
 
-    constexpr int EXPECTED_RESULT = 4897;
-    ASSERT_EQ(EXPECTED_RESULT, result);
+    constexpr int expectedResult = 4897;
+    ASSERT_EQ(expectedResult, result);
 }
 
 TEST_F(V2STest, v2s__constexpr_pos_and_neg_double__symmetric_output) {
-    constexpr scaling_t TO = 4;
-    constexpr double REAL_VALUE = 36.9999;
-    auto resultP = v2s<int,TO>(+REAL_VALUE);
-    auto resultN = v2s<int,TO>(-REAL_VALUE);
+    constexpr scaling_t to = 4;
+    constexpr double realValue = 36.9999;
+    auto resultP = v2s<int,to>(+realValue);
+    auto resultN = v2s<int,to>(-realValue);
 
-    constexpr int EXPECTED_RESULT = 591;
-    ASSERT_EQ(+EXPECTED_RESULT, resultP);
-    ASSERT_EQ(-EXPECTED_RESULT, resultN);
+    constexpr int expectedResult = 591;
+    ASSERT_EQ(+expectedResult, resultP);
+    ASSERT_EQ(-expectedResult, resultN);
 }
 
 TEST_F(V2STest, v2s__constexpr_pos_and_neg_double__double_output) {
-    constexpr scaling_t TO = 4;
-    constexpr double REAL_VALUE = 16.66;
-    auto resultP = v2s<double,TO>(+REAL_VALUE);
-    auto resultN = v2s<double,TO>(-REAL_VALUE);
+    constexpr scaling_t to = 4;
+    constexpr double realValue = 16.66;
+    auto resultP = v2s<double,to>(+realValue);
+    auto resultN = v2s<double,to>(-realValue);
 
-    constexpr double EXPECTED_RESULT = 266.56;
-    ASSERT_NEAR(+EXPECTED_RESULT, resultP, 0.0625);  // precision = 2^-4 = 1/16 = 0.0625
-    ASSERT_NEAR(-EXPECTED_RESULT, resultN, 0.0625);
+    constexpr double expectedResult = 266.56;
+    ASSERT_NEAR(+expectedResult, resultP, 0.0625);  // precision = 2^-4 = 1/16 = 0.0625
+    ASSERT_NEAR(-expectedResult, resultN, 0.0625);
 }
 
 TEST_F(V2STest, v2s__large_F__double_output) {
-    constexpr double REAL_VALUE_MIN = std::numeric_limits<int16_t>().min();
-    constexpr double REAL_VALUE_MAX = std::numeric_limits<int16_t>().max();
-    auto resultN = v2s<double,MAX_F-std::numeric_limits<int16_t>::digits>(REAL_VALUE_MIN);  // F: 53-15=38
-    auto resultP = v2s<double,MAX_F-std::numeric_limits<int16_t>::digits>(REAL_VALUE_MAX);
+    constexpr double realValueMin = std::numeric_limits<int16_t>().min();
+    constexpr double realValueMax = std::numeric_limits<int16_t>().max();
+    auto resultN = v2s<double,MAX_F-std::numeric_limits<int16_t>::digits>(realValueMin);  // f: 53-15=38
+    auto resultP = v2s<double,MAX_F-std::numeric_limits<int16_t>::digits>(realValueMax);
 
-    constexpr double EXPECTED_RESULT_N = -9.007199254740992e15;
-    constexpr double EXPECTED_RESULT_P = +9.006924376834048e15;
-    EXPECT_NEAR(_i::testing::floatp_epsilon_for(EXPECTED_RESULT_N), 1.0, 1.0e-10);
-    EXPECT_NEAR(_i::testing::floatp_epsilon_for(EXPECTED_RESULT_P), 1.0, 1.0e-10);
-    ASSERT_NEAR(EXPECTED_RESULT_N, resultN, _i::testing::floatp_epsilon_for(EXPECTED_RESULT_N));
-    ASSERT_NEAR(EXPECTED_RESULT_P, resultP, _i::testing::floatp_epsilon_for(EXPECTED_RESULT_P));
+    constexpr double expectedResultN = -9.007199254740992e15;
+    constexpr double expectedResultP = +9.006924376834048e15;
+    EXPECT_NEAR(_i::testing::floatpEpsilonFor(expectedResultN), 1.0, 1.0e-10);
+    EXPECT_NEAR(_i::testing::floatpEpsilonFor(expectedResultP), 1.0, 1.0e-10);
+    ASSERT_NEAR(expectedResultN, resultN, _i::testing::floatpEpsilonFor(expectedResultN));
+    ASSERT_NEAR(expectedResultP, resultP, _i::testing::floatpEpsilonFor(expectedResultP));
 }
 
 
