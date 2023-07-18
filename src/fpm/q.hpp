@@ -17,7 +17,7 @@ template<
     scaling_t f_,      ///< number of fraction bits (precision 2^-f)
     double realVMin_ = v2s<double, -f_>(std::numeric_limits<BaseT>::min()),  ///< minimum real value represented by this type
     double realVMax_ = v2s<double, -f_>(std::numeric_limits<BaseT>::max()),  ///< maximum real value represented by this type
-    overflow ovfBx_ = overflow::FORBIDDEN  ///< overflow behavior; overflow is forbidden by default
+    Overflow ovfBx_ = Overflow::forbidden  ///< overflow behavior; overflow is forbidden by default
 >
 requires (
     ValidBaseType<BaseT>
@@ -33,11 +33,11 @@ public:
     static constexpr base_t vMin = v2s<base_t, f>(realVMin_);  ///< minimum value of integer value range
     static constexpr base_t vMax = v2s<base_t, f>(realVMax_);  ///< maximum value of integer value range
     static constexpr double resolution = v2s<double, -f>(1);  ///< real resolution of this type
-    static constexpr overflow ovfBx = ovfBx_;  ///< overflow behavior
+    static constexpr Overflow ovfBx = ovfBx_;  ///< overflow behavior
 
     // friend all q types so that private members of similar types can be accessed for construction
     // Note: As of May 2023, partial specializations cannot be friended, so we friend q in general.
-    template< typename BaseTQ, scaling_t fQ, double realVMinQ, double realVMaxQ, overflow ovfQ >
+    template< typename BaseTQ, scaling_t fQ, double realVMinQ, double realVMaxQ, Overflow ovfQ >
     requires (
         ValidBaseType<BaseTQ>
         && ValidScaling<BaseTQ, fQ>
@@ -50,16 +50,16 @@ public:
     using sq = fpm::sq< base_t, f, realVMinSq, realVMaxSq >;
 
     /// Create a new q type with the same base type and scaling but a different real value range.
-    template< double newRealVMin, double newRealVMax, overflow ovfBxOverride = ovfBx >
+    template< double newRealVMin, double newRealVMax, Overflow ovfBxOverride = ovfBx >
     struct relimit { using type = q< base_t, f, newRealVMin, newRealVMax, ovfBxOverride >; };
 
     /// Type alias for relimit::type.
-    template< double newRealVMin, double newRealVMax, overflow ovfBxOverride = ovfBx >
+    template< double newRealVMin, double newRealVMax, Overflow ovfBxOverride = ovfBx >
     using relimit_t = relimit<newRealVMin, newRealVMax, ovfBxOverride>::type;
 
     /// Named "constructor" from a runtime variable (lvalue) or a constant (rvalue).
     /// \note Overflow check is always included unless explicitly disabled.
-    template< overflow ovfBxOverride = ovfBx >
+    template< Overflow ovfBxOverride = ovfBx >
     requires (
         RuntimeOverflowCheckAllowedWhenNeeded<ovfBxOverride>
     )
@@ -72,28 +72,28 @@ public:
     }
 
     /// Helper struct template for q::fromReal<.>
-    template< double realValue, overflow ovfBxOverride = ovfBx >
+    template< double realValue, Overflow ovfBxOverride = ovfBx >
     requires (
         RealValueScaledFitsBaseType<base_t, f, realValue>
         && CompileTimeOnlyOverflowCheckPossible<ovfBxOverride>
     )
     class WrapReal {
         static constexpr base_t scaledValue = v2s<base_t, f>(realValue);
-        static constexpr overflow overflowBehavior = (scaledValue >= vMin && scaledValue <= vMax)
-            ? overflow::NO_CHECK  // value is within bounds; no overflow check needed
+        static constexpr Overflow overflowBehavior = (scaledValue >= vMin && scaledValue <= vMax)
+            ? Overflow::noCheck  // value is within bounds; no overflow check needed
             : ovfBxOverride;
         public:
         static constexpr q wrapped = q::construct<overflowBehavior>( scaledValue );
     };
 
     /// Helper struct template for q::fromScaled<.>
-    template< base_t value, overflow ovfBxOverride = ovfBx >
+    template< base_t value, Overflow ovfBxOverride = ovfBx >
     requires (
         CompileTimeOnlyOverflowCheckPossible<ovfBxOverride>
     )
     class WrapScaled {
-        static constexpr overflow overflowBehavior = (value >= vMin && value <= vMax)
-            ? overflow::NO_CHECK  // value is within bounds; no overflow check needed
+        static constexpr Overflow overflowBehavior = (value >= vMin && value <= vMax)
+            ? Overflow::noCheck  // value is within bounds; no overflow check needed
             : ovfBxOverride;
         public:
         static constexpr q wrapped = q::construct<overflowBehavior>( value );
@@ -108,47 +108,47 @@ public:
     /// to the limited resolution. This error is called 'representation error' and it refers to the
     /// deviation from the initial real value when the q value is unscaled to a real value again.
     /// Usually the scaling error is in the order of the resolution of the q type.
-    template< double realValue, overflow ovfBxOverride = ovfBx >
+    template< double realValue, Overflow ovfBxOverride = ovfBx >
     static constexpr
     q fromReal = WrapReal<realValue, ovfBxOverride>::wrapped;
 
-    /// Alias for q::fromReal<., ovf::FORBIDDEN>
+    /// Alias for q::fromReal<., Overflow::forbidden>
     template< double realValue >
     static constexpr
-    q fromRealNOvf = fromReal<realValue, ovf::FORBIDDEN>;
+    q fromRealNOvf = fromReal<realValue, Overflow::forbidden>;
 
-    /// Alias for q::fromReal<., ovf::SATURATE>
+    /// Alias for q::fromReal<., Overflow::saturate>
     template< double realValue >
     static constexpr
-    q fromRealSat = fromReal<realValue, ovf::SATURATE>;
+    q fromRealSat = fromReal<realValue, Overflow::saturate>;
 
-    /// Alias for q::fromReal<., ovf::ALLOWED> and q::fromReal<., ovf::NO_CHECK>
+    /// Alias for q::fromReal<., Overflow::allowed> and q::fromReal<., Overflow::noCheck>
     template< double realValue >
     static constexpr
-    q fromRealOvf = fromReal<realValue, ovf::ALLOWED>;
+    q fromRealOvf = fromReal<realValue, Overflow::allowed>;
 
     /// Named compile-time-only "constructor" from a scaled integer value. This can be used to
     /// construct a well-behaved q value at compile-time without a redundant overflow check.
     /// \note When the value is within bounds, no overflow check is needed. If it is out of range,
     ///       an overflow check is performed at compile-time according to the overflow settings.
-    template< base_t value, overflow ovfBxOverride = ovfBx >
+    template< base_t value, Overflow ovfBxOverride = ovfBx >
     static constexpr
     q fromScaled = WrapScaled<value, ovfBxOverride>::wrapped;
 
-    /// Alias for q::fromScaled<., ovf::FORBIDDEN>
+    /// Alias for q::fromScaled<., Overflow::forbidden>
     template< base_t value >
     static constexpr
-    q fromScaledNOvf = fromScaled<value, ovf::FORBIDDEN>;
+    q fromScaledNOvf = fromScaled<value, Overflow::forbidden>;
 
-    /// Alias for q::fromScaled<., ovf::SATURATE>
+    /// Alias for q::fromScaled<., Overflow::saturate>
     template< base_t value >
     static constexpr
-    q fromScaledSat = fromScaled<value, ovf::SATURATE>;
+    q fromScaledSat = fromScaled<value, Overflow::saturate>;
 
-    /// Alias for q::fromScaled<., ovf::NO_CHECK> and q::fromScaled<., ovf::ALLOWED>
+    /// Alias for q::fromScaled<., Overflow::noCheck> and q::fromScaled<., Overflow::allowed>
     template< base_t value >
     static constexpr
-    q fromScaledOvf = fromScaled<value, ovf::NO_CHECK>;
+    q fromScaledOvf = fromScaled<value, Overflow::noCheck>;
 
     /// Named "Copy-Constructor" from another q type with the same base type.
     /// \note When a q value is up-scaled to a larger resolution, the initial representation error
@@ -157,8 +157,8 @@ public:
     /// representation error may become larger since the underlying integer is divided and the result
     /// rounded towards zero to the next integer. The resulting representation error is at most the
     /// sum of the two resolutions before and after a down-scaling operation.
-    template< overflow ovfBxOverride = ovfBx,
-        double realVMinFrom, double realVMaxFrom, scaling_t fFrom, overflow ovfFrom,
+    template< Overflow ovfBxOverride = ovfBx,
+        double realVMinFrom, double realVMaxFrom, scaling_t fFrom, Overflow ovfFrom,
         // include overflow check if value range of this type is smaller than range of from-type
         // or if different overflow properties could result in overflow if not checked
         // note: real limits are compared because scaled integers with different q's cannot be compared so easily
@@ -185,7 +185,7 @@ public:
 
     /// Named "constructor" from a related sq variable.
     /// \note Overflow check is included if the range of the sq type is larger than the range of this q type.
-    template< overflow ovfBxOverride = ovfBx,
+    template< Overflow ovfBxOverride = ovfBx,
         double realVMinSq, double realVMaxSq,
         base_t vMinSq = v2s<base_t, f>(realVMinSq), base_t vMaxSq = v2s<base_t, f>(realVMaxSq),
         // include overflow check if the value range of q is smaller
@@ -221,7 +221,7 @@ public:
     constexpr ~q() {}
 
     /// Copy-Assignment from a different q type with the same base type.
-    template< double realVMinRhs, double realVMaxRhs, scaling_t fRhs, overflow ovfRhs >
+    template< double realVMinRhs, double realVMaxRhs, scaling_t fRhs, Overflow ovfRhs >
     requires (
         fRhs != f
         && ScalingIsPossible<base_t, fRhs, base_t, f>
@@ -234,7 +234,7 @@ public:
     /// Explicit (static-) cast to a different q type with a different base type.
     /// \note If a cast does not work it's most probably due to unfulfilled requirements. Double check
     ///       whether a runtime overflow check is needed and make sure that it is allowed!
-    template< typename BaseTC, scaling_t fC, double realVMinC, double realVMaxC, overflow ovfC,
+    template< typename BaseTC, scaling_t fC, double realVMinC, double realVMaxC, Overflow ovfC,
         // include overflow check if value range of cast-type is smaller than range of this type
         // or if different overflow properties could result in overflow if not checked
         // note: real limits are compared because scaled integers with different base types and q's
@@ -265,7 +265,7 @@ public:
     }
 
     /// Conversion to the related sq type.
-    template< double realVMinSq = realVMin, double realVMaxSq = realVMax, overflow ovfBxOverride = ovfBx,
+    template< double realVMinSq = realVMin, double realVMaxSq = realVMax, Overflow ovfBxOverride = ovfBx,
         base_t vMinSq = v2s<base_t, f>(realVMinSq), base_t vMaxSq = v2s<base_t, f>(realVMaxSq),
         // include overflow check if the value range of sq is smaller
         bool ovfCheckNeeded = (vMin < vMinSq || vMaxSq < vMax) >
@@ -317,10 +317,10 @@ private:
 
 /// Explicit (static-) cast to another q type with a different base type.
 /// Allows to override the default overflow behavior.
-template< class QC, overflow ovfBxOverride = QC::ovfBx,
-    typename BaseT, scaling_t f, double realVMin, double realVMax, overflow ovfBx,
+template< class QC, Overflow ovfBxOverride = QC::ovfBx,
+    typename BaseT, scaling_t f, double realVMin, double realVMax, Overflow ovfBx,
     typename BaseTC = QC::base_t, scaling_t fC = QC::f, double realVMinC = QC::realVMin,
-    double realVMaxC = QC::realVMax, overflow ovfBxC = QC::ovfBx,
+    double realVMaxC = QC::realVMax, Overflow ovfBxC = QC::ovfBx,
     // include overflow check if value range of cast-type is smaller than range of this type
     // or if different overflow properties could result in overflow if not checked
     // note: real limits are compared because scaled integers with different base types and q's
@@ -355,20 +355,20 @@ QC static_q_cast(q<BaseT, f, realVMin, realVMax, ovfBx> from) noexcept {
         }
 
         // create target value; disable overflow check to avoid that value is checked again
-        return target_q::template construct<overflow::NO_CHECK>( static_cast<target_q::base_t>(cValue) );
+        return target_q::template construct<Overflow::noCheck>( static_cast<target_q::base_t>(cValue) );
     }
 }
 
 /// Explicit, safe cast of a q type to another q type with a different base type.
 /// This will always perform overflow checks, even if not necessarily needed.
-/// \note overflow::ALLOWED is not possible - use static_cast instead.
-template< class QC, overflow ovfBxOverride = QC::ovfBx,
-    typename BaseT, scaling_t f, double realVMin, double realVMax, overflow ovfBx,
+/// \note Overflow::allowed is not possible - use static_cast instead.
+template< class QC, Overflow ovfBxOverride = QC::ovfBx,
+    typename BaseT, scaling_t f, double realVMin, double realVMax, Overflow ovfBx,
     typename BaseTC = QC::base_t, scaling_t fC = QC::f >
 requires (
     !std::is_same_v<BaseT, BaseTC>
     && ScalingIsPossible<BaseT, f, BaseTC, fC>
-    && ovfBxOverride != overflow::NO_CHECK
+    && ovfBxOverride != Overflow::noCheck
     && RuntimeOverflowCheckAllowedWhenNeeded<ovfBxOverride, true>
 )
 constexpr
@@ -385,19 +385,30 @@ QC safe_q_cast(q<BaseT, f, realVMin, realVMax, ovfBx> from) noexcept {
     _i::checkOverflow<ovfBxOverride, interm_c_t, interm_f_t>(cValue, target_q::vMin, target_q::vMax);
 
     // finally, create target value; disable overflow check to avoid that value is checked again
-    return target_q::template construct<overflow::NO_CHECK>( static_cast<target_q::base_t>(cValue) );
+    return target_q::template construct<Overflow::noCheck>( static_cast<target_q::base_t>(cValue) );
 }
 
 /// Explicit, force cast of a q type to a different q type.
 /// This will simply reinterpret the value of the source q type as a value of the target q type
 /// without performing any scaling or overflow checks at all (overflow attributes are all ignored).
 template< class QC,
-    typename BaseT, scaling_t f, double realVMin, double realVMax, overflow ovfBx,
+    typename BaseT, scaling_t f, double realVMin, double realVMax, Overflow ovfBx,
     typename BaseTC = QC::base_t, scaling_t fC = QC::f >
 constexpr
 QC force_q_cast(q<BaseT, f, realVMin, realVMax, ovfBx> from) noexcept {
     using target_q = QC;
-    return target_q::template construct<overflow::NO_CHECK>( static_cast<target_q::base_t>(from.reveal()) );
+    return target_q::template construct<Overflow::noCheck>( static_cast<target_q::base_t>(from.reveal()) );
+}
+
+/// Converts a literal integer into the corresponding best-fit q type.
+/// Best-fit means that the literal integer represents both limits and the value.
+template< typename BaseT, scaling_t f, char ...charArray >
+consteval auto qFromLiteral() {
+    constexpr std::size_t length = sizeof...(charArray);
+    constexpr char chars[length]{ charArray... };
+    static_assert(std::all_of(chars, chars + length, [](char c) { return isdigit(c); }), "The argument to _q must be a positive integer");
+    constexpr double value = static_cast<double>( _i::charArrayTo<BaseT, length>(chars) );
+    return q<BaseT, f, value, value, Ovf::forbidden>::template fromReal<value>;
 }
 
 }

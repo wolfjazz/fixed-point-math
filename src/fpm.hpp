@@ -9,8 +9,9 @@
 #include "fpm/sq.hpp"
 #include "fpm/q.hpp"
 
-// predefined user-types and literals
+// predefined types and literals
 #include "fpm/sq_types.hpp"
+#include "fpm/q_types.hpp"
 
 #endif
 // EOF

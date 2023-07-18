@@ -63,15 +63,15 @@ using u16q<...> = fpm::q<uint16_t, ...>;
 // ...
 
 // user-defined types
-// note: overflow behaviors are examples here; best practice is to use the default, FORBIDDEN, and
+// note: overflow behaviors are examples here; best practice is to use the default, forbidden, and
 //       to change the overflow behavior explicitly when needed/desired (so that a dev has control when
 //       the compiler should add overflow checks; code does not compile if a check is needed -> this
 //       way a dev can add a check explicitly, or fix the bug if the check should not be needed)
-using u32q16<...> = u32q<16, ..., fpm::overflow::SATURATE>;  // res. 2^-16; overflow: saturation
-using i32q16<...> = i32q<16, ..., fpm::overflow::ASSERT>;  // res. 2^-16; overflow: assertion
+using u32q16<...> = u32q<16, ..., fpm::Overflow::saturate>;  // res. 2^-16; overflow: saturation
+using i32q16<...> = i32q<16, ..., fpm::Overflow::assert>;  // res. 2^-16; overflow: assertion
 // res. 2^-20; overflow at runtime forbidden -> code does not compile if check would be needed
-using u32q20<...> = u32q<20, ...>;  // overflow::FORBIDDEN is default
-using i16q2<...> = i16q<2, ..., fpm::overflow::SATURATE>;  // res. 2^-2; overflow: saturation
+using u32q20<...> = u32q<20, ...>;  // Overflow::forbidden is default
+using i16q2<...> = i16q<2, ..., fpm::Overflow::saturate>;  // res. 2^-2; overflow: saturation
 
 
 /* declaration and initialization */
@@ -85,7 +85,7 @@ auto b = u32q16<45.0, 98.2>::fromReal<66.>;  // construction; value range 45.0-9
 
 // copy: construct from another q value with same base-type; value range and overflow behavior can be changed this way;
 // note that copy will perform a range check at runtime when the lhs range is smaller than the rhs range
-auto d1 = u32q16<>::fromQ<fpm::overflow::ASSERT>(b);
+auto d1 = u32q16<>::fromQ<Overflow::assert>(b);
 auto d2 = u32q16<40000.0, 50000.0>::fromQ(a);  // limitation of value range; will perform range check at runtime
 // upscale-copy: mem-value increased by 2^4 and checked at runtime; value range implicitly reduced
 auto e = u32q20<>::fromQ(a);
@@ -107,8 +107,8 @@ f = a;
 
 // whether or not runtime checks are performed, depends on the type of the cast:
 auto cast1 = static_cast<i16q2<>>(b);  // Performs checks if needed (decided at compile-time).
-auto cast1b = static_q_cast<i16q2<>, overflow::SATURATE>(b);  // Same as static_cast but with overflow override.
-auto cast2 = safe_q_cast<i16q2<>, overflow::ASSERT>(a);  // Safe cast will always perform checks. overflow:NO_CHECK is not permitted.
+auto cast1b = static_q_cast<i16q2<>, Overflow::saturate>(b);  // Same as static_cast but with overflow override.
+auto cast2 = safe_q_cast<i16q2<>, Overflow::assert>(a);  // Safe cast will always perform checks. Overflow:noCheck is not permitted.
 // Forced cast doesn't perform any scaling or overflow checks! Value is simply reused.
 // Can overflow! (E.g. useful if an overflow is required as part of an algorithm.)
 auto cast3 = force_q_cast<i16q2<40., 100.>>(b);
@@ -176,7 +176,7 @@ auto pos = pos_t::fromReal<1000.>;
 //accel_t::sq<> a = accel.toSq<>();
 //
 // explicit change of value range: sq value for pos0 with a smaller value range; performs overflow checks!
-auto s0 = pos.toSq< -5e3, 5e3, overflow::SATURATE >();
+auto s0 = pos.toSq< -5e3, 5e3, Overflow::saturate >();
 //
 // also given: current time [s]
 auto time = u16sq8<0., 10.>::fromReal<4.>;
@@ -191,7 +191,7 @@ auto time = u16sq8<0., 10.>::fromReal<4.>;
 pos_t::sq<-6500., 6500.> s = accel*time*time/2 + speed*time + s0;
 //
 // alternative: explicit conversion in situ:
-pos_t::sq<-6500., 6500.> s = accel*time*time/2 + speed*time + pos.toSq<-5e3, 5e3, overflow::SATURATE>();
+pos_t::sq<-6500., 6500.> s = accel*time*time/2 + speed*time + pos.toSq<-5e3, 5e3, Overflow::saturate>();
 //                                                            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 //
 // another calculation step; note that a new variable needs to be defined because s cannot be changed

@@ -48,7 +48,7 @@ public:
 
     // friend q type so that it can access the private members of this type to construct it
     // Note: As of May 2023, partial specializations cannot be friended, so we friend q in general.
-    template< typename BaseTQ, scaling_t fQ, double realVMinQ, double realVMaxQ, overflow ovfQ >
+    template< typename BaseTQ, scaling_t fQ, double realVMinQ, double realVMaxQ, Overflow ovfQ >
     requires (
         ValidBaseType<BaseTQ>
         && ValidScaling<BaseTQ, fQ>

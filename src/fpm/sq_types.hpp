@@ -1,5 +1,5 @@
 /** \file
- * Implementation of the sq class template.
+ * Declaration of the predefined sq types and literals.
  */
 
 #ifndef _FPM___SQ_TYPES_HPP_
@@ -186,7 +186,6 @@ template< double lower, double upper > using  u32sq28 = sq<uint32_t,  28, lower,
 template< double lower, double upper > using  u32sq29 = sq<uint32_t,  29, lower, upper>;
 template< double lower, double upper > using  u32sq30 = sq<uint32_t,  30, lower, upper>;
 template< double lower, double upper > using  u32sq31 = sq<uint32_t,  31, lower, upper>;
-
 
 /* literal operators */
 
