@@ -17,10 +17,10 @@ using namespace fpm;
 
 class SQTest_Construct : public ::testing::Test {
 protected:
-    using i16sq4_2k = i16sq4<-2048., 2047.9>;
-    using i32sq4_2k = i32sq4<-2048., 2048.>;
+    using i16sq4_2k  =  i16sq4<-2048., 2047.9>;
+    using i32sq4_2k  =  i32sq4<-2048., 2048.>;
     using i32sqm2_2k = i32sqm2<-2048., 2048.>;
-    using i32sq8_2k = i32sq8<-2048.1, 2048.1>;
+    using i32sq8_2k  =  i32sq8<-2048.1, 2048.1>;
 
     void SetUp() override
     {
@@ -42,14 +42,14 @@ TEST_F(SQTest_Construct, sq_relimit__some_sq_type__relimited_sq_type) {
     using shifted_sq_l_t    = i32sq4_2k::relimit_t<-extendedLimit,      +restrictedLimit>;
     using shifted_sq_r_t    = i32sq4_2k::relimit_t<-restrictedLimit,    +extendedLimit>;
 
-    ASSERT_TRUE((std::is_same_v< sq<int32_t, 4, -restrictedLimit,    +restrictedLimit >,   restricted_sq_t >));
-    ASSERT_TRUE((std::is_same_v< sq<int32_t, 4, -restrictedLimit,    i32sq4_2k::realVMax>, restricted_l_sq_t >));
-    ASSERT_TRUE((std::is_same_v< sq<int32_t, 4, i32sq4_2k::realVMin, +restrictedLimit >,   restricted_r_sq_t >));
-    ASSERT_TRUE((std::is_same_v< sq<int32_t, 4, -extendedLimit,      +extendedLimit   >,   extended_sq_t >));
-    ASSERT_TRUE((std::is_same_v< sq<int32_t, 4, -extendedLimit,      i32sq4_2k::realVMax>, extended_l_sq_t >));
-    ASSERT_TRUE((std::is_same_v< sq<int32_t, 4, i32sq4_2k::realVMin, +extendedLimit   >,   extended_r_sq_t >));
-    ASSERT_TRUE((std::is_same_v< sq<int32_t, 4, -extendedLimit,      +restrictedLimit >,   shifted_sq_l_t >));
-    ASSERT_TRUE((std::is_same_v< sq<int32_t, 4, -restrictedLimit,    +extendedLimit   >,   shifted_sq_r_t >));
+    ASSERT_TRUE((std::is_same_v< i32sq4<-restrictedLimit,    +restrictedLimit >,   restricted_sq_t >));
+    ASSERT_TRUE((std::is_same_v< i32sq4<-restrictedLimit,    i32sq4_2k::realVMax>, restricted_l_sq_t >));
+    ASSERT_TRUE((std::is_same_v< i32sq4<i32sq4_2k::realVMin, +restrictedLimit >,   restricted_r_sq_t >));
+    ASSERT_TRUE((std::is_same_v< i32sq4<-extendedLimit,      +extendedLimit   >,   extended_sq_t >));
+    ASSERT_TRUE((std::is_same_v< i32sq4<-extendedLimit,      i32sq4_2k::realVMax>, extended_l_sq_t >));
+    ASSERT_TRUE((std::is_same_v< i32sq4<i32sq4_2k::realVMin, +extendedLimit   >,   extended_r_sq_t >));
+    ASSERT_TRUE((std::is_same_v< i32sq4<-extendedLimit,      +restrictedLimit >,   shifted_sq_l_t >));
+    ASSERT_TRUE((std::is_same_v< i32sq4<-restrictedLimit,    +extendedLimit   >,   shifted_sq_r_t >));
 }
 
 TEST_F(SQTest_Construct, sq_from_real__constexpr_int16_positiveF__expected_value) {
