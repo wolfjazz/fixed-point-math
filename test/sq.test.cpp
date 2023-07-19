@@ -82,8 +82,10 @@ TEST_F(SQTest_Construct, sq_copy_constructor__int16_someF__int16_sameF) {
     constexpr double realValueA = -1024.2;
     auto a = i16sq4_2k::fromReal<realValueA>;
     auto b = i16sq4_2k::fromSq(a);
+    i16sq4_2k c = a;
 
     ASSERT_NEAR(realValueA, b.toReal(), i16sq4_2k::resolution);
+    ASSERT_NEAR(realValueA, c.toReal(), i16sq4_2k::resolution);
 }
 
 TEST_F(SQTest_Construct, sq_move_constructor__int16_someF__int16_sameF) {
@@ -98,20 +100,58 @@ TEST_F(SQTest_Construct, sq_upscale_copy_constructor__int16_someF__int16_largerF
     constexpr double realValueA = -1024.2;
     auto a = i32sq4_2k::fromReal<realValueA>;
     auto b = i32sq8_2k::fromSq(a);
+    i32sq8_2k c = a;
 
     // note: the representation error due to rounding is determined by the resolution of the initial
     //       sq4 type and does not change if the value is up-scaled to another sq type
     ASSERT_NEAR(realValueA, b.toReal(), i32sq4_2k::resolution);
+    ASSERT_NEAR(realValueA, c.toReal(), i32sq4_2k::resolution);
 }
 
 TEST_F(SQTest_Construct, sq_downscale_copy_constructor__int16_someF__int16_smallerF) {
     constexpr double realValueA = -1024.2;
     auto a = i32sq4_2k::fromReal<realValueA>;
     auto b = i32sqm2_2k::fromSq(a);
+    i32sqm2_2k c = a;
 
     // note: for down-scaling, the representation error is at most the sum of the two resolutions
     //       before and after the scaling operation
     ASSERT_NEAR(realValueA, b.toReal(), i32sq4_2k::resolution + i32sqm2_2k::resolution);
+    ASSERT_NEAR(realValueA, c.toReal(), i32sq4_2k::resolution + i32sqm2_2k::resolution);
+}
+
+TEST_F(SQTest_Construct, sq_copy_constructor__int16_someF_literal__int16_sameF) {
+    auto a = i16sq4_2k::fromSq(1024_i16sq4);
+    i16sq4_2k b = 1024_i16sq4;
+
+    ASSERT_NEAR((1024_i16sq4).toReal(), a.toReal(), i16sq4_2k::resolution);
+    ASSERT_NEAR((1024_i16sq4).toReal(), b.toReal(), i16sq4_2k::resolution);
+}
+
+TEST_F(SQTest_Construct, sq_move_constructor__int16_someF_literal__int16_sameF) {
+    i16sq4_2k a = std::move(1024_i16sq4);
+
+    ASSERT_NEAR((1024_i16sq4).toReal(), a.toReal(), i16sq4_2k::resolution);
+}
+
+TEST_F(SQTest_Construct, sq_upscale_copy_constructor__int16_someF_literal__int16_largerF) {
+    auto a = i32sq8_2k::fromSq(1024_i32sq4);
+    i32sq8_2k b = 1024_i32sq4;
+
+    // note: the representation error due to rounding is determined by the resolution of the initial
+    //       sq4 type and does not change if the value is up-scaled to another sq type
+    ASSERT_NEAR((1024_i32sq4).toReal(), a.toReal(), i32sq4_2k::resolution);
+    ASSERT_NEAR((1024_i32sq4).toReal(), b.toReal(), i32sq4_2k::resolution);
+}
+
+TEST_F(SQTest_Construct, sq_downscale_copy_constructor__int16_someF_literal__int16_smallerF) {
+    auto a = i32sqm2_2k::fromSq(1024_i32sq4);
+    i32sqm2_2k b = 1024_i32sq4;
+
+    // note: for down-scaling, the representation error is at most the sum of the two resolutions
+    //       before and after the scaling operation
+    ASSERT_NEAR((1024_i32sq4).toReal(), a.toReal(), i32sq4_2k::resolution + i32sqm2_2k::resolution);
+    ASSERT_NEAR((1024_i32sq4).toReal(), b.toReal(), i32sq4_2k::resolution + i32sqm2_2k::resolution);
 }
 
 

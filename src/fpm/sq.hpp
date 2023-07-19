@@ -14,7 +14,6 @@ namespace fpm {
 
 /// Concept of a sq-like type.
 /// \warning Does not guarantee that T is actually of type sq. Only checks for the basic properties.
-/// Always use together with std::is_same_v<sq<T::base_t,T::f,T::realVMin,T::realVMax>,T>.
 template< class T >
 concept SqType = requires (T t) {
     typename T::base_t;
@@ -107,14 +106,29 @@ public:
     /// sum of the two resolutions before and after a down-scaling operation.
     template< SqType SqFrom >
     requires (
-        std::is_same_v< sq<base_t, SqFrom::f, SqFrom::realVMin, SqFrom::realVMax>, SqFrom >
-        // rescaling is only possible if the real value can be represented (must not overflow)
+        std::is_same_v<base_t, typename SqFrom::base_t>
+        // scaling is only possible if the f difference allows scaling and the real value
+        // can be represented by the target type
+        && ScalingIsPossible<base_t, SqFrom::f, base_t, f>
         && realVMin <= SqFrom::realVMin && SqFrom::realVMax <= realVMax
     )
     static constexpr
     sq fromSq(SqFrom const &from) noexcept {
         return sq( s2s<base_t, SqFrom::f, f>(from.reveal()) );
     }
+
+    /// Copy-Constructor from another sq type value with the same base type.
+    /// \note Same as sq::fromSq(), however a bit stricter (sq types have to be different).
+    template< SqType SqFrom >
+    requires (
+        !std::is_same_v< sq, SqFrom >  // when the same, default copy constructor should be used
+        && std::is_same_v<base_t, typename SqFrom::base_t>
+        // scaling is only possible if the f difference allows scaling and the real value
+        // can be represented by the target type
+        && ScalingIsPossible<base_t, SqFrom::f, base_t, f>
+        && realVMin <= SqFrom::realVMin && SqFrom::realVMax <= realVMax
+    )
+    constexpr sq(SqFrom const &from) noexcept : value( s2s<base_t, SqFrom::f, f>(from.reveal()) ) {}
 
     /// Copy-Constructor from the same type.
     constexpr sq(sq const &) noexcept = default;
@@ -137,7 +151,7 @@ public:
         && ScalingIsPossible<base_t, f, BaseTC, fC>
         && realVMinC <= realVMin && realVMax <= realVMaxC
     )
-    explicit
+    explicit constexpr
     operator sq<BaseTC, fC, realVMinC, realVMaxC>() const noexcept {
         using SqC = sq<BaseTC, fC, realVMinC, realVMaxC>;
 
@@ -157,8 +171,7 @@ public:
         double realVMinR = realVMin + SqRhs::realVMin, double realVMaxR = realVMax + SqRhs::realVMax,
         typename SqResult = sq<BaseTR, fR, realVMinR, realVMaxR> >
     requires (
-        std::is_same_v< sq<typename SqRhs::base_t, SqRhs::f, SqRhs::realVMin, SqRhs::realVMax>, SqRhs >
-        && RealLimitsInRangeOfBaseType<BaseTR, fR, realVMinR, realVMaxR>
+        RealLimitsInRangeOfBaseType<BaseTR, fR, realVMinR, realVMaxR>
     )
     friend constexpr
     // Note: Passing lhs by value helps optimize chained a+b+c.
@@ -178,8 +191,7 @@ public:
         double realVMaxR = details::max(realVMax - SqRhs::realVMin, SqRhs::realVMax - realVMin),
         typename SqResult = sq<BaseTR, fR, realVMinR, realVMaxR> >
     requires (
-        std::is_same_v< sq<typename SqRhs::base_t, SqRhs::f, SqRhs::realVMin, SqRhs::realVMax>, SqRhs >
-        && RealLimitsInRangeOfBaseType<BaseTR, fR, realVMinR, realVMaxR>
+        RealLimitsInRangeOfBaseType<BaseTR, fR, realVMinR, realVMaxR>
     )
     friend constexpr
     // Note: Passing lhs by value helps optimize chained a-b-c.
@@ -205,8 +217,7 @@ public:
                                         details::max(realVMin * SqRhs::realVMin, realVMax * SqRhs::realVMax)),
         typename SqResult = sq<BaseTR, fR, realVMinR, realVMaxR> >
     requires (
-        std::is_same_v< sq<typename SqRhs::base_t, SqRhs::f, SqRhs::realVMin, SqRhs::realVMax>, SqRhs >
-        && RealLimitsInRangeOfBaseType<BaseTR, fR, realVMinR, realVMaxR>
+        RealLimitsInRangeOfBaseType<BaseTR, fR, realVMinR, realVMaxR>
     )
     friend constexpr
     // Note: Passing lhs by value helps optimize chained a*b*c.
@@ -220,7 +231,7 @@ public:
     }
 
     /// Reveals the integer value stored in memory.
-    base_t reveal() const noexcept {
+    constexpr base_t reveal() const noexcept {
         return value;
     }
 
@@ -233,7 +244,7 @@ public:
 #   else
     template< typename TargetT = double >
 #   endif
-    TargetT toReal() const noexcept {
+    constexpr TargetT toReal() const noexcept {
         return v2s<TargetT, -f>(value);
     }
 
@@ -255,9 +266,7 @@ private:
 template< SqType SqC,
     SqType SqFrom >
 requires (
-    std::is_same_v< sq<typename SqC::base_t, SqC::f, SqC::realVMin, SqC::realVMax>, SqC >
-    && std::is_same_v< sq<typename SqFrom::base_t, SqFrom::f, SqFrom::realVMin, SqFrom::realVMax>, SqFrom >
-    && !std::is_same_v<typename SqFrom::base_t, typename SqC::base_t>
+    !std::is_same_v<typename SqFrom::base_t, typename SqC::base_t>
     // scaling is only possible if the f difference allows scaling and the real value
     // can be represented by the target type
     && ScalingIsPossible<typename SqFrom::base_t, SqFrom::f, typename SqC::base_t, SqC::f>
@@ -273,9 +282,7 @@ SqC static_sq_cast(SqFrom from) noexcept {
 template< SqType SqC,
     SqType SqFrom >
 requires (
-    std::is_same_v< sq<typename SqC::base_t, SqC::f, SqC::realVMin, SqC::realVMax>, SqC >
-    && std::is_same_v< sq<typename SqFrom::base_t, SqFrom::f, SqFrom::realVMin, SqFrom::realVMax>, SqFrom >
-    && !std::is_same_v<typename SqFrom::base_t, typename SqC::base_t>
+    !std::is_same_v<typename SqFrom::base_t, typename SqC::base_t>
     // scaling is only possible if the f difference allows scaling and the real value
     // can be represented by the target type
     && ScalingIsPossible<typename SqFrom::base_t, SqFrom::f, typename SqC::base_t, SqC::f>
