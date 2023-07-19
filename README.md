@@ -203,16 +203,27 @@ pos_t::sq<-6500., 7000.> s2 = s + pos_t::sq<0., 500.>::fromReal<250.>;  // add s
 // => calculations via sq, storage at runtime via q
 pos = pos_t::fromSq< ovf_override >(s2);  // conversion sq -> q (via named constructor of q)
 
-// some thoughts about implicit conversion of integers in formulas:
-// - integers are converted implicitly to the (resulting) type on the lhs, or to the type on the rhs
-//   if a formula starts with an integer; this is ambiguous to some extend, because the user might
-//   wonder whether the underlying integer or the real value is incremented - it is the latter
+// some thoughts about implicit conversion of numbers in formulas:
+// - numbers are converted implicitly at compile-time to the (resulting) type on the lhs, or to the
+//   type on the rhs if a formula starts with a number; this is ambiguous to some extend, because the
+//   user might wonder whether the underlying integer or the real value is modified - it is the latter
 // - NOT SUPPORTED YET; as of 2023, C++ does not have constexpr function parameters
-// -> integers are converted explicitly via literal operator
-//    - limitations: only positive integers can be converted like this
-pos_t::sq<> s3 = s + 1_i32q16;  // converts 1 to i32q16<(double)1,(double)1>::fromReal<(double)1>
-pos_t::sq<> s4 = s * 4_i32q16;
-pos_t::sq<> s5 = s / 3_i32q16;
+// -> numbers are converted explicitly via literal operator
+pos_t::sq<> s3 = s + 1_i32q16;  // converts 1 to i32q16<1.,1.>::fromReal<1.>
+pos_t::sq<> s4 = s * 4.2_i32q16;
+pos_t::sq<> s5 = s / 3.14159_i32q16;
+
+/* literals */
+// Literals open up lots of opportunities. For example, the user could define a literal operator
+// for the pos_t from above:
+template< char ...chars >
+consteval auto operator""_mm() { return pos_t::fromLiteral<chars...>(); }
+//
+// Now it is possible to create a pos_t variable from a number that uses the literal _mm:
+pos_t position = 500.5_mm;  // i32q16<-10000., 10000.>::fromReal<500.5>
+//
+// Such literals can be used in any formula of q variables.
+pos_t::sq<> position2 = position + 100.1_mm;
 
 
 /* mathematical operators */

@@ -12,6 +12,21 @@
  * \{ */
 namespace fpm {
 
+/// Concept of a q-like type.
+/// \warning Does not guarantee that T is actually of type q. Only checks for the basic properties.
+/// Always use together with std::is_same_v<q<T::base_t,T::f,T::realVMin,T::realVMax,T::ovfBx>,T>.
+template< class T >
+concept QType = requires (T t) {
+    typename T::base_t;
+    std::is_integral_v<typename T::base_t>;
+    std::is_same_v<scaling_t, decltype(T::f)>;
+    std::is_same_v<double, decltype(T::realVMin)>;
+    std::is_same_v<double, decltype(T::realVMax)>;
+    std::is_same_v<double, decltype(T::resolution)>;
+    std::is_same_v<Overflow, decltype(T::ovfBx)>;
+    { t.reveal() } -> std::same_as<typename T::base_t>;
+};
+
 /// Normal q type. This type can be used to construct a new q variable of any specialization.
 /// Depending on the configured overflow behavior, a q type provides overflow protection with the
 /// least possible amount of runtime checks against overflow.
@@ -166,18 +181,16 @@ public:
     /// rounded towards zero to the next integer. The resulting representation error is at most the
     /// sum of the two resolutions before and after a down-scaling operation.
     template< Overflow ovfBxOverride = ovfBx,
-        class QFrom, scaling_t fFrom = QFrom::f,
-        double realVMinFrom = QFrom::realVMin, double realVMaxFrom = QFrom::realVMax,
-        Overflow ovfFrom = QFrom::ovfBx,
+        QType QFrom,
         // include overflow check if value range of this type is smaller than range of from-type
         // or if different overflow properties could result in overflow if not checked
         // note: real limits are compared because scaled integers with different q's cannot be compared so easily
-        bool ovfCheckNeeded = (realVMinFrom < realVMin || realVMax < realVMaxFrom
-                                  || is_ovf_stricter_v<ovfBxOverride, ovfFrom>
-                                  || is_ovf_stricter_v<ovfBx, ovfBxOverride>) >
+        bool ovfCheckNeeded = (QFrom::realVMin < realVMin || realVMax < QFrom::realVMax
+                               || is_ovf_stricter_v<ovfBxOverride, QFrom::ovfBx>
+                               || is_ovf_stricter_v<ovfBx, ovfBxOverride>) >
     requires (
-        std::is_same_v< QFrom, q<base_t, fFrom, realVMinFrom, realVMaxFrom, ovfFrom> >
-        && ScalingIsPossible<base_t, fFrom, base_t, f>
+        std::is_same_v< q<typename QFrom::base_t, QFrom::f, QFrom::realVMin, QFrom::realVMax, QFrom::ovfBx>, QFrom >
+        && ScalingIsPossible<base_t, QFrom::f, base_t, f>
         && RuntimeOverflowCheckAllowedWhenNeeded<ovfBxOverride, ovfCheckNeeded>
     )
     static constexpr
@@ -196,12 +209,11 @@ public:
     /// Named "constructor" from a related sq variable.
     /// \note Overflow check is included if the range of the sq type is larger than the range of this q type.
     template< Overflow ovfBxOverride = ovfBx,
-        class SqFrom, double realVMinSq = SqFrom::realVMin, double realVMaxSq = SqFrom::realVMax,
-        base_t vMinSq = SqFrom::vMin, base_t vMaxSq = SqFrom::vMax,
+        SqType SqFrom,
         // include overflow check if the value range of q is smaller
-        bool ovfCheckNeeded = (vMinSq < vMin || vMax < vMaxSq) >
+        bool ovfCheckNeeded = (SqFrom::vMin < vMin || vMax < SqFrom::vMax) >
     requires (
-        std::is_same_v< SqFrom, fpm::sq<base_t, f, realVMinSq, realVMaxSq> >
+        std::is_same_v< fpm::sq<base_t, f, SqFrom::realVMin, SqFrom::realVMax>, SqFrom >
         && RuntimeOverflowCheckAllowedWhenNeeded<ovfBxOverride, ovfCheckNeeded>
     )
     static constexpr
@@ -232,12 +244,13 @@ public:
     constexpr ~q() {}
 
     /// Copy-Assignment from a different q type with the same base type.
-    template< double realVMinRhs, double realVMaxRhs, scaling_t fRhs, Overflow ovfRhs >
+    template< QType QRhs >
     requires (
-        fRhs != f
-        && ScalingIsPossible<base_t, fRhs, base_t, f>
+        std::is_same_v< q<typename QRhs::base_t, QRhs::f, QRhs::realVMin, QRhs::realVMax, QRhs::ovfBx>, QRhs >
+        && QRhs::f != f
+        && ScalingIsPossible<base_t, QRhs::f, base_t, f>
     )
-    q& operator=(q<base_t, fRhs, realVMinRhs, realVMaxRhs, ovfRhs> const &rhs) noexcept {
+    q& operator=(QRhs const &rhs) noexcept {
         value = q::fromQ(rhs).value;
         return *this;
     }
@@ -276,10 +289,9 @@ public:
 
     /// Conversion to the related sq type.
     template< double realVMinSq = realVMin, double realVMaxSq = realVMax, Overflow ovfBxOverride = ovfBx,
-        typename SqTo = sq<realVMinSq, realVMaxSq>,
-        base_t vMinSq = SqTo::vMin, base_t vMaxSq = SqTo::vMax,
+        class SqTo = sq<realVMinSq, realVMaxSq>,
         // include overflow check if the value range of sq is smaller
-        bool ovfCheckNeeded = (vMin < vMinSq || vMaxSq < vMax) >
+        bool ovfCheckNeeded = (vMin < SqTo::vMin || SqTo::vMax < vMax) >
     requires (
         RuntimeOverflowCheckAllowedWhenNeeded<ovfBxOverride, ovfCheckNeeded>
     )
@@ -326,32 +338,30 @@ private:
 
 /// Explicit (static-) cast to another q type with a different base type.
 /// Allows to override the default overflow behavior.
-template< class QC, Overflow ovfBxOverride = QC::ovfBx,
-    typename BaseTC = QC::base_t, scaling_t fC = QC::f,
-    double realVMinC = QC::realVMin, double realVMaxC = QC::realVMax, Overflow ovfBxC = QC::ovfBx,
-    class QFrom, typename BaseTFrom = QFrom::base_t, scaling_t fFrom = QFrom::f,
-    double realVMinFrom = QFrom::realVMin, double realVMaxFrom = QFrom::realVMax, Overflow ovfBxFrom = QFrom::ovfBx,
+template< QType QC, Overflow ovfBxOverride = QC::ovfBx,
+    QType QFrom,
     // include overflow check if value range of cast-type is smaller than range of this type
     // or if different overflow properties could result in overflow if not checked
     // note: real limits are compared because scaled integers with different base types and q's
     //       cannot be compared so easily
-    bool ovfCheckNeeded = (realVMinFrom < realVMinC || realVMaxC < realVMaxFrom
-                              || is_ovf_stricter_v<ovfBxOverride, ovfBxFrom>
-                              || is_ovf_stricter_v<ovfBxFrom, ovfBxOverride>) >
+    bool ovfCheckNeeded = (QFrom::realVMin < QC::realVMin || QC::realVMax < QFrom::realVMax
+                           || is_ovf_stricter_v<ovfBxOverride, QFrom::ovfBx>
+                           || is_ovf_stricter_v<QC::ovfBx, ovfBxOverride>) >
 requires (
-    std::is_same_v< QC, q<BaseTC, fC, realVMinC, realVMaxC, ovfBxC> >
-    && std::is_same_v< QFrom, q<BaseTFrom, fFrom, realVMinFrom, realVMaxFrom, ovfBxFrom> >
-    && !std::is_same_v<BaseTFrom, BaseTC>
-    && (CanBaseTypeOverflow<BaseTC, ovfBxOverride> || ScalingIsPossible<BaseTFrom, fFrom, BaseTC, fC>)
+    std::is_same_v< q<typename QC::base_t, QC::f, QC::realVMin, QC::realVMax, QC::ovfBx>, QC >
+    && std::is_same_v< q<typename QFrom::base_t, QFrom::f, QFrom::realVMin, QFrom::realVMax, QFrom::ovfBx>, QFrom >
+    && !std::is_same_v<typename QFrom::base_t, typename QC::base_t>
+    && (CanBaseTypeOverflow<typename QC::base_t, ovfBxOverride>
+        || ScalingIsPossible<typename QFrom::base_t, QFrom::f, typename QC::base_t, QC::f>)
     && RuntimeOverflowCheckAllowedWhenNeeded<ovfBxOverride, ovfCheckNeeded>
 )
 constexpr
 QC static_q_cast(QFrom from) noexcept {
-    using interm_f_t = interm_t<BaseTFrom>;
-    using interm_c_t = interm_t<BaseTC>;
+    using interm_f_t = interm_t<typename QFrom::base_t>;
+    using interm_c_t = interm_t<typename QC::base_t>;
 
     // static_cast can be reused if overflow is not overwritten
-    if constexpr (ovfBxOverride == ovfBxC) {
+    if constexpr (ovfBxOverride == QC::ovfBx) {
         return static_cast<QC>(from);
     }
     // if overflow override is specified, compile overflow checks
@@ -372,23 +382,20 @@ QC static_q_cast(QFrom from) noexcept {
 /// Explicit, safe cast of a q type to another q type with a different base type.
 /// This will always perform overflow checks, even if not necessarily needed.
 /// \note Overflow::allowed is not possible - use static_cast instead.
-template< class QC, Overflow ovfBxOverride = QC::ovfBx,
-    typename BaseTC = QC::base_t, scaling_t fC = QC::f,
-    double realVMinC = QC::realVMin, double realVMaxC = QC::realVMax, Overflow ovfBxC = QC::ovfBx,
-    class QFrom, typename BaseTFrom = QFrom::base_t, scaling_t fFrom = QFrom::f,
-    double realVMinFrom = QFrom::realVMin, double realVMaxFrom = QFrom::realVMax, Overflow ovfBxFrom = QFrom::ovfBx >
+template< QType QC, Overflow ovfBxOverride = QC::ovfBx,
+    QType QFrom >
 requires (
-    std::is_same_v< QC, q<BaseTC, fC, realVMinC, realVMaxC, ovfBxC> >
-    && std::is_same_v< QFrom, q<BaseTFrom, fFrom, realVMinFrom, realVMaxFrom, ovfBxFrom> >
-    && !std::is_same_v<BaseTFrom, BaseTC>
-    && ScalingIsPossible<BaseTFrom, fFrom, BaseTC, fC>
+    std::is_same_v< q<typename QC::base_t, QC::f, QC::realVMin, QC::realVMax, QC::ovfBx>, QC >
+    && std::is_same_v< q<typename QFrom::base_t, QFrom::f, QFrom::realVMin, QFrom::realVMax, QFrom::ovfBx>, QFrom >
+    && !std::is_same_v<typename QFrom::base_t, typename QC::base_t>
+    && ScalingIsPossible<typename QFrom::base_t, QFrom::f, typename QC::base_t, QC::f>
     && ovfBxOverride != Overflow::noCheck
     && RuntimeOverflowCheckAllowedWhenNeeded<ovfBxOverride, true>
 )
 constexpr
 QC safe_q_cast(QFrom from) noexcept {
-    using interm_f_t = interm_t<BaseTFrom>;
-    using interm_c_t = interm_t<BaseTC>;
+    using interm_f_t = interm_t<typename QFrom::base_t>;
+    using interm_c_t = interm_t<typename QC::base_t>;
 
     // scale source value and cast it to the intermediate type with the sign of the target type
     auto cValue = s2s<interm_c_t, QFrom::f, QC::f>(from.reveal());
@@ -403,14 +410,11 @@ QC safe_q_cast(QFrom from) noexcept {
 /// Explicit, force cast of a q type to a different q type.
 /// This will simply reinterpret the value of the source q type as a value of the target q type
 /// without performing any scaling or overflow checks at all (overflow attributes are all ignored).
-template< class QC,
-    typename BaseTC = QC::base_t, scaling_t fC = QC::f,
-    double realVMinC = QC::realVMin, double realVMaxC = QC::realVMax, Overflow ovfBxC = QC::ovfBx,
-    class QFrom, typename BaseTFrom = QFrom::base_t, scaling_t fFrom = QFrom::f,
-    double realVMinFrom = QFrom::realVMin, double realVMaxFrom = QFrom::realVMax, Overflow ovfBxFrom = QFrom::ovfBx >
+template< QType QC,
+    QType QFrom >
 requires (
-    std::is_same_v< QC, q<BaseTC, fC, realVMinC, realVMaxC, ovfBxC> >
-    && std::is_same_v< QFrom, q<BaseTFrom, fFrom, realVMinFrom, realVMaxFrom, ovfBxFrom> >
+    std::is_same_v< q<typename QC::base_t, QC::f, QC::realVMin, QC::realVMax, QC::ovfBx>, QC >
+    && std::is_same_v< q<typename QFrom::base_t, QFrom::f, QFrom::realVMin, QFrom::realVMax, QFrom::ovfBx>, QFrom >
 )
 constexpr
 QC force_q_cast(QFrom from) noexcept {
