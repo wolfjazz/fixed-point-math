@@ -2,8 +2,8 @@
  * Declaration of the predefined q types and literals.
  */
 
-#ifndef _FPM___Q_TYPES_HPP_
-#define _FPM___Q_TYPES_HPP_
+#ifndef FPM_FPM_Q_TYPES_HPP_
+#define FPM_FPM_Q_TYPES_HPP_
 
 #include "q.hpp"
 

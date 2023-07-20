@@ -2,8 +2,8 @@
  * Implementation of the q class template.
  */
 
-#ifndef _FPM___Q_HPP_
-#define _FPM___Q_HPP_
+#ifndef FPM_FPM_Q_HPP_
+#define FPM_FPM_Q_HPP_
 
 #include "sq.hpp"
 
@@ -16,11 +16,14 @@ namespace fpm {
 /// \warning Does not guarantee that T is actually of type q. Only checks for the basic properties.
 template< class T >
 concept QType = requires (T t) {
+    { std::bool_constant<T::isQType>() } -> std::same_as<std::true_type>;
     typename T::base_t;
     std::is_integral_v<typename T::base_t>;
     std::is_same_v<scaling_t, decltype(T::f)>;
     std::is_same_v<double, decltype(T::realVMin)>;
     std::is_same_v<double, decltype(T::realVMax)>;
+    std::is_same_v<typename T::base_t, decltype(T::vMin)>;
+    std::is_same_v<typename T::base_t, decltype(T::vMax)>;
     std::is_same_v<double, decltype(T::resolution)>;
     std::is_same_v<Overflow, decltype(T::ovfBx)>;
     { t.reveal() } -> std::same_as<typename T::base_t>;
@@ -48,6 +51,7 @@ requires (
 )
 class q final {
 public:
+    static constexpr bool isQType = true;  ///< identifier for the QType concept
     using base_t = BaseT;  /// integral base type
     static constexpr scaling_t f = f_;  ///< number of fraction bits
     static constexpr double realVMin = realVMin_;  ///< minimum real value
@@ -93,34 +97,6 @@ public:
         return q(value);
     }
 
-    /// Helper struct template for q::fromReal<.>
-    template< double realValue, Overflow ovfBxOverride = ovfBx >
-    requires (
-        RealValueScaledFitsBaseType<base_t, f, realValue>
-        && CompileTimeOnlyOverflowCheckPossible<ovfBxOverride>
-    )
-    class WrapReal {
-        static constexpr base_t scaledValue = v2s<base_t, f>(realValue);
-        static constexpr Overflow overflowBehavior = (scaledValue >= vMin && scaledValue <= vMax)
-            ? Overflow::noCheck  // value is within bounds; no overflow check needed
-            : ovfBxOverride;
-        public:
-        static constexpr q wrapped = q::construct<overflowBehavior>( scaledValue );
-    };
-
-    /// Helper struct template for q::fromScaled<.>
-    template< base_t value, Overflow ovfBxOverride = ovfBx >
-    requires (
-        CompileTimeOnlyOverflowCheckPossible<ovfBxOverride>
-    )
-    class WrapScaled {
-        static constexpr Overflow overflowBehavior = (value >= vMin && value <= vMax)
-            ? Overflow::noCheck  // value is within bounds; no overflow check needed
-            : ovfBxOverride;
-        public:
-        static constexpr q wrapped = q::construct<overflowBehavior>( value );
-    };
-
     /// Named compile-time-only "constructor" from a floating-point value. This will use v2s to scale
     /// the given floating-point value at compile-time before the q value is constructed with the
     /// scaled integer value.
@@ -130,9 +106,16 @@ public:
     /// to the limited resolution. This error is called 'representation error' and it refers to the
     /// deviation from the initial real value when the q value is unscaled to a real value again.
     /// Usually the scaling error is in the order of the resolution of the q type.
-    template< double realValue, Overflow ovfBxOverride = ovfBx >
+    template< double realValue, Overflow ovfBxOverride = ovfBx,
+        base_t scaledValue = v2s<base_t, f>(realValue),
+        Overflow ovfBxEffective = (vMin <= scaledValue && scaledValue <= vMax) ? Overflow::noCheck : ovfBxOverride >
+    requires (
+        RealValueScaledFitsBaseType<base_t, f, realValue>
+        && CompileTimeOnlyOverflowCheckPossible<ovfBxOverride>
+        && RuntimeOverflowCheckAllowedWhenNeeded<ovfBxEffective>
+    )
     static constexpr
-    q fromReal = WrapReal<realValue, ovfBxOverride>::wrapped;
+    q fromReal = q::construct<ovfBxEffective>( scaledValue );
 
     /// Alias for q::fromReal<., Overflow::forbidden>
     template< double realValue >
@@ -153,9 +136,14 @@ public:
     /// construct a well-behaved q value at compile-time without a redundant overflow check.
     /// \note When the value is within bounds, no overflow check is needed. If it is out of range,
     ///       an overflow check is performed at compile-time according to the overflow settings.
-    template< base_t value, Overflow ovfBxOverride = ovfBx >
+    template< base_t value, Overflow ovfBxOverride = ovfBx,
+        Overflow ovfBxEffective = (vMin <= value && value <= vMax) ? Overflow::noCheck : ovfBxOverride >
+    requires (
+        CompileTimeOnlyOverflowCheckPossible<ovfBxOverride>
+        && RuntimeOverflowCheckAllowedWhenNeeded<ovfBxEffective>
+    )
     static constexpr
-    q fromScaled = WrapScaled<value, ovfBxOverride>::wrapped;
+    q fromScaled = q::construct<ovfBxEffective>( value );
 
     /// Alias for q::fromScaled<., Overflow::forbidden>
     template< base_t value >
@@ -229,9 +217,15 @@ public:
     }
 
     /// Copy-Constructor from another q type with the same base type.
-    /// \note Similar to q::fromQ(), however a bit stricter (q types have to be different) and there
+    /// Similar to q::fromQ(), however a bit stricter (q types have to be different) and there
     /// is no possibility to override the overflow behavior. If this is desired, use the named
     /// constructor q::fromQ() instead.
+    /// \note When a q value is up-scaled to a larger resolution, the initial representation error
+    /// will not change because the underlying integer value is just multiplied by some integral power
+    /// of two factor. However, if the q value is down-scaled to a smaller resolution, the resulting
+    /// representation error may become larger since the underlying integer is divided and the result
+    /// rounded towards zero to the next integer. The resulting representation error is at most the
+    /// sum of the two resolutions before and after a down-scaling operation.
     template< QType QFrom,
         // include overflow check if value range of this type is smaller than range of from-type
         // or if different overflow properties could result in overflow if not checked
@@ -445,6 +439,41 @@ consteval auto qFromLiteral() {
     constexpr double value = static_cast<double>( details::charArrayTo<BaseT, length>(chars) );
     return q<BaseT, f, value, value, Ovf::forbidden>::template fromReal<value>;
 }
+
+/// Concept which checks whether a value with the given Q type can be constructed from the given real value.
+template< class Q, double realValue, Overflow ovfBxOverride = Q::ovfBx >
+concept CanConstructQFromReal = requires {
+    { Q::template fromReal<realValue, ovfBxOverride> } -> std::same_as<Q const &>;
+};
+
+/// Concept which checks whether a value with the given Q type can be constructed from the given scaled value.
+template< class Q, Q::base_t scaledValue, Overflow ovfBxOverride = Q::ovfBx >
+concept CanConstructQFromScaled = requires {
+    { Q::template fromScaled<scaledValue, ovfBxOverride> } -> std::same_as<Q const &>;
+};
+
+/// Concept which checks whether an instance of a given Q type can be converted to an instance of a
+// given Sq type.
+template< class Q, class Sq, Overflow ovfBxOverride = Q::ovfBx >
+concept CanConvertQToSq = requires (Q q) {
+    { q.template toSq<Sq::realVMin, Sq::realVMax, ovfBxOverride>() } -> std::same_as<Sq>;
+};
+
+/// Concept which checks whether an instance of a given Sq type can be converted to an instance of a
+/// given Q type.
+template< class Sq, class Q >
+concept CanConvertSqToQ = requires (Sq sq) {
+    { Q::template fromSq(sq) } -> std::same_as<Q>;
+};
+
+/// Concept which checks whether an instance of a given Q type can be static_cast to an instance of
+/// another given Q type.
+/// \note If this returns false, try static_q_cast with an overflow override option.
+template< class QSrc, class QTarget >
+concept CanCastQToQ = requires (QSrc qSrc) {
+    { static_cast<QTarget>(qSrc) } -> std::same_as<QTarget>;
+};
+
 
 }
 /**\}*/

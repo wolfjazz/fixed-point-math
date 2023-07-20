@@ -17,7 +17,7 @@ using namespace fpm;
 
 class QTest_Construct : public ::testing::Test {
 protected:
-    using i16q6_t     = i16q6<-500., 500.>;
+    using i16q6_t     = i16q6<-500., 500.>;  // overflow forbidden by default
     using i16q6_sat_t = i16q6<-500., 500., Ovf::saturate>;
     using i16q6_ovf_t = i16q6<-500., 500., Ovf::allowed>;
 
@@ -104,6 +104,18 @@ TEST_F(QTest_Construct, q_from_real__constexpr_positive_int16_positiveF_overflow
     ASSERT_NEAR(realValue, qValueOvf2.toReal(), i16q6_ovf_t::resolution);
 }
 
+TEST_F(QTest_Construct, q_from_real__negative_value_out_of_range__construction_not_possible) {
+    using i16q6_t2 = i16q6<-500., 500.>;
+    EXPECT_TRUE(( CanConstructQFromReal< i16q6_t2, -500. > ));
+    ASSERT_FALSE(( CanConstructQFromReal< i16q6_t2, -501. > ));
+}
+
+TEST_F(QTest_Construct, q_from_real__positive_value_out_of_range__construction_not_possible) {
+    using i16q6_t2 = i16q6<-500., 500.>;
+    EXPECT_TRUE(( CanConstructQFromReal< i16q6_t2, +500. > ));
+    ASSERT_FALSE(( CanConstructQFromReal< i16q6_t2, +501. > ));
+}
+
 TEST_F(QTest_Construct, q_from_scaled__constexpr_int16_positiveF__expected_value) {
     constexpr int16_t memValue = -31686;
     auto qValue = i16q6_t::fromScaled<memValue>;  // this does not perform overflow checks
@@ -172,6 +184,18 @@ TEST_F(QTest_Construct, q_from_scaled__constexpr_positive_int16_positiveF_overfl
     ASSERT_NEAR(resultRealValue, qValueOvf1.toReal(), i16q6_t::resolution);
     ASSERT_EQ(memValue, qValueOvf2.reveal());
     ASSERT_NEAR(resultRealValue, qValueOvf2.toReal(), i16q6_ovf_t::resolution);
+}
+
+TEST_F(QTest_Construct, q_from_scaled__negative_value_out_of_range__construction_not_possible) {
+    using i16q6_t2 = i16q6<-500., 500.>;  // scaled: -32000 .. +32000
+    EXPECT_TRUE(( CanConstructQFromScaled< i16q6_t2, -32000 > ));
+    ASSERT_FALSE(( CanConstructQFromScaled< i16q6_t2, -32001 > ));
+}
+
+TEST_F(QTest_Construct, q_from_scaled__positive_value_out_of_range__construction_not_possible) {
+    using i16q6_t2 = i16q6<-500., 500.>;  // scaled: -32000 .. +32000
+    EXPECT_TRUE(( CanConstructQFromScaled< i16q6_t2, +32000 > ));
+    ASSERT_FALSE(( CanConstructQFromScaled< i16q6_t2, +32001 > ));
 }
 
 TEST_F(QTest_Construct, q_construct__constexpr_negative_int16_positiveF_saturate__expected_value) {
@@ -285,10 +309,10 @@ TEST_F(QTest_Construct, q_construct_via_literal__int_value_positive__expected_va
 
 class QTest_Sq : public ::testing::Test {
 protected:
-    using i32q20_t     = i32q20< -500., 500.>;
+    using i32q20_t     = i32q20< -500., 500.>;  // overflow forbidden by default
     using i32q20_sat_t = i32q20< -500., 500., Ovf::saturate>;
     using i32q20_ovf_t = i32q20< -500., 500., Ovf::allowed>;
-    using i32q20_l_t   = i32q20<-1000., 1000.>;
+    using i32q20_l_t   = i32q20<-1000., 1000.>;  // overflow forbidden by default
 
     void SetUp() override
     {
@@ -320,15 +344,15 @@ TEST_F(QTest_Sq, q_to_sq__same_value_range__no_overflow_check_performed) {
 }
 
 TEST_F(QTest_Sq, q_to_sq__different_value_range_overflow_forbidden__does_not_compile) {
-    // this must not compile!
-    // note: although the value is inside the value range in this case, the compiler will add
+    // Note: Although the value is inside the value range in this case, the compiler will add
     //       overflow checks as soon as the value range for sq is smaller (because the value of q
-    //       might be changed before toSq() is called).
-    //auto sqValue = i32q20_t::fromReal<-400.>.toSq<-400., 400., Ovf::forbidden>();
+    //       might be changed before toSq() is called). Due to Ovf::forbidden, this must not compile.
+    using SqT = i32q20_t::sq<i32q20_t::realVMin + 1., i32q20_t::realVMax - 1.>;
+    ASSERT_FALSE(( CanConvertQToSq< i32q20_t, SqT > ));
 }
 
 TEST_F(QTest_Sq, q_to_sq__different_value_range_overflow_asserted__does_not_compile) {
-    // this must trigger an assertion trap at runtime
+    // this should trigger an assertion trap at runtime
     //auto sqValue = i32q20_t::fromReal<-410.>.toSq<-400., 400., Ovf::assert>();
 }
 
@@ -368,9 +392,9 @@ TEST_F(QTest_Sq, q_from_sq__same_value_range_value_within_limits__q_value_equal_
 }
 
 TEST_F(QTest_Sq, q_from_sq__different_value_range_default__does_not_compile) {
-    // this must not compile!
-    //auto sqValue = i32sq20<-1010., 1010.>::fromReal<-654.>;
-    //auto qValue = i32q20_t::fromSq(sqValue);
+    // sq with wider range cannot be converted to q with a narrower range if overflow is forbidden
+    using SqT = i32sq20<-1010., 1010.>;
+    ASSERT_FALSE(( CanConvertSqToQ< SqT, i32q20_t > ));
 }
 
 TEST_F(QTest_Sq, q_from_sq__different_value_range_saturate__q_value_is_saturated) {
@@ -410,14 +434,14 @@ TEST_F(QTest_Sq, q_from_sq__different_value_range_overflow_allowed__q_value_can_
 
 class QTest_CopyScale : public ::testing::Test {
 protected:
-    using i16q4_t = i16q4<-2048., 2047.9>;
-    using i32q4_t     = i32q4<-2048., 2048.>;
+    using i16q4_t = i16q4<-2048., 2047.9>;  // overflow forbidden by default
+    using i32q4_t     = i32q4<-2048., 2048.>;  // overflow forbidden by default
     using i32q4_sat_t = i32q4<-2048., 2048., Ovf::saturate>;
     using i32q4_ovf_t = i32q4<-2048., 2048., Ovf::allowed>;
-    using i32qm2_t     = i32qm2<-2048., 2048.>;
+    using i32qm2_t     = i32qm2<-2048., 2048.>;  // overflow forbidden by default
     using i32qm2_sat_t = i32qm2<-2048., 2048., Ovf::saturate>;
     using i32qm2_ovf_t = i32qm2<-2048., 2048., Ovf::allowed>;
-    using i32q8_t     = i32q8<-2048.1, 2048.1>;
+    using i32q8_t     = i32q8<-2048.1, 2048.1>;  // overflow forbidden by default
     using i32q8_sat_t = i32q8<-2048.1, 2048.1, Ovf::saturate>;
     using i32q8_ovf_t = i32q8<-2048.1, 2048.1, Ovf::allowed>;
 
@@ -708,21 +732,21 @@ TEST_F(QTest_CopyScale, q_assignment_overflow__different_q_type_literal__value_i
 
 class QTest_Casting : public ::testing::Test {
 protected:
-    using i32q20_t     = i32q20<-500., 500.>;
+    using i32q20_t     = i32q20<-500., 500.>;  // overflow forbidden by default
     using i32q20_sat_t = i32q20<-500., 500., Ovf::saturate>;
     using i32q20_ovf_t = i32q20<-500., 500., Ovf::allowed>;
 
-    using i32q4_t     = i32q4<-2048., 2048.>;
+    using i32q4_t     = i32q4<-2048., 2048.>;  // overflow forbidden by default
     using i32q4_sat_t = i32q4<-2048., 2048., Ovf::saturate>;
     using i32q4_ovf_t = i32q4<-2048., 2048., Ovf::allowed>;
-    using i32qm2_t     = i32qm2<-2048., 2048.>;
+    using i32qm2_t     = i32qm2<-2048., 2048.>;  // overflow forbidden by default
     using i32qm2_sat_t = i32qm2<-2048., 2048., Ovf::saturate>;
     using i32qm2_ovf_t = i32qm2<-2048., 2048., Ovf::allowed>;
 
-    using u16q6_t     = u16q6<0., 500.>;
+    using u16q6_t     = u16q6<0., 500.>;  // overflow forbidden by default
     using u16q6_sat_t = u16q6<0., 500., Ovf::saturate>;
     using u16q6_ovf_t = u16q6<0., 500., Ovf::allowed>;
-    using u32qm2_t     = u32qm2<0., 2048.>;
+    using u32qm2_t     = u32qm2<0., 2048.>;  // overflow forbidden by default
     using u32qm2_sat_t = u32qm2<0., 2048., Ovf::saturate>;
     using u32qm2_ovf_t = u32qm2<0., 2048., Ovf::allowed>;
 
@@ -737,9 +761,13 @@ protected:
 TEST_F(QTest_Casting, q_static_cast__positive_real_value_signed__unsigned_type_smallerF_same_value) {
     constexpr double realValueA = 1024.2;
     auto a = i32q4_t::fromReal<realValueA>;
-    auto b = static_cast<u32qm2_sat_t>(a);  // this would not compile if u32qm2 was used
+    auto b = static_cast<u32qm2_sat_t>(a);
     auto c = static_q_cast<u32qm2_t, Ovf::saturate>(a);
     auto d = static_q_cast<u32qm2_sat_t>(a);
+
+    // static cast from i32q4_t to u32q4_t must not work here because first range is wider than second
+    // and types have Ovf::forbidden
+    ASSERT_FALSE(( CanCastQToQ< i32q4_t, u32qm2_t > ));
 
     ASSERT_NEAR(realValueA, b.toReal(), i32q4_t::resolution + u32qm2_sat_t::resolution);
     ASSERT_NEAR(realValueA, c.toReal(), i32q4_t::resolution + u32qm2_t::resolution);
@@ -752,9 +780,12 @@ TEST_F(QTest_Casting, q_static_cast__positive_real_value_signed__unsigned_type_s
 TEST_F(QTest_Casting, q_static_cast__positive_real_value_unsigned__larger_signed_type_largerF_same_value) {
     constexpr double realValueA = 498.7;
     auto a = u16q6_t::fromReal<realValueA>;
-    auto b = static_cast<i32q20_sat_t>(a);  // this would not compile if i32q20 was used
+    auto b = static_cast<i32q20_sat_t>(a);
     auto c = static_q_cast<i32q20_t, Ovf::saturate>(a);
     auto d = static_q_cast<i32q20_sat_t>(a);
+
+    // static cast from u16q6_t to i32q20_t works here, because the signed type includes the range of the unsigned type
+    ASSERT_TRUE(( CanCastQToQ< u16q6_t, i32q20_t > ));
 
     // note: for up-scaling to a larger integral type, the resulting resolution is the resolution
     //       of the source type (because the base type of both target and source is integral)
@@ -769,9 +800,12 @@ TEST_F(QTest_Casting, q_static_cast__positive_real_value_unsigned__larger_signed
 TEST_F(QTest_Casting, q_static_cast__positive_real_value_unsigned__larger_signed_type_smallerF_same_value) {
     constexpr double realValueA = 498.7;
     auto a = u16q6_t::fromReal<realValueA>;
-    auto b = static_cast<i32qm2_sat_t>(a);  // this would not compile if i32qm2 was used
+    auto b = static_cast<i32qm2_sat_t>(a);
     auto c = static_q_cast<i32qm2_t, Ovf::saturate>(a);
     auto d = static_q_cast<i32qm2_sat_t>(a);
+
+    // static cast from u16q6_t to i32qm2_t works here, because the signed type includes the range of the unsigned type
+    ASSERT_TRUE(( CanCastQToQ< u16q6_t, i32qm2_t > ));
 
     ASSERT_NEAR(realValueA, b.toReal(), u16q6_t::resolution + i32qm2_sat_t::resolution);
     ASSERT_NEAR(realValueA, c.toReal(), u16q6_t::resolution + i32qm2_t::resolution);
@@ -784,9 +818,13 @@ TEST_F(QTest_Casting, q_static_cast__positive_real_value_unsigned__larger_signed
 TEST_F(QTest_Casting, q_static_cast__positive_real_value_signed__smaller_unsigned_type_largerF_same_value) {
     constexpr double realValueA = 498.7;
     auto a = i32q4_t::fromReal<realValueA>;
-    auto b = static_cast<u16q6_sat_t>(a);  // this would not compile if u16q6 was used
+    auto b = static_cast<u16q6_sat_t>(a);
     auto c = static_q_cast<u16q6_t, Ovf::saturate>(a);
     auto d = static_q_cast<u16q6_sat_t>(a);
+
+    // static cast from i32q4_t to u16q6_t must not work here because first range is wider than second
+    // and types have Ovf::forbidden
+    ASSERT_FALSE(( CanCastQToQ< i32q4_t, u16q6_t > ));
 
     ASSERT_NEAR(realValueA, b.toReal(), u16q6_sat_t::resolution);
     ASSERT_NEAR(realValueA, c.toReal(), u16q6_t::resolution);
@@ -799,7 +837,7 @@ TEST_F(QTest_Casting, q_static_cast__positive_real_value_signed__smaller_unsigne
 TEST_F(QTest_Casting, q_static_cast__positive_real_value_signed_too_large__smaller_unsigned_type_largerF_value_saturated) {
     constexpr double realValueA = 512.5;
     auto a = i32q4_t::fromReal<realValueA>;
-    auto b = static_cast<u16q6_sat_t>(a);  // this would not compile if u16q6 was used
+    auto b = static_cast<u16q6_sat_t>(a);
     auto c = static_q_cast<u16q6_t, Ovf::saturate>(a);
     auto d = static_q_cast<u16q6_sat_t>(a);
 
@@ -814,7 +852,7 @@ TEST_F(QTest_Casting, q_static_cast__positive_real_value_signed_too_large__small
 TEST_F(QTest_Casting, q_static_cast__negative_real_value__smaller_unsigned_type_largerF_saturated_value) {
     constexpr double realValueA = -498.7;
     auto a = i32q4_t::fromReal<realValueA>;
-    auto b = static_cast<u16q6_sat_t>(a);  // this would not compile if u16q6 was used
+    auto b = static_cast<u16q6_sat_t>(a);
     auto c = static_q_cast<u16q6_t, Ovf::saturate>(a);
     auto d = static_q_cast<u16q6_sat_t>(a);
 
@@ -1014,8 +1052,8 @@ TEST_F(QTest_Casting, q_safe_cast__positive_real_value_signed__unsigned_type_sma
 TEST_F(QTest_Casting, q_safe_cast__positive_real_value_unsigned__larger_signed_type_largerF_same_value) {
     constexpr double realValueA = 498.7;
     auto a = u16q6_t::fromReal<realValueA>;
-    auto b = safe_q_cast<i32q20_sat_t>(a);  // this would not compile if i32q20 was used
-    auto c = safe_q_cast<i32q20_t, Ovf::saturate>(a);
+    auto b = safe_q_cast<i32q20_sat_t>(a);  // no saturation needed
+    auto c = safe_q_cast<i32q20_t, Ovf::saturate>(a);  // no saturation needed
 
     // note: for up-scaling to a larger integral type, the resulting resolution is the resolution
     //       of the source type (because the base type of both target and source is integral)
@@ -1028,8 +1066,8 @@ TEST_F(QTest_Casting, q_safe_cast__positive_real_value_unsigned__larger_signed_t
 TEST_F(QTest_Casting, q_safe_cast__positive_real_value_unsigned__larger_signed_type_smallerF_same_value) {
     constexpr double realValueA = 498.7;
     auto a = u16q6_t::fromReal<realValueA>;
-    auto b = safe_q_cast<i32qm2_sat_t>(a);  // this would not compile if i32qm2 was used
-    auto c = safe_q_cast<i32qm2_t, Ovf::saturate>(a);
+    auto b = safe_q_cast<i32qm2_sat_t>(a);  // no saturation needed
+    auto c = safe_q_cast<i32qm2_t, Ovf::saturate>(a);  // no saturation needed
 
     ASSERT_NEAR(realValueA, b.toReal(), u16q6_t::resolution + i32qm2_sat_t::resolution);
     ASSERT_NEAR(realValueA, c.toReal(), u16q6_t::resolution + i32qm2_t::resolution);
@@ -1052,13 +1090,13 @@ TEST_F(QTest_Casting, q_safe_cast__positive_real_value_signed__smaller_unsigned_
 TEST_F(QTest_Casting, q_safe_cast__positive_real_value_signed_too_large__smaller_unsigned_type_largerF_value_saturated) {
     constexpr double realValueA = 512.5;
     auto a = i32q4_t::fromReal<realValueA>;
-    auto b = safe_q_cast<u16q6_t, Ovf::saturate>(a);
-    auto c = safe_q_cast<u16q6_sat_t>(a);
+    auto b = safe_q_cast<u16q6_sat_t>(a);  // this would not compile if u16q6 was used
+    auto c = safe_q_cast<u16q6_t, Ovf::saturate>(a);
 
     ASSERT_NEAR(u16q6_sat_t::realVMax, b.toReal(), u16q6_sat_t::resolution);
     ASSERT_NEAR(u16q6_t::realVMax, c.toReal(), u16q6_t::resolution);
-    ASSERT_TRUE((std::is_same_v<u16q6_t, decltype(b)>));
-    ASSERT_TRUE((std::is_same_v<u16q6_sat_t, decltype(c)>));
+    ASSERT_TRUE((std::is_same_v<u16q6_sat_t, decltype(b)>));
+    ASSERT_TRUE((std::is_same_v<u16q6_t, decltype(c)>));
 }
 
 TEST_F(QTest_Casting, q_safe_cast__negative_real_value__smaller_unsigned_type_largerF_saturated_value) {

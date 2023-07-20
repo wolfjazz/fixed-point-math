@@ -5,7 +5,7 @@ set(ThisShort FpmQ)
 project(${This} VERSION 0.1.0 LANGUAGES C CXX)
 
 set(CMAKE_C_STANDARD 17)
-set(CMAKE_CXX_STANDARD 23)
+set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
 enable_testing()
@@ -24,7 +24,11 @@ set(Sources
     src/fpm.cpp
 )
 
-add_compile_options(-Wall -Wextra -pedantic -Werror -fconcepts-diagnostics-depth=2)
+# GCC options
+add_compile_options(-Wall -Wextra -pedantic -fconcepts-diagnostics-depth=2)
+
+# Clang options
+#add_compile_options(-Wall -Wextra -pedantic)
 
 add_library(${ThisShort} STATIC ${Headers} ${Sources})
 set_target_properties(${ThisShort} PROPERTIES LINKER_LANGUAGE CXX)

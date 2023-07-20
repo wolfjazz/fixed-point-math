@@ -2,8 +2,8 @@
  * Declaration of the predefined sq types and literals.
  */
 
-#ifndef _FPM___SQ_TYPES_HPP_
-#define _FPM___SQ_TYPES_HPP_
+#ifndef FPM_FPM_SQ_TYPES_HPP_
+#define FPM_FPM_SQ_TYPES_HPP_
 
 #include "sq.hpp"
 

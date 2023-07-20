@@ -3,7 +3,7 @@ cmake_minimum_required(VERSION 3.25)
 set(This FpmTests)
 
 set(CMAKE_C_STANDARD 17)
-set(CMAKE_CXX_STANDARD 23)
+set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
 set(CMAKE_BUILD_TYPE Debug)
@@ -17,7 +17,11 @@ set(Sources
 set(Headers
 )
 
-add_compile_options(-Wall -Wextra -pedantic -Werror -fconcepts-diagnostics-depth=2)
+# GCC options
+add_compile_options(-Wall -Wextra -pedantic -fconcepts-diagnostics-depth=2)
+
+# Clang options
+#add_compile_options(-Wall -Wextra -pedantic)
 
 add_executable(${This} ${Sources} ${Headers})
 target_link_libraries(${This} PUBLIC ${CMAKE_THREAD_LIBS_INIT}

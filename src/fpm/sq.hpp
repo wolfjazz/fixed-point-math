@@ -2,8 +2,8 @@
  * Implementation of the sq class template.
  */
 
-#ifndef _FPM___SQ_HPP_
-#define _FPM___SQ_HPP_
+#ifndef FPM_FPM_SQ_HPP_
+#define FPM_FPM_SQ_HPP_
 
 #include "fpm.hpp"
 
@@ -16,11 +16,14 @@ namespace fpm {
 /// \warning Does not guarantee that T is actually of type sq. Only checks for the basic properties.
 template< class T >
 concept SqType = requires (T t) {
+    { std::bool_constant<T::isSqType>() } -> std::same_as<std::true_type>;
     typename T::base_t;
     std::is_integral_v<typename T::base_t>;
     std::is_same_v<scaling_t, decltype(T::f)>;
     std::is_same_v<double, decltype(T::realVMin)>;
     std::is_same_v<double, decltype(T::realVMax)>;
+    std::is_same_v<typename T::base_t, decltype(T::vMin)>;
+    std::is_same_v<typename T::base_t, decltype(T::vMax)>;
     std::is_same_v<double, decltype(T::resolution)>;
     { t.reveal() } -> std::same_as<typename T::base_t>;
 };
@@ -42,7 +45,8 @@ requires (
 )
 class sq final {
 public:
-    using base_t = BaseT;  /// integral base type
+    static constexpr bool isSqType = true;  ///< identifier for the SqType concept
+    using base_t = BaseT;  ///< integral base type
     static constexpr scaling_t f = f_;  ///< number of fraction bits
     static constexpr double realVMin = realVMin_;  ///< minimum real value
     static constexpr double realVMax = realVMax_;  ///< maximum real value
@@ -118,7 +122,13 @@ public:
     }
 
     /// Copy-Constructor from another sq type value with the same base type.
-    /// \note Same as sq::fromSq(), however a bit stricter (sq types have to be different).
+    /// Same as sq::fromSq(), however a bit stricter (sq types have to be different).
+    /// \note When an sq value is up-scaled to a larger resolution, the initial representation error
+    /// will not change because the underlying integer value is just multiplied by some integral power
+    /// of two factor. However, if the sq value is down-scaled to a smaller resolution, the resulting
+    /// representation error may become larger since the underlying integer is divided and the result
+    /// rounded towards zero to the next integer. The resulting representation error is at most the
+    /// sum of the two resolutions before and after a down-scaling operation.
     template< SqType SqFrom >
     requires (
         !std::is_same_v< sq, SqFrom >  // when the same, default copy constructor should be used
@@ -303,6 +313,20 @@ consteval auto sqFromLiteral() {
     constexpr double value = static_cast<double>( details::charArrayTo<BaseT, length>(chars) );
     return sq<BaseT, f, value, value>::template fromReal<value>;
 }
+
+
+/// Checks whether a value with the given Sq type can be constructed from the given real value.
+template< class Sq, double realValue >
+concept CanConstructSqFromReal = requires {
+    { Sq::template fromReal<realValue> } -> std::same_as<Sq const &>;
+};
+
+/// Checks whether a value with the given Sq type can be constructed from the given scaled value.
+template< class Sq, Sq::base_t scaledValue >
+concept CanConstructSqFromScaled = requires {
+    { Sq::template fromScaled<scaledValue> } -> std::same_as<Sq const &>;
+};
+
 
 }
 /**\}*/

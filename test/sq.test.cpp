@@ -66,6 +66,18 @@ TEST_F(SQTest_Construct, sq_from_real__constexpr_int16_positiveF__expected_value
     ASSERT_NEAR(realValue, sqValue.toReal(), i16sq4_2k::resolution);
 }
 
+TEST_F(SQTest_Construct, sq_from_real__negative_value_out_of_range__construction_not_possible) {
+    using i16sq4_t = i16sq4<-2000., 2000.>;
+    EXPECT_TRUE(( CanConstructSqFromReal< i16sq4_t, -2000. > ));
+    ASSERT_FALSE(( CanConstructSqFromReal< i16sq4_t, -2001. > ));
+}
+
+TEST_F(SQTest_Construct, sq_from_real__positive_value_out_of_range__construction_not_possible) {
+    using i16sq4_t = i16sq4<-2000., 2000.>;
+    EXPECT_TRUE(( CanConstructSqFromReal< i16sq4_t, +2000. > ));
+    ASSERT_FALSE(( CanConstructSqFromReal< i16sq4_t, +2001. > ));
+}
+
 TEST_F(SQTest_Construct, sq_from_scaled__constexpr_int16_positiveF__expected_value) {
     constexpr int16_t memValue = 31686;
     auto a = i16sq4_2k::fromScaled<+memValue>;
@@ -76,6 +88,18 @@ TEST_F(SQTest_Construct, sq_from_scaled__constexpr_int16_positiveF__expected_val
     ASSERT_EQ(-memValue, b.reveal());
     ASSERT_NEAR(+RESULT_REAL_VALUE, a.toReal(), i16sq4_2k::resolution);
     ASSERT_NEAR(-RESULT_REAL_VALUE, b.toReal(), i16sq4_2k::resolution);
+}
+
+TEST_F(SQTest_Construct, sq_from_scaled__negative_value_out_of_range__construction_not_possible) {
+    using i16sq4_t = i16sq4<-2000., 2000.>;  // scaled: -32000 .. +32000
+    EXPECT_TRUE(( CanConstructSqFromScaled< i16sq4_t, -32000 > ));
+    ASSERT_FALSE(( CanConstructSqFromScaled< i16sq4_t, -32001 > ));
+}
+
+TEST_F(SQTest_Construct, sq_from_scaled__positive_value_out_of_range__construction_not_possible) {
+    using i16sq4_t = i16sq4<-2000., 2000.>;  // scaled: -32000 .. +32000
+    EXPECT_TRUE(( CanConstructSqFromScaled< i16sq4_t, +32000 > ));
+    ASSERT_FALSE(( CanConstructSqFromScaled< i16sq4_t, +32001 > ));
 }
 
 TEST_F(SQTest_Construct, sq_copy_constructor__int16_someF__int16_sameF) {

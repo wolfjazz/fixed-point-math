@@ -2,8 +2,8 @@
  * Default includes, declarations and definitions of the fpm library.
  */
 
-#ifndef _FPM___FPM_HPP_
-#define _FPM___FPM_HPP_
+#ifndef FPM_FPM_HPP_
+#define FPM_FPM_HPP_
 
 #include <algorithm>
 #include <cassert>
