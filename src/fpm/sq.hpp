@@ -58,25 +58,6 @@ public:
     static constexpr base_t vMax = v2s<base_t, f>(realVMax_);  ///< maximum value of integer value range
     static constexpr double resolution = v2s<double, -f>(1);  ///< real resolution of this type
 
-    // friend all sq types so that private members of similar types can be accessed for construction
-    template< std::integral BaseTSq, scaling_t fSq, double realVMinSq, double realVMaxSq >
-    requires (
-        details::ValidBaseType<BaseTSq>
-        && details::ValidScaling<BaseTSq, fSq>
-        && details::RealLimitsInRangeOfBaseType<BaseTSq, fSq, realVMinSq, realVMaxSq>
-    )
-    friend class sq;
-
-    // friend q type so that it can access the private members of this type to construct it
-    // Note: As of May 2023, partial specializations cannot be friended, so we friend q in general.
-    template< std::integral BaseTQ, scaling_t fQ, double realVMinQ, double realVMaxQ, Overflow ovfQ >
-    requires (
-        details::ValidBaseType<BaseTQ>
-        && details::ValidScaling<BaseTQ, fQ>
-        && details::RealLimitsInRangeOfBaseType<BaseTQ, fQ, realVMinQ, realVMaxQ>
-    )
-    friend class q;
-
     /// Create a new sq type with the same base type and scaling but a different real value range.
     template< double newRealVMin, double newRealVMax >
     struct relimit { using type = sq< base_t, f, newRealVMin, newRealVMax >; };
@@ -112,7 +93,7 @@ public:
     /// representation error may become larger since the underlying integer is divided and the result
     /// rounded towards zero to the next integer. The resulting representation error is at most the
     /// sum of the two resolutions before and after a down-scaling operation.
-    template< SqType SqFrom >
+    template< /* deduced: */ SqType SqFrom >
     requires (
         std::is_same_v<base_t, typename SqFrom::base_t>
         // scaling is only possible if the f difference allows scaling and the real value
@@ -133,7 +114,7 @@ public:
     /// representation error may become larger since the underlying integer is divided and the result
     /// rounded towards zero to the next integer. The resulting representation error is at most the
     /// sum of the two resolutions before and after a down-scaling operation.
-    template< SqType SqFrom >
+    template< /* deduced: */ SqType SqFrom >
     requires (
         !std::is_same_v< sq, SqFrom >  // when the same, default copy constructor should be used
         && std::is_same_v<base_t, typename SqFrom::base_t>
@@ -157,7 +138,7 @@ public:
     /// Only possible if the value can be cast safely without any potential overflow, i.e. if the
     /// target value range is equal to or larger than the value range of this class.
     /// \note If a cast does not work it's most probably due to unfulfilled requirements.
-    template< std::integral BaseTC, scaling_t fC, double realVMinC, double realVMaxC >
+    template< /* deduced: */ std::integral BaseTC, scaling_t fC, double realVMinC, double realVMaxC >
     requires (
         !std::is_same_v<base_t, BaseTC>
         // scaling is only possible if the f difference allows scaling and the real value
@@ -187,6 +168,7 @@ public:
     /// \returns a value of a new sq type with the larger scaling (higher precision) and the user value
     /// ranges added together. If the base types are different, integral promotion rules will be applied.
     template< SqType SqRhs,
+        /* deduced: */
         // common type is larger type, or unsigned type if same size, or type if same types
         typename BaseTR = std::common_type_t<base_t, typename SqRhs::base_t>, scaling_t fR = std::max(SqRhs::f, f),
         double realVMinR = realVMin + SqRhs::realVMin, double realVMaxR = realVMax + SqRhs::realVMax,
@@ -210,6 +192,7 @@ public:
     ///          which differ only by the sign of the 0 in a limit are not equal by design!
     /// \returns a value of a new sq type with negated limits and value.
     template< double realVMinR = -realVMax, double realVMaxR = -realVMin,
+        /* deduced: */
         typename BaseTR = std::conditional_t< std::is_signed_v<base_t>,
             base_t,  // signed type stays
             // unsigned type is promoted to signed type with twice the size
@@ -228,6 +211,7 @@ public:
     /// \returns a value of a new sq type with the larger scaling (higher precision) and the user value
     /// ranges subtracted. If the base types are different, integral promotion rules will be applied.
     template< SqType SqRhs,
+        /* deduced: */
         // common type is larger type, or unsigned type if same size, or type if same types
         typename BaseTR = std::common_type_t<base_t, typename SqRhs::base_t>, scaling_t fR = std::max(SqRhs::f, f),
         double realVMinR = std::min(realVMin - SqRhs::realVMax, SqRhs::realVMin - realVMax),
@@ -252,6 +236,7 @@ public:
     ///       the real error is of order O( 3*x^2 * 2^-q ). Higher terms O( 2^-mq ), m > 1 do occur
     ///       for such chains, but are very close to 0 for larger q and can usually be ignored.
     template< SqType SqRhs,
+        /* deduced: */
         // common type is larger type, or unsigned type if same size, or type if same types
         typename BaseTR = std::common_type_t<base_t, typename SqRhs::base_t>, scaling_t fR = std::max(SqRhs::f, f),
         double realVMinR = std::min(std::min(realVMin * SqRhs::realVMax, SqRhs::realVMin * realVMax),
@@ -300,14 +285,32 @@ private:
     /// Explicit, possibly compile-time constructor from scaled integer value.
     explicit constexpr sq(base_t value) noexcept : value(value) {}
 
+    // friend all sq types so that private members of similar types can be accessed for construction
+    template< std::integral BaseTSq, scaling_t fSq, double realVMinSq, double realVMaxSq >
+    requires (
+        details::ValidBaseType<BaseTSq>
+        && details::ValidScaling<BaseTSq, fSq>
+        && details::RealLimitsInRangeOfBaseType<BaseTSq, fSq, realVMinSq, realVMaxSq>
+    )
+    friend class sq;
+
+    // friend q type so that it can access the private members of this type to construct it
+    // Note: As of May 2023, partial specializations cannot be friended, so we friend q in general.
+    template< std::integral BaseTQ, scaling_t fQ, double realVMinQ, double realVMaxQ, Overflow ovfQ >
+    requires (
+        details::ValidBaseType<BaseTQ>
+        && details::ValidScaling<BaseTQ, fQ>
+        && details::RealLimitsInRangeOfBaseType<BaseTQ, fQ, realVMinQ, realVMaxQ>
+    )
+    friend class q;
+
     /// scaled integer value that represents a fixed-point value; stored in memory
     base_t const value;
 };
 
 /// Explicit static cast to another sq type with a different base type.
 /// Uses static_cast internally. Exists for consistency reasons.
-template< SqType SqC,
-    SqType SqFrom >
+template< SqType SqC, /* deduced: */ SqType SqFrom >
 requires (
     !std::is_same_v<typename SqFrom::base_t, typename SqC::base_t>
     // scaling is only possible if the f difference allows scaling and the real value
@@ -322,8 +325,7 @@ SqC static_sq_cast(SqFrom from) noexcept {
 
 /// Explicit safe cast to another sq type with a different base type.
 /// Uses static_cast internally. Exists for consistency reasons.
-template< SqType SqC,
-    SqType SqFrom >
+template< SqType SqC, /* deduced: */ SqType SqFrom >
 requires (
     !std::is_same_v<typename SqFrom::base_t, typename SqC::base_t>
     // scaling is only possible if the f difference allows scaling and the real value
@@ -371,7 +373,7 @@ concept CanNegateSq = requires (Sq sq) {
 namespace std {
 
 /// Provides the bare, real numeric limits for the given sq type.
-template< std::integral BaseT, fpm::scaling_t f, double realVMin, double realVMax >
+template< /* deduced: */ std::integral BaseT, fpm::scaling_t f, double realVMin, double realVMax >
 class numeric_limits<fpm::sq<BaseT, f, realVMin, realVMax>> {
     using SqType = fpm::sq<BaseT, f, realVMin, realVMax>;
 public:
