@@ -63,7 +63,7 @@ static constexpr bool is_ovf_stricter_v = is_ovf_stricter<a, b>::value;
 using scaling_t = int8_t;
 
 /// Intermediate type used for compile-time and runtime calculations with (s)q values.
-template< typename BaseT >
+template< std::integral BaseT >
 using interm_t = typename std::conditional_t<std::is_signed_v<BaseT>, int64_t, uint64_t>;
 
 /// Maximal supported size of a (s)q-type's base type.
@@ -83,7 +83,7 @@ namespace details {
     // the functions although the functions from std compile. :(
     inline namespace {
         /** Returns the absolute value of the given input value. Treats minimum numeric limits correctly. */
-        template< typename ValueT, typename TargetT = typename std::make_unsigned<ValueT>::type >
+        template< std::integral ValueT, std::integral TargetT = typename std::make_unsigned<ValueT>::type >
         requires ( std::is_signed_v<ValueT> )
         consteval TargetT abs(ValueT const input) noexcept {
             // note: cast to unsigned first when value is negative to handle numeric_limits<ValueT>::min() correctly
@@ -167,7 +167,7 @@ namespace details {
     }
 
     /// Converts a given character array into an integral number of the given type.
-    template< std::integral T, std::size_t size, std::size_t digit = size >
+    template< std::integral T, std::size_t size, /* internal: */ std::size_t digit = size >
     requires ( size > 0u && digit <= size )
     consteval T charArrayTo(const char chars[size]) {
         if constexpr (digit == 0) {
@@ -179,7 +179,7 @@ namespace details {
     }
 
     /// Helper that fits the smallest signed integral type that fits the given value.
-    template< typename T, T value >
+    template< std::integral T, T value >
     struct fit_signed {
         using type = std::conditional_t<std::in_range<int8_t>(value), int8_t,
             std::conditional_t<std::in_range<uint8_t>(value) || std::in_range<int16_t>(value), int16_t,
@@ -187,7 +187,7 @@ namespace details {
             std::conditional_t<std::in_range<uint32_t>(value) || std::in_range<int64_t>(value), int64_t, intmax_t>>>>;
     };
     /// Determines the smallest signed integral type that fits the given value.
-    template< typename T, T value >
+    template< std::integral T, T value >
     using fit_signed_t = typename fit_signed<T, value>::type;
 
     /// Functions defined for testing purposes.
@@ -227,7 +227,7 @@ namespace details {
  *       Besides, floating-point types are also possible this way.
  * \warning Floating-point types are possible, however quite expensive at runtime!
  *          Use carefully! */
-template< typename TargetT, scaling_t from, scaling_t to, typename ValueT >
+template< typename TargetT, scaling_t from, scaling_t to, /* deduced: */ typename ValueT >
 constexpr TargetT s2smd(ValueT value) noexcept {
     // use common type for calculation to avoid loss of precision
     using CommonT = typename std::common_type<ValueT, TargetT>::type;
@@ -255,7 +255,7 @@ constexpr TargetT s2smd(ValueT value) noexcept {
  * \warning Be aware that arithmetic right shift always rounds down. Consequently, the scaled result
  *          is not symmetric for the same value with a different sign
  *          (e.g. -514 >> 4u is -33 but +514 >> 4u is +32). */
-template< std::integral TargetT, scaling_t from, scaling_t to, std::integral ValueT >
+template< std::integral TargetT, scaling_t from, scaling_t to, /* deduced: */ std::integral ValueT >
 constexpr TargetT s2sh(ValueT value) noexcept {
     // use common type for shift to avoid loss of precision
     using CommonT = typename std::common_type<ValueT, TargetT>::type;
@@ -276,10 +276,10 @@ constexpr TargetT s2sh(ValueT value) noexcept {
 /// \note FPM_USE_SH can be predefined before this header is included into a source file.
 /// \note constexpr implies inline.
 #if !defined FPM_USE_SH
-template< typename TargetT, scaling_t from, scaling_t to, typename ValueT >
+template< typename TargetT, scaling_t from, scaling_t to, /* deduced: */ typename ValueT >
 constexpr TargetT s2s(ValueT value) noexcept { return s2smd<TargetT, from, to>(value); }
 #else
-template< typename TargetT, scaling_t from, scaling_t to, typename ValueT >
+template< std::integral TargetT, scaling_t from, scaling_t to, /* deduced: */ std::integral ValueT >
 constexpr TargetT s2s(ValueT value) noexcept { return s2sh<TargetT, from, to>(value); }
 #endif
 
@@ -288,7 +288,7 @@ constexpr TargetT s2s(ValueT value) noexcept { return s2sh<TargetT, from, to>(va
  * Used to scale a given compile-time floating-point value to a scaled runtime value of target type.
  * \warning Floating-point target types are possible, however quite expensive at runtime!
  *          Use carefully! */
-template< typename TargetT, scaling_t to, typename ValueT >
+template< typename TargetT, scaling_t to, /* deduced: */ typename ValueT >
 constexpr TargetT v2smd(ValueT value) noexcept {
     // use common type for shift to avoid loss of precision
     using CommonT = typename std::common_type<ValueT, TargetT>::type;
@@ -314,7 +314,7 @@ constexpr TargetT v2smd(ValueT value) noexcept {
  * \warning Be aware that arithmetic right shift always rounds down. Consequently, the scaled result
  *          is not symmetric for the same value with a different sign
  *          (e.g. -514 >> 4u is -33 but +514 >> 4u is +32). */
-template< std::integral TargetT, scaling_t to, std::integral ValueT >
+template< std::integral TargetT, scaling_t to, /* deduced: */ std::integral ValueT >
 constexpr TargetT v2sh(ValueT value) noexcept {
     // use common type for calculation to avoid loss of precision
     using CommonT = typename std::common_type<ValueT, TargetT>::type;
@@ -335,10 +335,10 @@ constexpr TargetT v2sh(ValueT value) noexcept {
 /// \note FPM_USE_SH can be predefined before this header is included into a source file.
 /// \note constexpr implies inline.
 #if !defined FPM_USE_SH
-template< typename TargetT, scaling_t to, typename ValueT >
+template< typename TargetT, scaling_t to, /* deduced: */ typename ValueT >
 constexpr TargetT v2s(ValueT value) noexcept { return v2smd<TargetT, to>(value); }
 #else
-template< typename TargetT, scaling_t to, typename ValueT >
+template< std::integral TargetT, scaling_t to, /* deduced: */ std::integral ValueT >
 constexpr TargetT v2s(ValueT value) noexcept { return v2sh<TargetT, to>(value); }
 #endif
 
