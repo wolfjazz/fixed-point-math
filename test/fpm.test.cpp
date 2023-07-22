@@ -5,7 +5,6 @@
 #include <gtest/gtest.h>
 
 #include <iostream>
-using namespace std;
 
 #include <fpm.hpp>
 using namespace fpm;
@@ -43,36 +42,6 @@ TEST_F(InternalTest, abs__signed_negative_min__returns_unsigned_positive) {
 
     ASSERT_TRUE((std::is_same_v<unsigned int, decltype(result)>));
     ASSERT_EQ((unsigned)std::numeric_limits<int>::max() + 1u, result);
-}
-
-TEST_F(InternalTest, min__signed_negative__returns_smaller_value) {
-    auto result = details::min((int)-23, -45);
-    ASSERT_EQ((int)-45, result);
-}
-
-TEST_F(InternalTest, min__signed_positive__returns_smaller_value) {
-    auto result = details::min((int)89, 1145);
-    ASSERT_EQ((int)89, result);
-}
-
-TEST_F(InternalTest, min__signed_mixed__returns_smaller_value) {
-    auto result = details::min((int)2299, -1166);
-    ASSERT_EQ((int)-1166, result);
-}
-
-TEST_F(InternalTest, max__signed_negative__returns_larger_value) {
-    auto result = details::max((int)-6, -45);
-    ASSERT_EQ((int)-6, result);
-}
-
-TEST_F(InternalTest, max__signed_positive__returns_larger_value) {
-    auto result = details::max((int)189, 9145);
-    ASSERT_EQ((int)9145, result);
-}
-
-TEST_F(InternalTest, max__signed_mixed__returns_larger_value) {
-    auto result = details::max((int)3366, -5879);
-    ASSERT_EQ((int)3366, result);
 }
 
 

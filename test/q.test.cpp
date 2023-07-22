@@ -5,7 +5,6 @@
 #include <gtest/gtest.h>
 
 #include <iostream>
-using namespace std;
 
 #include <fpm.hpp>
 using namespace fpm;

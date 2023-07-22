@@ -46,8 +46,7 @@ private:
 };
 
 
-template< typename T >
-requires std::is_integral_v<T>
+template< std::integral T >
 consteval T charDigitTo(char c, std::size_t digit) {
     T result = c - '0';
     for (size_t i = 1; i < digit; ++i) {
@@ -56,8 +55,8 @@ consteval T charDigitTo(char c, std::size_t digit) {
     return result;
 }
 
-template< typename T, std::size_t size, std::size_t digit = size >
-requires ( std::is_integral_v<T> && size > 0 && digit <= size )
+template< std::integral T, std::size_t size, std::size_t digit = size >
+requires ( size > 0 && digit <= size )
 consteval T charArrayTo(const char chars[size]) {
     if constexpr (digit == 0) {
         return 0;

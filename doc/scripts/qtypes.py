@@ -49,7 +49,7 @@ def print_sq_types():
     for sq in sqTypeList:
         f_range = get_f_from_range(sq.fFrom, sq.fTo)
         for f, fStr in f_range:
-            print("template< double lower, double upper > using %8s = sq<%8s, %3s, lower, upper>;" % (sq.short + "sq" + fStr, sq.type, f))
+            print("template< double lower = details::lowestRealVMin<%8s, %3s>(), double upper = details::highestRealVMax<%8s, %3s>() > using %8s = sq<%8s, %3s, lower, upper>;" % (sq.type, f, sq.type, f, sq.short + "sq" + fStr, sq.type, f))
 
 def print_sq_literals():
     for sq in sqTypeList:
@@ -61,7 +61,7 @@ def print_q_types():
     for q in qTypeList:
         f_range = get_f_from_range(q.fFrom, q.fTo)
         for f, fStr in f_range:
-            print("template< double lower, double upper, Overflow ovfBx = Ovf::%-9s > using %7s = q<%8s, %3s, lower, upper, ovfBx>;" % (q.defOvf, q.short + "q" + fStr, q.type, f))
+            print("template< double lower = details::lowestRealVMin<%8s, %3s>(), double upper = details::highestRealVMax<%8s, %3s>(), Overflow ovfBx = Ovf::%-9s > using %7s = q<%8s, %3s, lower, upper, ovfBx>;" % (q.type, f, q.type, f, q.defOvf, q.short + "q" + fStr, q.type, f))
 
 def print_q_literals():
     for q in qTypeList:

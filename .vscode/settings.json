@@ -1,8 +1,7 @@
 {
     "C_Cpp.errorSquiggles": "enabled",
-    "C_Cpp.default.compileCommands": "${config:cmake.buildDirectory}/compileCommands.json",
-    "C_Cpp.default.cppStandard": "c++23",
-    "C_Cpp.default.cStandard": "c23",
+    "C_Cpp.default.cppStandard": "c++20",
+    "C_Cpp.default.cStandard": "c17",
     "cmake.cmakePath": "C:/msys64/mingw64/bin/cmake.exe",
     "cmake.configureOnOpen": true,
     "search.exclude": {

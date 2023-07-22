@@ -79,10 +79,9 @@ constexpr scaling_t MAX_F = 53;
 /// Internal implementations.
 namespace details {
 
-    // Some standard functions are redefined here for consteval/constexpr context, otherwise VSCode
-    // would squiggle the functions. :(
+    // Some standard functions are redefined here for use in concepts, otherwise VSCode would squiggle
+    // the functions although the functions from std compile. :(
     inline namespace {
-
         /** Returns the absolute value of the given input value. Treats minimum numeric limits correctly. */
         template< typename ValueT, typename TargetT = typename std::make_unsigned<ValueT>::type >
         requires ( std::is_signed_v<ValueT> )
@@ -90,28 +89,15 @@ namespace details {
             // note: cast to unsigned first when value is negative to handle numeric_limits<ValueT>::min() correctly
             return static_cast<TargetT>( input >= 0 ? input : -static_cast<TargetT>(input) );
         }
-
-        /** Returns the smaller value of the two input values. */
-        template< typename ValueT >
-        consteval ValueT min(ValueT a, ValueT b) noexcept {
-            return a < b ? a : b;
-        }
-
-        /** Returns the larger value of the two input values. */
-        template< typename ValueT >
-        consteval ValueT max(ValueT a, ValueT b) noexcept {
-            return a > b ? a : b;
-        }
     }
 
     /** Overflow check function.
      * \note Works for signed and unsigned value type. */
     template<
         Overflow ovfBx,   ///< overflow behavior
-        typename ValueT,  ///< type of the value to check (after a scaling/casting operation)
-        typename SrcValueT = ValueT  ///< type of the value before scaling/casting operation; required if different
+        std::integral ValueT,  ///< type of the value to check (after a scaling/casting operation)
+        std::integral SrcValueT = ValueT  ///< type of the value before scaling/casting operation; required if different
     >
-    requires ( std::is_integral_v<ValueT> && std::is_integral_v<SrcValueT> )
     constexpr void checkOverflow(ValueT &value, ValueT const min, ValueT const max) noexcept {
         // Overflow check types.
         enum checktype : uint8_t {
@@ -171,8 +157,7 @@ namespace details {
 
     /// Converts a given digit c in character representation into an integer of the given type.
     // The digit will be multiplied by the given power of 10 before it is returned.
-    template< typename T >
-    requires std::is_integral_v<T>
+    template< std::integral T >
     consteval T charDigitTo(char c, std::size_t power = 0u) {
         T result = c - '0';
         for (size_t i = 0u; i < power; ++i) {
@@ -182,8 +167,8 @@ namespace details {
     }
 
     /// Converts a given character array into an integral number of the given type.
-    template< typename T, std::size_t size, std::size_t digit = size >
-    requires ( std::is_integral_v<T> && size > 0u && digit <= size )
+    template< std::integral T, std::size_t size, std::size_t digit = size >
+    requires ( size > 0u && digit <= size )
     consteval T charArrayTo(const char chars[size]) {
         if constexpr (digit == 0) {
             return 0;
@@ -192,6 +177,18 @@ namespace details {
             return charDigitTo<T>(chars[size - digit], digit-1) + charArrayTo<T, size, digit-1>(chars);
         }
     }
+
+    /// Helper that fits the smallest signed integral type that fits the given value.
+    template< typename T, T value >
+    struct fit_signed {
+        using type = std::conditional_t<std::in_range<int8_t>(value), int8_t,
+            std::conditional_t<std::in_range<uint8_t>(value) || std::in_range<int16_t>(value), int16_t,
+            std::conditional_t<std::in_range<uint16_t>(value) || std::in_range<int32_t>(value), int32_t,
+            std::conditional_t<std::in_range<uint32_t>(value) || std::in_range<int64_t>(value), int64_t, intmax_t>>>>;
+    };
+    /// Determines the smallest signed integral type that fits the given value.
+    template< typename T, T value >
+    using fit_signed_t = typename fit_signed<T, value>::type;
 
     /// Functions defined for testing purposes.
     namespace test {
@@ -203,23 +200,23 @@ namespace details {
             return epsilon;
         }
     }
-}
 
+    /** Concept of a valid difference between two integral types and two scaling factors to support scaling
+     * without overflow or significant loss of precision.
+     * Scaling is possible if:
+     *  - target and source type are of equal size and the effective target value range is not outshifted, or
+     *  - target and source type are of different size and the effective size difference is not outshifted, or
+     *  - both types are equal and the number of shifted bits is at most the number of bits in each type
+     * \note If this fails, none of the conditions listed above is fulfilled. Double-check! */
+    template< typename from_t, scaling_t fFrom, typename to_t, scaling_t fTo >
+    concept ScalingIsPossible = (
+        ( sizeof(from_t) == sizeof(to_t) && details::abs(fTo - fFrom) <= std::numeric_limits<to_t>::digits )
+        || ( sizeof(from_t) != sizeof(to_t)
+            && details::abs(fTo - fFrom) <= details::abs(std::numeric_limits<to_t>::digits - std::numeric_limits<from_t>::digits) )
+        || ( std::is_same_v<from_t, to_t> && details::abs(fTo - fFrom) <= sizeof(to_t) * CHAR_BIT )
+    );
 
-/** Concept of a valid difference between two integral types and two scaling factors to support scaling
- * without overflow or significant loss of precision.
- * Scaling is possible if:
- *  - target and source type are of equal size and the effective target value range is not outshifted, or
- *  - target and source type are of different size and the effective size difference is not outshifted, or
- *  - both types are equal and the number of shifted bits is at most the number of bits in each type
- * \note If this fails, none of the conditions listed above is fulfilled. Double-check! */
-template< typename from_t, scaling_t fFrom, typename to_t, scaling_t fTo >
-concept ScalingIsPossible = (
-    ( sizeof(from_t) == sizeof(to_t) && details::abs(fTo - fFrom) <= std::numeric_limits<to_t>::digits )
-    || ( sizeof(from_t) != sizeof(to_t)
-         && details::abs(fTo - fFrom) <= details::abs(std::numeric_limits<to_t>::digits - std::numeric_limits<from_t>::digits) )
-    || ( std::is_same_v<from_t, to_t> && details::abs(fTo - fFrom) <= sizeof(to_t) * CHAR_BIT )
-);
+}  // end of details
 
 
 /** Scale-To-Scale scaling function.
@@ -258,10 +255,8 @@ constexpr TargetT s2smd(ValueT value) noexcept {
  * \warning Be aware that arithmetic right shift always rounds down. Consequently, the scaled result
  *          is not symmetric for the same value with a different sign
  *          (e.g. -514 >> 4u is -33 but +514 >> 4u is +32). */
-template< typename TargetT, scaling_t from, scaling_t to, typename ValueT >
+template< std::integral TargetT, scaling_t from, scaling_t to, std::integral ValueT >
 constexpr TargetT s2sh(ValueT value) noexcept {
-    static_assert(std::is_integral_v<ValueT> && std::is_integral_v<TargetT>, "s2sh only supports integer types");
-
     // use common type for shift to avoid loss of precision
     using CommonT = typename std::common_type<ValueT, TargetT>::type;
 
@@ -319,10 +314,8 @@ constexpr TargetT v2smd(ValueT value) noexcept {
  * \warning Be aware that arithmetic right shift always rounds down. Consequently, the scaled result
  *          is not symmetric for the same value with a different sign
  *          (e.g. -514 >> 4u is -33 but +514 >> 4u is +32). */
-template< typename TargetT, scaling_t to, typename ValueT >
+template< std::integral TargetT, scaling_t to, std::integral ValueT >
 constexpr TargetT v2sh(ValueT value) noexcept {
-    static_assert(std::is_integral_v<ValueT> && std::is_integral_v<TargetT>, "v2sh only supports integer types");
-
     // use common type for calculation to avoid loss of precision
     using CommonT = typename std::common_type<ValueT, TargetT>::type;
 
@@ -350,64 +343,84 @@ constexpr TargetT v2s(ValueT value) noexcept { return v2sh<TargetT, to>(value); 
 #endif
 
 
-/** Concept of a valid (s)q base-type.
- * \note If this fails, the selected base type is not integral, or too large.
-         Use an integer with a proper size! */
-template< typename BaseT >
-concept ValidBaseType = (
-       std::is_integral_v<BaseT>
-    && sizeof(BaseT) <= MAX_BASETYPE_SIZE
-);
+// Continue with internal implementations.
+namespace details {
 
-/** Concept of a valid (s)q scaling value.
- * Types can be scaled by maximal the number of bits in the base type minus one bit, limited by the
- * size of double's mantissa.
- * \note If this fails, the selected scaling factor is too large. Use a smaller scaling factor! */
-template< typename BaseT, scaling_t f >
-concept ValidScaling = (
-    f <= std::numeric_limits<std::make_signed_t<BaseT>>::digits  // CHAR_BIT * sizeof(BaseT) - 1
-    && f <= MAX_F
-);
+    /// \returns the real minimum value for the given integral type and scaling.
+    /// \note Internal. Use Q<>::realVMin in applications.
+    template< std::integral T, scaling_t f >
+    consteval double lowestRealVMin() {
+        return v2s<double, -f>( std::numeric_limits<T>::min() );
+    }
 
-/** Concept of a valid (s)q type value range that fits the specified base type.
- * \note If this fails, the specified real value limits exceed the value range of the selected
- *       base type when scaled with the desired scaling factor.
- *       Use a larger base type, a smaller scaling factor, or double-check the sign and value of
- *       your selected real limits! */
-template< typename BaseT, scaling_t f, double realVMin, double realVMax >
-concept RealLimitsInRangeOfBaseType = (
-       std::in_range<BaseT>(v2s<interm_t<BaseT>, f>(realVMin))
-    && std::in_range<BaseT>(v2s<interm_t<BaseT>, f>(realVMax))
-    && realVMin <= realVMax
-    && (std::is_signed_v<BaseT> || realVMin >= 0.)
-);
+    /// \returns the real maximum value for the given integral type and scaling.
+    /// \note Internal. Use Q<>::realVMax in applications.
+    template< std::integral T, scaling_t f >
+    consteval double highestRealVMax() {
+        return v2s<double, -f>( std::numeric_limits<T>::max() );
+    }
 
-/** Concept of a type that can overflow when allowed. Typically used in the context of casting.
- * \note In C++23, signed int overflow (i.e. the value does not fit in the type) is still undefined.
- * \note If this fails, a signed base type is used in the context of a potential overflow. This is
- *       not allowed. Use an unsigned target base type. */
-template< typename BaseT, Overflow ovfBx >
-concept CanBaseTypeOverflow = ( std::is_unsigned_v<BaseT> && ovfBx == Overflow::allowed );
+    /** Concept of a valid (s)q base-type.
+     * \note If this fails, the selected base type is not integral, or too large.
+             Use an integer with a proper size! */
+    template< typename BaseT >
+    concept ValidBaseType = (
+        std::is_integral_v<BaseT>
+        && sizeof(BaseT) <= MAX_BASETYPE_SIZE
+    );
 
-/** Concept of a valid value that fits the specified base type.
- * \note If this fails, the scaled integer value exceeds the value range of the specified base type.
- *       Use a larger base type or a smaller real value! */
-template< typename BaseT, scaling_t f, double realValue >
-concept RealValueScaledFitsBaseType = ( std::in_range<BaseT>(v2s<interm_t<BaseT>, f>(realValue)) );
+    /** Concept of a valid (s)q scaling value.
+     * Types can be scaled by maximal the number of bits in the base type minus one bit, limited by the
+     * size of double's mantissa.
+     * \note If this fails, the selected scaling factor is too large. Use a smaller scaling factor! */
+    template< typename BaseT, scaling_t f >
+    concept ValidScaling = (
+        f <= std::numeric_limits<std::make_signed_t<BaseT>>::digits  // CHAR_BIT * sizeof(BaseT) - 1
+        && f <= MAX_F
+    );
 
-/** Concept: Compile-time-only check is possible.
- * \note If this fails, a runtime overflow check is probably needed but not allowed in the context
- *       where this concept is required. Use a different overflow check! */
-template< Overflow ovfBx >
-concept CompileTimeOnlyOverflowCheckPossible = ( Overflow::assert != ovfBx );
+    /** Concept of a valid (s)q type value range that fits the specified base type.
+     * \note If this fails, the specified real value limits exceed the value range of the selected
+     *       base type when scaled with the desired scaling factor.
+     *       Use a larger base type, a smaller scaling factor, or double-check the sign and value of
+     *       your selected real limits! */
+    template< typename BaseT, scaling_t f, double realVMin, double realVMax >
+    concept RealLimitsInRangeOfBaseType = (
+        std::in_range<BaseT>(v2s<interm_t<BaseT>, f>(realVMin))
+        && std::in_range<BaseT>(v2s<interm_t<BaseT>, f>(realVMax))
+        && realVMin <= realVMax
+        && (std::is_signed_v<BaseT> || realVMin >= 0.)
+    );
 
-/** Concept: Runtime overflow check required when needed.
- * \note If this fails, a runtime overflow check is needed but not allowed for the desired q type.
- *       Allow for type, or specify the overflow-override template argument (to be preferred)! */
-template< Overflow ovfBx, bool checkNeeded = true >
-concept RuntimeOverflowCheckAllowedWhenNeeded = ( !checkNeeded || Overflow::forbidden != ovfBx );
+    /** Concept of a type that can overflow when allowed. Typically used in the context of casting.
+     * \note In C++23, signed int overflow (i.e. the value does not fit in the type) is still undefined.
+     * \note If this fails, a signed base type is used in the context of a potential overflow. This is
+     *       not allowed. Use an unsigned target base type. */
+    template< typename BaseT, Overflow ovfBx >
+    concept CanBaseTypeOverflow = ( std::is_unsigned_v<BaseT> && ovfBx == Overflow::allowed );
 
-}
+    /** Concept of a valid value that fits the specified base type.
+     * \note If this fails, the scaled integer value exceeds the value range of the specified base type.
+     *       Use a larger base type or a smaller real value! */
+    template< typename BaseT, scaling_t f, double realValue >
+    concept RealValueScaledFitsBaseType = ( std::in_range<BaseT>(v2s<interm_t<BaseT>, f>(realValue)) );
+
+    /** Concept: Compile-time-only check is possible.
+     * \note If this fails, a runtime overflow check is probably needed but not allowed in the context
+     *       where this concept is required. Use a different overflow check! */
+    template< Overflow ovfBx >
+    concept CompileTimeOnlyOverflowCheckPossible = ( Overflow::assert != ovfBx );
+
+    /** Concept: Runtime overflow check required when needed.
+     * \note If this fails, a runtime overflow check is needed but not allowed for the desired q type.
+     *       Allow for type, or specify the overflow-override template argument (to be preferred)! */
+    template< Overflow ovfBx, bool checkNeeded = true >
+    concept RuntimeOverflowCheckAllowedWhenNeeded = ( !checkNeeded || Overflow::forbidden != ovfBx );
+
+}  // end of details
+
+
+}  // end of fpm
 /**\}*/
 
 #endif

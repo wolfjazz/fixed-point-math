@@ -5,7 +5,6 @@
 #include <gtest/gtest.h>
 
 #include <iostream>
-using namespace std;
 
 #include <fpm.hpp>
 using namespace fpm;
@@ -343,6 +342,97 @@ TEST_F(SQTest_Casting, q_static_cast__unsigned_user_range__unsigned_larger_range
     ASSERT_NEAR(u16sqm2_t::realVMax, cc.toReal(), u16sqm2_t::resolution);
     ASSERT_NEAR(u16sqm2_t::realVMax, cc2.toReal(), u16sqm2_t::resolution);
     ASSERT_NEAR(u16sqm2_t::realVMax, cc3.toReal(), u16sqm2_t::resolution);
+}
+
+
+// ////////////////////////////////////////////////////////////////////////////////////////////// //
+// ------------------------------------ SQ Test: Unary ------------------------------------------ //
+// ////////////////////////////////////////////////////////////////////////////////////////////// //
+
+class SQTest_Unary : public ::testing::Test {
+protected:
+    void SetUp() override
+    {
+    }
+    void TearDown() override
+    {
+    }
+};
+
+TEST_F(SQTest_Unary, sq_unary_plus__some_signed_value__same_value_and_limits) {
+    using i16sq4_t = i16sq4<-1000., 2000.>;
+    auto a = i16sq4_t::fromReal<1567.89>;
+    auto b = +a;
+
+    ASSERT_TRUE((std::is_same_v<decltype(a), decltype(b)>));
+    ASSERT_NEAR(a.toReal(), b.toReal(), i16sq4_t::resolution);
+}
+
+TEST_F(SQTest_Unary, sq_unary_plus__some_unsigned_value__same_value_and_limits) {
+    using u16sq4_t = u16sq4<0., 2000.>;
+    auto a = u16sq4_t::fromReal<1567.89>;
+    auto b = +a;
+
+    ASSERT_TRUE((std::is_same_v<decltype(a), decltype(b)>));
+    ASSERT_NEAR(a.toReal(), b.toReal(), (std::numeric_limits<double>::epsilon()));
+}
+
+TEST_F(SQTest_Unary, sq_unary_minus__some_signed_positive_value__negated_value_and_limits) {
+    using i16sq4_t = i16sq4<-500., 1000.>;
+    EXPECT_TRUE(( CanNegateSq< i16sq4_t > ));
+
+    auto a = i16sq4_t::fromReal<567.89>;
+    auto b = -a;
+
+    using expected_result_t = i16sq4<-1000., 500.>;
+    ASSERT_TRUE((std::is_same_v<expected_result_t, decltype(b)>));
+    ASSERT_NEAR(-a.toReal(), b.toReal(), i16sq4_t::resolution);
+}
+
+TEST_F(SQTest_Unary, sq_unary_minus__some_signed_negative_value__negated_value_and_limits) {
+    using i16sq4_t = i16sq4<-500., 1000.>;
+    EXPECT_TRUE(( CanNegateSq< i16sq4_t > ));
+
+    auto a = i16sq4_t::fromReal<-345.67>;
+    auto b = -a;
+
+    using expected_result_t = i16sq4<-1000., 500.>;
+    ASSERT_TRUE((std::is_same_v<expected_result_t, decltype(b)>));
+    ASSERT_NEAR(-a.toReal(), b.toReal(), i16sq4_t::resolution);
+}
+
+TEST_F(SQTest_Unary, sq_unary_minus__some_signed_value_with_lowest_limit__does_not_compile) {
+    using i16sq4_t = i16sq4<>;  // use full range
+
+    ASSERT_FALSE(( CanNegateSq< i16sq4_t > ));
+}
+
+TEST_F(SQTest_Unary, sq_unary_minus__some_unsigned_value__negated_value_and_limits) {
+    using u16sq4_t = u16sq4<>;  // use full range
+    EXPECT_TRUE(( CanNegateSq< u16sq4_t > ));
+
+    auto a = u16sq4_t::fromReal<234.56>;
+    auto b = -a;
+
+    using expected_result_t = i32sq4< -u16sq4_t::realVMax, -0. >;  // (!) -0.0 is not equal to +0.0
+    ASSERT_TRUE((std::is_same_v<expected_result_t, decltype(b)>));
+    ASSERT_NEAR(-a.toReal(), b.toReal(), u16sq4_t::resolution);
+}
+
+TEST_F(SQTest_Unary, sq_unary_minus__some_signed_literal__negated_value_and_limits) {
+    auto a = -567_i32sq7;
+
+    using expected_result_t = i32sq7<-567.,-567.>;
+    ASSERT_TRUE((std::is_same_v<expected_result_t, decltype(a)>));
+    ASSERT_NEAR(-567., a.toReal(), expected_result_t::resolution);
+}
+
+TEST_F(SQTest_Unary, sq_unary_minus__some_unsigned_literal__negated_value_and_limits) {
+    auto a = -356_u16sq7;
+
+    using expected_result_t = i32sq7<-356.,-356.>;
+    ASSERT_TRUE((std::is_same_v<expected_result_t, decltype(a)>));
+    ASSERT_NEAR(-356., a.toReal(), expected_result_t::resolution);
 }
 
 
