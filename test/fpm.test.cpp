@@ -37,6 +37,46 @@ TEST_F(InternalTest, abs__signed_negative__returns_unsigned_positive) {
     ASSERT_EQ(+36u, result);
 }
 
+TEST_F(InternalTest, charArrayToDouble__int__returns_double) {
+    constexpr char chars[] = {'1', '2', '3'};
+    auto result = details::charArrayToDouble<sizeof(chars)>(chars);
+
+    constexpr double expectedResult = 123.;
+    ASSERT_NEAR(expectedResult, result, details::test::floatpEpsilonFor(expectedResult));
+}
+
+TEST_F(InternalTest, charArrayToDouble__large_int__returns_double) {
+    constexpr char chars[] = {'9', '2', '3', '4', '5', '6', '7', '8', '9', '0', '1', '2', '3', '4', '5'};
+    auto result = details::charArrayToDouble<sizeof(chars)>(chars);
+
+    constexpr double expectedResult = 923456789012345.;
+    ASSERT_NEAR(expectedResult, result, details::test::floatpEpsilonFor(expectedResult));
+}
+
+TEST_F(InternalTest, charArrayToDouble__zero__returns_double) {
+    constexpr char chars[] = {'0'};
+    auto result = details::charArrayToDouble<sizeof(chars)>(chars);
+
+    constexpr double expectedResult = 0.;
+    ASSERT_NEAR(expectedResult, result, details::test::floatpEpsilonFor(expectedResult));
+}
+
+TEST_F(InternalTest, charArrayToDouble__double__returns_double) {
+    constexpr char chars[] = {'1', '2', '.', '3', '4', '5', '6'};
+    auto result = details::charArrayToDouble<sizeof(chars)>(chars);
+
+    constexpr double expectedResult = 12.3456;
+    ASSERT_NEAR(expectedResult, result, details::test::floatpEpsilonFor(expectedResult));
+}
+
+TEST_F(InternalTest, charArrayToDouble__precise_double__returns_double) {
+    constexpr char chars[] = {'1', '.', '2', '3', '4', '5', '6', '7', '8', '9', '0', '1', '2', '3', '4'};
+    auto result = details::charArrayToDouble<sizeof(chars)>(chars);
+
+    constexpr double expectedResult = 1.2345678901234;
+    ASSERT_NEAR(expectedResult, result, details::test::floatpEpsilonFor(expectedResult));
+}
+
 
 // ////////////////////////////////////////////////////////////////////////////////////////////// //
 // ------------------------------------ S2S Test ------------------------------------------------ //

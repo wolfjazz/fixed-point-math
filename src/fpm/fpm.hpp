@@ -154,7 +154,7 @@ namespace details {
 
     /// Converts a given character array into a double.
     template< std::size_t size >
-    requires ( size > 0u && size <= std::numeric_limits<double>::max_digits10 )
+    requires ( size > 0u && size <= std::numeric_limits<double>::digits10 )
     consteval double charArrayToDouble(char const chars[size]) {
         double number = 0.;
         double fScale = 1.;
