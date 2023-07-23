@@ -82,12 +82,10 @@ namespace details {
     // Some standard functions are redefined here for use in concepts, otherwise VSCode would squiggle
     // the functions although the functions from std compile. :(
     inline namespace {
-        /** Returns the absolute value of the given input value. Treats minimum numeric limits correctly. */
-        template< std::integral ValueT, std::integral TargetT = typename std::make_unsigned<ValueT>::type >
-        requires ( std::is_signed_v<ValueT> )
-        consteval TargetT abs(ValueT const input) noexcept {
-            // note: cast to unsigned first when value is negative to handle numeric_limits<ValueT>::min() correctly
-            return static_cast<TargetT>( input >= 0 ? input : -static_cast<TargetT>(input) );
+        /** Returns the absolute value of the given input value. */
+        template< typename ValueT >
+        consteval ValueT abs(ValueT const input) noexcept {
+            return input >= 0 ? input : -input;
         }
     }
 
@@ -346,11 +344,13 @@ constexpr TargetT v2s(ValueT value) noexcept { return v2sh<TargetT, to>(value); 
 // Continue with internal implementations.
 namespace details {
 
-    /// \returns the real minimum value for the given integral type and scaling.
+    /// \returns the real minimum value for the given integral type and scaling that can safely be
+    /// used in operations like negation or taking the absolute value
+    /// (i.e. 0u for unsigned, INT_MIN + 1 for signed).
     /// \note Internal. Use Q<>::realVMin in applications.
     template< std::integral T, scaling_t f >
     consteval double lowestRealVMin() {
-        return v2s<double, -f>( std::numeric_limits<T>::min() );
+        return v2s<double, -f>( std::is_unsigned_v<T> ? static_cast<T>(0) : std::numeric_limits<T>::min() + 1 );
     }
 
     /// \returns the real maximum value for the given integral type and scaling.
@@ -416,6 +416,15 @@ namespace details {
      *       Allow for type, or specify the overflow-override template argument (to be preferred)! */
     template< Overflow ovfBx, bool checkNeeded = true >
     concept RuntimeOverflowCheckAllowedWhenNeeded = ( !checkNeeded || Overflow::forbidden != ovfBx );
+
+    /** Concept: Checks whether the absolute value can be taken for a value of the given base type.
+     * \note If this fails, the given base type is either not integral, or it is a signed integer and
+     *       INT_MIN is part of the value range. Exclude INT_MIN from the value range! */
+    template< typename BaseT, BaseT vMin >
+    concept CanAbsolutize = (
+        std::is_integral_v<BaseT>
+        && (std::is_unsigned_v<BaseT> || (std::is_signed_v<BaseT> && vMin != std::numeric_limits<BaseT>::min()))
+    );
 
 }  // end of details
 

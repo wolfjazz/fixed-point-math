@@ -80,9 +80,7 @@ public:
     /// Named "constructor" from a runtime variable (lvalue) or a constant (rvalue).
     /// \note Overflow check is always included unless explicitly disabled.
     template< Overflow ovfBxOverride = ovfBx >
-    requires (
-        details::RuntimeOverflowCheckAllowedWhenNeeded<ovfBxOverride>
-    )
+    requires details::RuntimeOverflowCheckAllowedWhenNeeded<ovfBxOverride>
     static constexpr
     q construct(base_t value) noexcept {
         // perform overflow check
@@ -307,9 +305,7 @@ public:
         class SqTo = sq<realVMinSq, realVMaxSq>,
         // include overflow check if the value range of sq is smaller
         bool ovfCheckNeeded = (vMin < SqTo::vMin || SqTo::vMax < vMax) >
-    requires (
-        details::RuntimeOverflowCheckAllowedWhenNeeded<ovfBxOverride, ovfCheckNeeded>
-    )
+    requires details::RuntimeOverflowCheckAllowedWhenNeeded<ovfBxOverride, ovfCheckNeeded>
     constexpr
     SqTo toSq() const noexcept {
         base_t sqValue = value;
@@ -447,40 +443,6 @@ consteval auto qFromLiteral() {
     constexpr double value = static_cast<double>( details::charArrayTo<BaseT, length>(chars) );
     return q<BaseT, f, value, value, Ovf::forbidden>::template fromReal<value>;
 }
-
-/// Concept which checks whether a value with the given Q type can be constructed from the given real value.
-template< class Q, double realValue, Overflow ovfBxOverride = Q::ovfBx >
-concept CanConstructQFromReal = requires {
-    { Q::template fromReal<realValue, ovfBxOverride> } -> std::same_as<Q const &>;  // false if expression cannot be compiled
-};
-
-/// Concept which checks whether a value with the given Q type can be constructed from the given scaled value.
-template< class Q, Q::base_t scaledValue, Overflow ovfBxOverride = Q::ovfBx >
-concept CanConstructQFromScaled = requires {
-    { Q::template fromScaled<scaledValue, ovfBxOverride> } -> std::same_as<Q const &>;  // false if expression cannot be compiled
-};
-
-/// Concept which checks whether an instance of a given Q type can be converted to an instance of a
-// given Sq type.
-template< class Q, class Sq, Overflow ovfBxOverride = Q::ovfBx >
-concept CanConvertQToSq = requires (Q q) {
-    { q.template toSq<Sq::realVMin, Sq::realVMax, ovfBxOverride>() } -> std::same_as<Sq>;  // false if expression cannot be compiled
-};
-
-/// Concept which checks whether an instance of a given Sq type can be converted to an instance of a
-/// given Q type.
-template< class Sq, class Q >
-concept CanConvertSqToQ = requires (Sq sq) {
-    { Q::template fromSq(sq) } -> std::same_as<Q>;  // false if expression cannot be compiled
-};
-
-/// Concept which checks whether an instance of a given Q type can be static_cast to an instance of
-/// another given Q type.
-/// \note If this returns false, try static_q_cast with an overflow override option.
-template< class QSrc, class QTarget >
-concept CanCastQToQ = requires (QSrc qSrc) {
-    { static_cast<QTarget>(qSrc) } -> std::same_as<QTarget>;  // false if expression cannot be compiled
-};
 
 }  // end of fpm
 /**\}*/

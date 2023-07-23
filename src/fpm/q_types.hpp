@@ -7,7 +7,7 @@
 
 #include "q.hpp"
 
-namespace fpm {
+namespace fpm::inline type {
 
 /* q types */
 

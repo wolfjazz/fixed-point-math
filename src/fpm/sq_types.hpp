@@ -7,7 +7,7 @@
 
 #include "sq.hpp"
 
-namespace fpm {
+namespace fpm::inline type {
 
 /* sq types */
 

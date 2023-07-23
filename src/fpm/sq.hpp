@@ -170,40 +170,36 @@ public:
     template< SqType SqRhs,
         /* deduced: */
         // common type is larger type, or unsigned type if same size, or type if same types
-        typename BaseTR = std::common_type_t<base_t, typename SqRhs::base_t>, scaling_t fR = std::max(SqRhs::f, f),
-        double realVMinR = realVMin + SqRhs::realVMin, double realVMaxR = realVMax + SqRhs::realVMax,
-        class SqResult = sq<BaseTR, fR, realVMinR, realVMaxR> >
-    requires (
-        details::RealLimitsInRangeOfBaseType<BaseTR, fR, realVMinR, realVMaxR>
-    )
+        std::integral BaseTR = std::common_type_t<base_t, typename SqRhs::base_t>, scaling_t fR = std::max(SqRhs::f, f),
+        double realVMinR = realVMin + SqRhs::realVMin, double realVMaxR = realVMax + SqRhs::realVMax >
+    requires details::RealLimitsInRangeOfBaseType<BaseTR, fR, realVMinR, realVMaxR>
     friend constexpr
     // Note: Passing lhs by value helps optimize chained a+b+c.
-    SqResult operator+(sq const lhs, SqRhs const &rhs) noexcept {
+    auto operator+(sq const lhs, SqRhs const &rhs) noexcept {
+        using SqResult = sq<BaseTR, fR, realVMinR, realVMaxR>;
+
         // add values
         auto result = s2s<BaseTR, f, SqResult::f>(lhs.value) + s2s<BaseTR, SqRhs::f, SqResult::f>(rhs.reveal());
+
         return SqResult( static_cast<SqResult::base_t>(result) );
     }
 
     /// Unary minus operator. Negates this type and its value.
-    /// \note A signed type can be negated if the corresponding INT_MIN value is not in the range of
-    /// the type. An unsigned type is promoted to a new type with a sized base integer that has twice
-    /// the size (e.g. u16 is promoted to i32).
+    /// \note A signed type can be negated if the corresponding INT_MIN value is not in the value
+    /// range of the type. An unsigned type is promoted to a new type with a sized base integer that
+    /// has twice the size (e.g. u16 is promoted to i32).
     /// \warning a +0.0 in the limits will be negated to -0.0 and vice versa. Note that two sq types
     ///          which differ only by the sign of the 0 in a limit are not equal by design!
     /// \returns a value of a new sq type with negated limits and value.
-    template< double realVMinR = -realVMax, double realVMaxR = -realVMin,
-        /* deduced: */
-        typename BaseTR = std::conditional_t< std::is_signed_v<base_t>,
+    template< /* deduced: */ double realVMinR = -realVMax, double realVMaxR = -realVMin,
+        std::integral BaseTR = std::conditional_t< std::is_signed_v<base_t>,
             base_t,  // signed type stays
             // unsigned type is promoted to signed type with twice the size
-            details::fit_signed_t<base_t, std::numeric_limits<base_t>::max()> >,
-        class SqResult = sq<BaseTR, f, realVMinR, realVMaxR> >
-    requires (
-        std::is_unsigned_v<base_t>
-        || std::is_signed_v<base_t> && vMin != std::numeric_limits<base_t>::min()
-    )
+            details::fit_signed_t<base_t, std::numeric_limits<base_t>::max()> > >
+    requires details::CanAbsolutize<base_t, vMin>
     constexpr
     auto operator-() const noexcept {
+        using SqResult = sq<BaseTR, f, realVMinR, realVMaxR>;
         return SqResult( static_cast<typename SqResult::base_t>(-value) );
     }
 
@@ -213,18 +209,18 @@ public:
     template< SqType SqRhs,
         /* deduced: */
         // common type is larger type, or unsigned type if same size, or type if same types
-        typename BaseTR = std::common_type_t<base_t, typename SqRhs::base_t>, scaling_t fR = std::max(SqRhs::f, f),
+        std::integral BaseTR = std::common_type_t<base_t, typename SqRhs::base_t>, scaling_t fR = std::max(SqRhs::f, f),
         double realVMinR = std::min(realVMin - SqRhs::realVMax, SqRhs::realVMin - realVMax),
-        double realVMaxR = std::max(realVMax - SqRhs::realVMin, SqRhs::realVMax - realVMin),
-        class SqResult = sq<BaseTR, fR, realVMinR, realVMaxR> >
-    requires (
-        details::RealLimitsInRangeOfBaseType<BaseTR, fR, realVMinR, realVMaxR>
-    )
+        double realVMaxR = std::max(realVMax - SqRhs::realVMin, SqRhs::realVMax - realVMin) >
+    requires details::RealLimitsInRangeOfBaseType<BaseTR, fR, realVMinR, realVMaxR>
     friend constexpr
     // Note: Passing lhs by value helps optimize chained a-b-c.
-    SqResult operator-(sq const lhs, SqRhs const &rhs) noexcept {
+    auto operator-(sq const lhs, SqRhs const &rhs) noexcept {
+        using SqResult = sq<BaseTR, fR, realVMinR, realVMaxR>;
+
         // subtract rhs value from lhs value
         auto result = s2s<BaseTR, f, SqResult::f>(lhs.value) - s2s<BaseTR, SqRhs::f, SqResult::f>(rhs.reveal());
+
         return SqResult( static_cast<SqResult::base_t>(result) );
     }
 
@@ -238,18 +234,16 @@ public:
     template< SqType SqRhs,
         /* deduced: */
         // common type is larger type, or unsigned type if same size, or type if same types
-        typename BaseTR = std::common_type_t<base_t, typename SqRhs::base_t>, scaling_t fR = std::max(SqRhs::f, f),
+        std::integral BaseTR = std::common_type_t<base_t, typename SqRhs::base_t>, scaling_t fR = std::max(SqRhs::f, f),
         double realVMinR = std::min(std::min(realVMin * SqRhs::realVMax, SqRhs::realVMin * realVMax),
                                     std::min(realVMin * SqRhs::realVMin, realVMax * SqRhs::realVMax)),
         double realVMaxR = std::max(std::max(realVMax * SqRhs::realVMin, SqRhs::realVMax * realVMin),
-                                    std::max(realVMin * SqRhs::realVMin, realVMax * SqRhs::realVMax)),
-        typename SqResult = sq<BaseTR, fR, realVMinR, realVMaxR> >
-    requires (
-        details::RealLimitsInRangeOfBaseType<BaseTR, fR, realVMinR, realVMaxR>
-    )
+                                    std::max(realVMin * SqRhs::realVMin, realVMax * SqRhs::realVMax)) >
+    requires details::RealLimitsInRangeOfBaseType<BaseTR, fR, realVMinR, realVMaxR>
     friend constexpr
     // Note: Passing lhs by value helps optimize chained a*b*c.
-    SqResult operator*(sq const lhs, SqRhs const &rhs) noexcept {
+    auto operator*(sq const lhs, SqRhs const &rhs) noexcept {
+        using SqResult = sq<BaseTR, fR, realVMinR, realVMaxR>;
         using interm_m_t = interm_t<BaseTR>;
 
         // multiply lhs with rhs in intermediate type and correct scaling to obtain result
@@ -304,6 +298,13 @@ private:
     )
     friend class q;
 
+    // friend abs() function so that it can access the private members of this type to construct new
+    // variants of it
+    template< SqType Sq, std::integral BaseTR, double realVMinR, double realVMaxR >
+    requires details::CanAbsolutize<typename Sq::base_t, Sq::vMin>
+    friend constexpr
+    auto abs(Sq const &sqValue) noexcept;
+
     /// scaled integer value that represents a fixed-point value; stored in memory
     base_t const value;
 };
@@ -338,6 +339,22 @@ SqC safe_sq_cast(SqFrom from) noexcept {
     return static_cast<SqC>(from);
 }
 
+/// Takes the absolute value of the given sq value.
+/// \note The absolute value of a signed type can be taken if the corresponding INT_MIN value is
+/// not in the value range of the sq type.
+/// \returns a new unsigned sq type with a modified range that holds the absolute value.
+template< /* deduced: */ SqType Sq,
+    std::integral BaseTR = std::make_unsigned_t<typename Sq::base_t>,
+    double realVMinR = (std::is_signed_v<typename Sq::base_t> && Sq::vMin < 0 && Sq::vMax > 0)
+        ? 0.0  // use 0 as new minimum if signed input type has a range of negative and positive values
+        : std::min(details::abs((double)Sq::realVMin), details::abs((double)Sq::realVMax)),
+    double realVMaxR = std::max(details::abs((double)Sq::realVMin), details::abs((double)Sq::realVMax)) >
+requires details::CanAbsolutize<typename Sq::base_t, Sq::vMin>
+constexpr
+auto abs(Sq const &of) noexcept {
+    return sq<BaseTR, Sq::f, realVMinR, realVMaxR>( std::abs(of.value) );
+}
+
 /// Converts a literal integer into the corresponding best-fit sq type.
 /// Best-fit means that the literal integer represents both limits and the value.
 template< std::integral BaseT, scaling_t f, char ...charArray >
@@ -348,24 +365,6 @@ consteval auto sqFromLiteral() {
     constexpr double value = static_cast<double>( details::charArrayTo<BaseT, length>(chars) );
     return sq<BaseT, f, value, value>::template fromReal<value>;
 }
-
-/// Checks whether a value with the given Sq type can be constructed from the given real value.
-template< class Sq, double realValue >
-concept CanConstructSqFromReal = requires {
-    { Sq::template fromReal<realValue> } -> std::same_as<Sq const &>;  // false if expression cannot be compiled
-};
-
-/// Checks whether a value with the given Sq type can be constructed from the given scaled value.
-template< class Sq, Sq::base_t scaledValue >
-concept CanConstructSqFromScaled = requires {
-    { Sq::template fromScaled<scaledValue> } -> std::same_as<Sq const &>;  // false if expression cannot be compiled
-};
-
-/// Checks whether a value of the given sq type can be negated.
-template< class Sq >
-concept CanNegateSq = requires (Sq sq) {
-    { (-sq, true) } -> std::same_as<bool>;  // false if expression cannot be compiled
-};
 
 }  // end of fpm
 /**\}*/

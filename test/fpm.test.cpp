@@ -26,22 +26,15 @@ protected:
 TEST_F(InternalTest, abs__signed_positive__returns_unsigned_positive) {
     auto result = details::abs((int)+36);
 
-    ASSERT_TRUE((std::is_same_v<unsigned int, decltype(result)>));
+    ASSERT_TRUE((std::is_same_v<int, decltype(result)>));
     ASSERT_EQ(+36u, result);
 }
 
 TEST_F(InternalTest, abs__signed_negative__returns_unsigned_positive) {
     auto result = details::abs((int)-36);
 
-    ASSERT_TRUE((std::is_same_v<unsigned int, decltype(result)>));
+    ASSERT_TRUE((std::is_same_v<int, decltype(result)>));
     ASSERT_EQ(+36u, result);
-}
-
-TEST_F(InternalTest, abs__signed_negative_min__returns_unsigned_positive) {
-    auto result = details::abs(std::numeric_limits<int>::min());
-
-    ASSERT_TRUE((std::is_same_v<unsigned int, decltype(result)>));
-    ASSERT_EQ((unsigned)std::numeric_limits<int>::max() + 1u, result);
 }
 
 

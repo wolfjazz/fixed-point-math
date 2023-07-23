@@ -7,7 +7,32 @@
 #include <iostream>
 
 #include <fpm.hpp>
-using namespace fpm;
+using namespace fpm::type;
+
+
+/// Test concept to checks whether a value with the given Sq type can be constructed from the given real value.
+template< class Sq, double realValue >
+concept CanConstructSqFromReal = requires {
+    { Sq::template fromReal<realValue> } -> std::same_as<Sq const &>;  // false if expression cannot be compiled
+};
+
+/// Checks whether a value with the given Sq type can be constructed from the given scaled value.
+template< class Sq, Sq::base_t scaledValue >
+concept CanConstructSqFromScaled = requires {
+    { Sq::template fromScaled<scaledValue> } -> std::same_as<Sq const &>;  // false if expression cannot be compiled
+};
+
+/// Checks whether a value of the given sq type can be negated.
+template< class Sq >
+concept CanNegateSq = requires (Sq sq) {
+    { (-sq, true) } -> std::same_as<bool>;  // false if expression cannot be compiled
+};
+
+/// Checks whether the absolute value of the given sq type can be taken.
+template< class Sq >
+concept CanAbsolutizeSq = requires (Sq sq) {
+    { (abs(sq), true) } -> std::same_as<bool>;  // false if expression cannot be compiled
+};
 
 
 // ////////////////////////////////////////////////////////////////////////////////////////////// //
@@ -401,8 +426,20 @@ TEST_F(SQTest_Unary, sq_unary_minus__some_signed_negative_value__negated_value_a
     ASSERT_NEAR(-a.toReal(), b.toReal(), i16sq4_t::resolution);
 }
 
-TEST_F(SQTest_Unary, sq_unary_minus__some_signed_value_with_lowest_limit__does_not_compile) {
-    using i16sq4_t = i16sq4<>;  // use full range
+TEST_F(SQTest_Unary, sq_unary_minus__some_signed_value_with_full_range__negated_value_and_same_limits) {
+    using i16sq4_t = i16sq4<>;  // use full symmetric range
+    EXPECT_TRUE(( CanNegateSq< i16sq4_t > ));
+
+    auto a = i16sq4_t::fromReal<-2047.9375>;
+    auto b = -a;
+
+    ASSERT_TRUE((std::is_same_v<decltype(a), decltype(b)>));
+    ASSERT_NEAR(-a.toReal(), b.toReal(), i16sq4_t::resolution);
+}
+
+TEST_F(SQTest_Unary, sq_unary_minus__some_signed_type_with_intmin__does_not_compile) {
+    constexpr double absoluteMinValue = fpm::v2s<double, -4>( std::numeric_limits<int16_t>::min() );
+    using i16sq4_t = i16sq4< absoluteMinValue, i16sq4<>::realVMax >;
 
     ASSERT_FALSE(( CanNegateSq< i16sq4_t > ));
 }
@@ -433,6 +470,57 @@ TEST_F(SQTest_Unary, sq_unary_minus__some_unsigned_literal__negated_value_and_li
     using expected_result_t = i32sq7<-356.,-356.>;
     ASSERT_TRUE((std::is_same_v<expected_result_t, decltype(a)>));
     ASSERT_NEAR(-356., a.toReal(), expected_result_t::resolution);
+}
+
+TEST_F(SQTest_Unary, sq_unary_abs__some_signed_negative_value__absolute_value_and_limits) {
+    using i16sq4_t = i16sq4<>;  // use full symmetric range
+    EXPECT_TRUE(( CanAbsolutizeSq< i16sq4_t > ));
+
+    auto a = i16sq4_t::fromReal<-1897.6>;
+    auto b = fpm::abs(a);  // qualified lookup
+    auto c = abs(a);  // unqualified lookup (argument-dependent lookup, ADL)
+
+    using expected_result_t = u16sq4< 0., i16sq4<>::realVMax >;
+    ASSERT_TRUE((std::is_same_v<expected_result_t, decltype(b)>));
+    ASSERT_TRUE((std::is_same_v<expected_result_t, decltype(c)>));
+    ASSERT_NEAR(std::abs(a.toReal()), b.toReal(), expected_result_t::resolution);
+    ASSERT_NEAR(std::abs(a.toReal()), c.toReal(), expected_result_t::resolution);
+}
+
+TEST_F(SQTest_Unary, sq_unary_abs__some_signed_positive_value__same_value_absolute_limits) {
+    using i16sq4_t = i16sq4<>;  // use full symmetric range
+    EXPECT_TRUE(( CanAbsolutizeSq< i16sq4_t > ));
+
+    auto a = i16sq4_t::fromReal<+1897.6>;
+    auto b = fpm::abs(a);  // qualified lookup
+    auto c = abs(a);  // unqualified lookup (argument-dependent lookup, ADL)
+
+    using expected_result_t = u16sq4< 0., i16sq4<>::realVMax >;
+    ASSERT_TRUE((std::is_same_v<expected_result_t, decltype(b)>));
+    ASSERT_TRUE((std::is_same_v<expected_result_t, decltype(c)>));
+    ASSERT_NEAR(a.toReal(), b.toReal(), expected_result_t::resolution);
+    ASSERT_NEAR(a.toReal(), c.toReal(), expected_result_t::resolution);
+}
+
+TEST_F(SQTest_Unary, sq_unary_abs__some_signed_type_with_intmin__does_not_compile) {
+    constexpr double absoluteMinValue = fpm::v2s<double, -8>( std::numeric_limits<int32_t>::min() );
+    using i32sq8_t = i32sq8< absoluteMinValue, i32sq8<>::realVMax >;
+
+    ASSERT_FALSE(( CanAbsolutizeSq< i32sq8_t > ));
+}
+
+TEST_F(SQTest_Unary, sq_unary_abs__some_unsigned_value__same_value_and_limits) {
+    using u16sq4_t = u16sq4<0., 2000.>;
+    EXPECT_TRUE(( CanAbsolutizeSq< u16sq4_t > ));
+
+    auto a = u16sq4_t::fromReal<1563.77>;
+    auto b = fpm::abs(a);  // qualified lookup
+    auto c = abs(a);  // unqualified lookup (argument-dependent lookup, ADL)
+
+    ASSERT_TRUE((std::is_same_v<u16sq4_t, decltype(b)>));
+    ASSERT_TRUE((std::is_same_v<u16sq4_t, decltype(c)>));
+    ASSERT_NEAR(a.toReal(), b.toReal(), u16sq4_t::resolution);
+    ASSERT_NEAR(a.toReal(), c.toReal(), u16sq4_t::resolution);
 }
 
 
