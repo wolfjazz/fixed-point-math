@@ -355,14 +355,15 @@ auto abs(Sq const &of) noexcept {
     return sq<BaseTR, Sq::f, realVMinR, realVMaxR>( std::abs(of.value) );
 }
 
-/// Converts a literal integer into the corresponding best-fit sq type.
-/// Best-fit means that the literal integer represents both limits and the value.
+/// Converts a literal number into the corresponding best-fit sq type.
+/// Best-fit means that the literal number represents both limits and the value.
 template< std::integral BaseT, scaling_t f, char ...charArray >
 consteval auto sqFromLiteral() {
     constexpr std::size_t length = sizeof...(charArray);
     constexpr char chars[length]{ charArray... };
-    static_assert(std::all_of(chars, chars + length, [](char c) { return isdigit(c); }), "The argument to _sq must be a positive integer");
-    constexpr double value = static_cast<double>( details::charArrayTo<BaseT, length>(chars) );
+    static_assert(std::all_of(chars, chars + length, [](char c) { return isdigit(c) || '.' == c; }),
+        "The argument to sq_literal must be a positive integer or double");
+    constexpr double value = details::charArrayToDouble<length>(chars);
     return sq<BaseT, f, value, value>::template fromReal<value>;
 }
 

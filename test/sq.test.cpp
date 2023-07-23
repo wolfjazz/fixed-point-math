@@ -169,17 +169,17 @@ TEST_F(SQTest_Construct, sq_downscale_copy_constructor__int16_someF__int16_small
 }
 
 TEST_F(SQTest_Construct, sq_copy_constructor__int16_someF_literal__int16_sameF) {
-    auto a = i16sq4_2k::fromSq(1024_i16sq4);
-    i16sq4_2k b = 1024_i16sq4;
+    auto a = i16sq4_2k::fromSq(1024.12_i16sq4);
+    i16sq4_2k b = 1024.12_i16sq4;
 
-    ASSERT_NEAR((1024_i16sq4).toReal(), a.toReal(), i16sq4_2k::resolution);
-    ASSERT_NEAR((1024_i16sq4).toReal(), b.toReal(), i16sq4_2k::resolution);
+    ASSERT_NEAR((1024.12_i16sq4).toReal(), a.toReal(), i16sq4_2k::resolution);
+    ASSERT_NEAR((1024.12_i16sq4).toReal(), b.toReal(), i16sq4_2k::resolution);
 }
 
 TEST_F(SQTest_Construct, sq_move_constructor__int16_someF_literal__int16_sameF) {
-    i16sq4_2k a = std::move(1024_i16sq4);
+    i16sq4_2k a = std::move(1024.12_i16sq4);
 
-    ASSERT_NEAR((1024_i16sq4).toReal(), a.toReal(), i16sq4_2k::resolution);
+    ASSERT_NEAR((1024.12_i16sq4).toReal(), a.toReal(), i16sq4_2k::resolution);
 }
 
 TEST_F(SQTest_Construct, sq_upscale_copy_constructor__int16_someF_literal__int16_largerF) {
@@ -465,11 +465,11 @@ TEST_F(SQTest_Unary, sq_unary_minus__some_signed_literal__negated_value_and_limi
 }
 
 TEST_F(SQTest_Unary, sq_unary_minus__some_unsigned_literal__negated_value_and_limits) {
-    auto a = -356_u16sq7;
+    auto a = -356.78_u16sq7;
 
-    using expected_result_t = i32sq7<-356.,-356.>;
+    using expected_result_t = i32sq7<-356.78,-356.78>;
     ASSERT_TRUE((std::is_same_v<expected_result_t, decltype(a)>));
-    ASSERT_NEAR(-356., a.toReal(), expected_result_t::resolution);
+    ASSERT_NEAR(-356.78, a.toReal(), expected_result_t::resolution);
 }
 
 TEST_F(SQTest_Unary, sq_unary_abs__some_signed_negative_value__absolute_value_and_limits) {

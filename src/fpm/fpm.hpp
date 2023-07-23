@@ -8,7 +8,6 @@
 #include <algorithm>
 #include <cassert>
 #include <cctype>
-#include <climits>
 #include <cmath>
 #include <cstdint>
 #include <limits>
@@ -153,27 +152,19 @@ namespace details {
         else { /* Overflow::allowed, Overflow::noCheck: no checks performed */ }
     }
 
-    /// Converts a given digit c in character representation into an integer of the given type.
-    // The digit will be multiplied by the given power of 10 before it is returned.
-    template< std::integral T >
-    consteval T charDigitTo(char c, std::size_t power = 0u) {
-        T result = c - '0';
-        for (size_t i = 0u; i < power; ++i) {
-            result *= 10;
+    /// Converts a given character array into a double.
+    template< std::size_t size >
+    requires ( size > 0u && size <= std::numeric_limits<double>::max_digits10 )
+    consteval double charArrayToDouble(char const chars[size]) {
+        double number = 0.;
+        double fScale = 1.;
+        for (size_t i = 0u; i < size; ++i) {
+            if (chars[i] == '.') { fScale = 0.1; continue; }
+            int d = chars[i] - '0';
+            if (fScale > 0.5) { number = number*10 + (double)d; }
+            else { number += (double)d*fScale; fScale /= 10; }
         }
-        return result;
-    }
-
-    /// Converts a given character array into an integral number of the given type.
-    template< std::integral T, std::size_t size, /* internal: */ std::size_t digit = size >
-    requires ( size > 0u && digit <= size )
-    consteval T charArrayTo(const char chars[size]) {
-        if constexpr (digit == 0) {
-            return 0;
-        }
-        else {
-            return charDigitTo<T>(chars[size - digit], digit-1) + charArrayTo<T, size, digit-1>(chars);
-        }
+        return number;
     }
 
     /// Helper that fits the smallest signed integral type that fits the given value.
