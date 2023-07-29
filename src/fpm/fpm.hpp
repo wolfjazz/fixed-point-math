@@ -11,6 +11,7 @@
 #include <cmath>
 #include <cstdint>
 #include <limits>
+#include <numeric>
 #include <type_traits>
 #include <utility>
 
@@ -152,13 +153,18 @@ namespace details {
         else { /* Overflow::allowed, Overflow::noCheck: no checks performed */ }
     }
 
-    /// Converts a given character array into a double.
-    template< std::size_t size >
-    requires ( size > 0u && size <= std::numeric_limits<double>::digits10 )
-    consteval double charArrayToDouble(char const chars[size]) {
+    /// Converts a given character array into a double value.
+    template< char ...charArray >
+    consteval double doubleFromLiteral() {
+        constexpr std::size_t length = sizeof...(charArray);
+        constexpr char chars[length]{ charArray... };
+        static_assert(length > 0u && length <= std::numeric_limits<double>::digits10
+            && std::all_of(chars, chars + length, [](char c) { return isdigit(c) || '.' == c; })
+            && std::accumulate(chars, chars + length, 0, [](int count, char c) { return c == '.' ? count+1 : count; }) <= 1,
+            "The argument to _literal must be a positive integer or double");
         double number = 0.;
         double fScale = 1.;
-        for (size_t i = 0u; i < size; ++i) {
+        for (size_t i = 0u; i < length; ++i) {
             if (chars[i] == '.') { fScale = 0.1; continue; }
             int d = chars[i] - '0';
             if (fScale > 0.5) { number = number*10 + (double)d; }

@@ -359,11 +359,7 @@ auto abs(Sq const &of) noexcept {
 /// Best-fit means that the literal number represents both limits and the value.
 template< std::integral BaseT, scaling_t f, char ...charArray >
 consteval auto sqFromLiteral() {
-    constexpr std::size_t length = sizeof...(charArray);
-    constexpr char chars[length]{ charArray... };
-    static_assert(std::all_of(chars, chars + length, [](char c) { return isdigit(c) || '.' == c; }),
-        "The argument to sq_literal must be a positive integer or double");
-    constexpr double value = details::charArrayToDouble<length>(chars);
+    constexpr double value = details::doubleFromLiteral<charArray...>();
     return sq<BaseT, f, value, value>::template fromReal<value>;
 }
 
