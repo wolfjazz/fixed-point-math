@@ -299,7 +299,7 @@ public:
         return QC( static_cast<QC::base_t>(cValue) );
     }
 
-    /// Conversion to the related sq type.
+    /// Explicit conversion to the related sq type.
     template< double realVMinSq = realVMin, double realVMaxSq = realVMax, Overflow ovfBxOverride = ovfBx,
         /* deduced: */
         class SqTo = sq<realVMinSq, realVMaxSq>,
@@ -432,6 +432,32 @@ constexpr
 QC force_q_cast(QFrom from) noexcept {
     return QC::template construct<Overflow::noCheck>( static_cast<QC::base_t>(from.reveal()) );
 }
+
+/// Helper operations for mixed Sq and Q types.
+///\{
+// All template arguments are deduced.
+
+// Unary operations
+template< QType Q > constexpr auto operator+(Q const &q) noexcept { return +q.toSq(); }
+template< QType Q > constexpr auto operator-(Q const &q) noexcept { return -q.toSq(); }
+template< QType Q > constexpr auto abs(Q const &q) noexcept { return fpm::abs( q.toSq() ); }
+
+// Addition operator
+template< QType Q, SqType Sq > constexpr auto operator+(Q const q, Sq const &sq) noexcept { return q.toSq() + sq; }
+template< QType Q, SqType Sq > constexpr auto operator+(Sq const sq, Q const &q) noexcept { return sq + q.toSq(); }
+template< QType Q1, QType Q2 > constexpr auto operator+(Q1 const q1, Q2 const &q2) noexcept { return q1.toSq() + q2.toSq(); }
+
+// Subtraction operator
+template< QType Q, SqType Sq > constexpr auto operator-(Q const q, Sq const &sq) noexcept { return q.toSq() - sq; }
+template< QType Q, SqType Sq > constexpr auto operator-(Sq const sq, Q const &q) noexcept { return sq - q.toSq(); }
+template< QType Q1, QType Q2 > constexpr auto operator-(Q1 const q1, Q2 const &q2) noexcept { return q1.toSq() - q2.toSq(); }
+
+// Multiplication operator
+template< QType Q, SqType Sq > constexpr auto operator*(Q const q, Sq const &sq) noexcept { return q.toSq() * sq; }
+template< QType Q, SqType Sq > constexpr auto operator*(Sq const sq, Q const &q) noexcept { return sq * q.toSq(); }
+template< QType Q1, QType Q2 > constexpr auto operator*(Q1 const q1, Q2 const &q2) noexcept { return q1.toSq() * q2.toSq(); }
+
+///\}
 
 /// Converts a literal number into the corresponding best-fit q type.
 /// Best-fit means that the literal number represents both limits and the value.

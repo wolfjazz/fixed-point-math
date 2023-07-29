@@ -157,7 +157,7 @@ public:
         return SqC(cValue);
     }
 
-    /// Unary plus operator. Integral promotion does not make any sense, so this performs no operation.
+    /// Unary plus operator. Integral promotion does not make any sense, so this just creates a copy.
     /// \returns a copy of the value with the same type.
     constexpr
     sq operator+() const noexcept {
@@ -167,8 +167,7 @@ public:
     /// Adds two sq values.
     /// \returns a value of a new sq type with the larger scaling (higher precision) and the user value
     /// ranges added together. If the base types are different, integral promotion rules will be applied.
-    template< SqType SqRhs,
-        /* deduced: */
+    template< /* deduced: */ SqType SqRhs,
         // common type is larger type, or unsigned type if same size, or type if same types
         std::integral BaseTR = std::common_type_t<base_t, typename SqRhs::base_t>, scaling_t fR = std::max(SqRhs::f, f),
         double realVMinR = realVMin + SqRhs::realVMin, double realVMaxR = realVMax + SqRhs::realVMax >
@@ -206,8 +205,7 @@ public:
     /// Subtracts the rhs value from the lhs value.
     /// \returns a value of a new sq type with the larger scaling (higher precision) and the user value
     /// ranges subtracted. If the base types are different, integral promotion rules will be applied.
-    template< SqType SqRhs,
-        /* deduced: */
+    template< /* deduced: */ SqType SqRhs,
         // common type is larger type, or unsigned type if same size, or type if same types
         std::integral BaseTR = std::common_type_t<base_t, typename SqRhs::base_t>, scaling_t fR = std::max(SqRhs::f, f),
         double realVMinR = std::min(realVMin - SqRhs::realVMax, SqRhs::realVMin - realVMax),
@@ -231,8 +229,7 @@ public:
     ///       the real error is of order O( n * x^(n-1) * 2^-q ). For example, for a chain x*x*x
     ///       the real error is of order O( 3*x^2 * 2^-q ). Higher terms O( 2^-mq ), m > 1 do occur
     ///       for such chains, but are very close to 0 for larger q and can usually be ignored.
-    template< SqType SqRhs,
-        /* deduced: */
+    template< /* deduced: */ SqType SqRhs,
         // common type is larger type, or unsigned type if same size, or type if same types
         std::integral BaseTR = std::common_type_t<base_t, typename SqRhs::base_t>, scaling_t fR = std::max(SqRhs::f, f),
         double realVMinR = std::min(std::min(realVMin * SqRhs::realVMax, SqRhs::realVMin * realVMax),

@@ -384,7 +384,7 @@ protected:
     }
 };
 
-TEST_F(SQTest_Unary, sq_unary_plus__some_signed_value__same_value_and_limits) {
+TEST_F(SQTest_Unary, sq_unary_plus__some_signed_sq_value__same_value_and_limits) {
     using i16sq4_t = i16sq4<-1000., 2000.>;
     auto a = i16sq4_t::fromReal<1567.89>;
     auto b = +a;
@@ -393,7 +393,7 @@ TEST_F(SQTest_Unary, sq_unary_plus__some_signed_value__same_value_and_limits) {
     ASSERT_NEAR(a.toReal(), b.toReal(), i16sq4_t::resolution);
 }
 
-TEST_F(SQTest_Unary, sq_unary_plus__some_unsigned_value__same_value_and_limits) {
+TEST_F(SQTest_Unary, sq_unary_plus__some_unsigned_sq_value__same_value_and_limits) {
     using u16sq4_t = u16sq4<0., 2000.>;
     auto a = u16sq4_t::fromReal<1567.89>;
     auto b = +a;
@@ -402,7 +402,16 @@ TEST_F(SQTest_Unary, sq_unary_plus__some_unsigned_value__same_value_and_limits) 
     ASSERT_NEAR(a.toReal(), b.toReal(), (std::numeric_limits<double>::epsilon()));
 }
 
-TEST_F(SQTest_Unary, sq_unary_minus__some_signed_positive_value__negated_value_and_limits) {
+TEST_F(SQTest_Unary, sq_unary_plus__some_signed_q_value__sq_with_same_value_and_limits) {
+    using i16q4_t = i16q4<-1000., 2000.>;
+    auto a = i16q4_t::fromReal<-567.89>;
+    auto b = +a;
+
+    ASSERT_TRUE(( std::is_same_v< i16q4_t::sq<>, decltype(b) > ));
+    ASSERT_NEAR(a.toReal(), b.toReal(), (std::numeric_limits<double>::epsilon()));
+}
+
+TEST_F(SQTest_Unary, sq_unary_minus__some_signed_positive_sq_value__negated_value_and_limits) {
     using i16sq4_t = i16sq4<-500., 1000.>;
     EXPECT_TRUE(( CanNegateSq< i16sq4_t > ));
 
@@ -414,7 +423,7 @@ TEST_F(SQTest_Unary, sq_unary_minus__some_signed_positive_value__negated_value_a
     ASSERT_NEAR(-a.toReal(), b.toReal(), i16sq4_t::resolution);
 }
 
-TEST_F(SQTest_Unary, sq_unary_minus__some_signed_negative_value__negated_value_and_limits) {
+TEST_F(SQTest_Unary, sq_unary_minus__some_signed_negative_sq_value__negated_value_and_limits) {
     using i16sq4_t = i16sq4<-500., 1000.>;
     EXPECT_TRUE(( CanNegateSq< i16sq4_t > ));
 
@@ -426,7 +435,7 @@ TEST_F(SQTest_Unary, sq_unary_minus__some_signed_negative_value__negated_value_a
     ASSERT_NEAR(-a.toReal(), b.toReal(), i16sq4_t::resolution);
 }
 
-TEST_F(SQTest_Unary, sq_unary_minus__some_signed_value_with_full_range__negated_value_and_same_limits) {
+TEST_F(SQTest_Unary, sq_unary_minus__some_signed_sq_value_with_full_range__negated_value_and_same_limits) {
     using i16sq4_t = i16sq4<>;  // use full symmetric range
     EXPECT_TRUE(( CanNegateSq< i16sq4_t > ));
 
@@ -437,14 +446,14 @@ TEST_F(SQTest_Unary, sq_unary_minus__some_signed_value_with_full_range__negated_
     ASSERT_NEAR(-a.toReal(), b.toReal(), i16sq4_t::resolution);
 }
 
-TEST_F(SQTest_Unary, sq_unary_minus__some_signed_type_with_intmin__does_not_compile) {
+TEST_F(SQTest_Unary, sq_unary_minus__some_signed_sq_type_with_intmin__does_not_compile) {
     constexpr double absoluteMinValue = fpm::v2s<double, -4>( std::numeric_limits<int16_t>::min() );
     using i16sq4_t = i16sq4< absoluteMinValue, i16sq4<>::realVMax >;
 
     ASSERT_FALSE(( CanNegateSq< i16sq4_t > ));
 }
 
-TEST_F(SQTest_Unary, sq_unary_minus__some_unsigned_value__negated_value_and_limits) {
+TEST_F(SQTest_Unary, sq_unary_minus__some_unsigned_sq_value__negated_value_and_limits) {
     using u16sq4_t = u16sq4<>;  // use full range
     EXPECT_TRUE(( CanNegateSq< u16sq4_t > ));
 
@@ -456,7 +465,16 @@ TEST_F(SQTest_Unary, sq_unary_minus__some_unsigned_value__negated_value_and_limi
     ASSERT_NEAR(-a.toReal(), b.toReal(), u16sq4_t::resolution);
 }
 
-TEST_F(SQTest_Unary, sq_unary_minus__some_signed_literal__negated_value_and_limits) {
+TEST_F(SQTest_Unary, sq_unary_minus__some_signed_q_value__sq_with_negated_value_and_limits) {
+    using i16q4_t = i16q4<-1000., 2000.>;
+    auto a = i16q4_t::fromReal<-567.89>;
+    auto b = -a;
+
+    ASSERT_TRUE(( std::is_same_v< i16sq4<-2000., 1000.>, decltype(b) > ));
+    ASSERT_NEAR(-a.toReal(), b.toReal(), (std::numeric_limits<double>::epsilon()));
+}
+
+TEST_F(SQTest_Unary, sq_unary_minus__some_signed_sq_literal__negated_value_and_limits) {
     auto a = -567_i32sq7;
 
     using expected_result_t = i32sq7<-567.,-567.>;
@@ -464,7 +482,7 @@ TEST_F(SQTest_Unary, sq_unary_minus__some_signed_literal__negated_value_and_limi
     ASSERT_NEAR(-567., a.toReal(), expected_result_t::resolution);
 }
 
-TEST_F(SQTest_Unary, sq_unary_minus__some_unsigned_literal__negated_value_and_limits) {
+TEST_F(SQTest_Unary, sq_unary_minus__some_unsigned_sq_literal__negated_value_and_limits) {
     auto a = -356.78_u16sq7;
 
     using expected_result_t = i32sq7<-356.78,-356.78>;
@@ -472,7 +490,7 @@ TEST_F(SQTest_Unary, sq_unary_minus__some_unsigned_literal__negated_value_and_li
     ASSERT_NEAR(-356.78, a.toReal(), expected_result_t::resolution);
 }
 
-TEST_F(SQTest_Unary, sq_unary_abs__some_signed_negative_value__absolute_value_and_limits) {
+TEST_F(SQTest_Unary, sq_unary_abs__some_signed_negative_sq_value__absolute_value_and_limits) {
     using i16sq4_t = i16sq4<>;  // use full symmetric range
     EXPECT_TRUE(( CanAbsolutizeSq< i16sq4_t > ));
 
@@ -487,7 +505,7 @@ TEST_F(SQTest_Unary, sq_unary_abs__some_signed_negative_value__absolute_value_an
     ASSERT_NEAR(std::abs(a.toReal()), c.toReal(), expected_result_t::resolution);
 }
 
-TEST_F(SQTest_Unary, sq_unary_abs__some_signed_positive_value__same_value_absolute_limits) {
+TEST_F(SQTest_Unary, sq_unary_abs__some_signed_positive_sq_value__same_value_absolute_limits) {
     using i16sq4_t = i16sq4<>;  // use full symmetric range
     EXPECT_TRUE(( CanAbsolutizeSq< i16sq4_t > ));
 
@@ -502,14 +520,14 @@ TEST_F(SQTest_Unary, sq_unary_abs__some_signed_positive_value__same_value_absolu
     ASSERT_NEAR(a.toReal(), c.toReal(), expected_result_t::resolution);
 }
 
-TEST_F(SQTest_Unary, sq_unary_abs__some_signed_type_with_intmin__does_not_compile) {
+TEST_F(SQTest_Unary, sq_unary_abs__some_signed_sq_type_with_intmin__does_not_compile) {
     constexpr double absoluteMinValue = fpm::v2s<double, -8>( std::numeric_limits<int32_t>::min() );
     using i32sq8_t = i32sq8< absoluteMinValue, i32sq8<>::realVMax >;
 
     ASSERT_FALSE(( CanAbsolutizeSq< i32sq8_t > ));
 }
 
-TEST_F(SQTest_Unary, sq_unary_abs__some_unsigned_value__same_value_and_limits) {
+TEST_F(SQTest_Unary, sq_unary_abs__some_unsigned_sq_value__same_value_and_limits) {
     using u16sq4_t = u16sq4<0., 2000.>;
     EXPECT_TRUE(( CanAbsolutizeSq< u16sq4_t > ));
 
@@ -521,6 +539,20 @@ TEST_F(SQTest_Unary, sq_unary_abs__some_unsigned_value__same_value_and_limits) {
     ASSERT_TRUE((std::is_same_v<u16sq4_t, decltype(c)>));
     ASSERT_NEAR(a.toReal(), b.toReal(), u16sq4_t::resolution);
     ASSERT_NEAR(a.toReal(), c.toReal(), u16sq4_t::resolution);
+}
+
+TEST_F(SQTest_Unary, sq_unary_abs__some_signed_q_value__absolute_sq_value_and_limits) {
+    using i16q4_t = i16q4<>;  // use full symmetric range
+
+    auto a = i16q4_t::fromReal<-1897.6>;
+    auto b = fpm::abs(a);  // qualified lookup
+    auto c = abs(a);  // unqualified lookup (argument-dependent lookup, ADL)
+
+    using expected_result_t = u16sq4< 0., i16sq4<>::realVMax >;
+    ASSERT_TRUE((std::is_same_v<expected_result_t, decltype(b)>));
+    ASSERT_TRUE((std::is_same_v<expected_result_t, decltype(c)>));
+    ASSERT_NEAR(std::abs(a.toReal()), b.toReal(), expected_result_t::resolution);
+    ASSERT_NEAR(std::abs(a.toReal()), c.toReal(), expected_result_t::resolution);
 }
 
 
@@ -538,7 +570,7 @@ protected:
     }
 };
 
-TEST_F(SQTest_Addition, sq_add__three_values_same_sq_type__values_added) {
+TEST_F(SQTest_Addition, sq_add__three_sq_values_same_sq_type__values_added) {
     using i32sq16_t = i32sq16<-10000., 10000.>;
     auto a = i32sq16_t::fromReal<5000.>;
     auto b = i32sq16_t::fromReal<-3333.>;
@@ -551,7 +583,7 @@ TEST_F(SQTest_Addition, sq_add__three_values_same_sq_type__values_added) {
     ASSERT_NEAR(3000., d.toReal(), 3*i32sq16_t::resolution);
 }
 
-TEST_F(SQTest_Addition, sq_add__three_values_different_sq_type__values_added_largest_resolution) {
+TEST_F(SQTest_Addition, sq_add__three_sq_values_different_sq_type__values_added_largest_resolution) {
     using i32sq16_t = i32sq16<-500., 500.>;
     using i32sq20_t = i32sq20<-300., 300.>;
     auto a = i32sq16_t::fromReal<-455.>;
@@ -563,6 +595,20 @@ TEST_F(SQTest_Addition, sq_add__three_values_different_sq_type__values_added_lar
     using expected_result_t = i32sq20_t::relimit_t<-1300., 1300.>;
     ASSERT_TRUE((std::is_same_v<expected_result_t, decltype(d)>));
     ASSERT_NEAR(-55., d.toReal(), 2*i32sq16_t::resolution + i32sq20_t::resolution);
+}
+
+TEST_F(SQTest_Addition, sq_add__three_q_values_different_q_type__values_added_to_sq_with_largest_resolution) {
+    using i32q16_t = i32q16<-500., 500.>;
+    using i32q20_t = i32q20<-300., 300.>;
+    auto a = i32q16_t::fromReal<-455.>;
+    auto b = i32q20_t::fromReal<233.>;
+    auto c = i32q16_t::fromReal<167.>;
+
+    auto d = a + b + c;
+
+    using expected_result_t = i32sq20<-1300., 1300.>;
+    ASSERT_TRUE((std::is_same_v<expected_result_t, decltype(d)>));
+    ASSERT_NEAR(-55., d.toReal(), 2*i32q16_t::resolution + i32q20_t::resolution);
 }
 
 
@@ -649,7 +695,7 @@ TEST_F(SQTest_Multiplication, sq_multiplicate__three_values_different_sq_type__v
     ASSERT_NEAR(170.8218812, d.toReal(), 26*i32sq16_t::resolution);
 }
 
-TEST_F(SQTest_Multiplication, sq_multiplicate__three_values_same_type_and_int_constant__values_multiplied) {
+TEST_F(SQTest_Multiplication, sq_multiplicate__three_values_same_type_one_int_sq_constant__values_multiplied) {
     using i32sq16_t = i32sq16<-8., 8.>;
     auto a = i32sq16_t::fromReal<  5.5 >;
     auto b = i32sq16_t::fromReal< -2.6 >;
@@ -665,6 +711,24 @@ TEST_F(SQTest_Multiplication, sq_multiplicate__three_values_same_type_and_int_co
     ASSERT_NEAR(-214.5, d.toReal(), 60*i32sq16_t::resolution);
     ASSERT_NEAR(-214.5, e.toReal(), 60*i32sq16_t::resolution);
     ASSERT_NEAR(-214.5, f.toReal(), 60*i32sq16_t::resolution);
+}
+
+TEST_F(SQTest_Multiplication, sq_multiplicate__two_values_same_type_and_int_q_constant__values_multiplied) {
+    using i32sq16_t = i32sq16<-8., 8.>;
+    auto a = i32sq16_t::fromReal<  5.5 >;
+    auto b = i32sq16_t::fromReal< -2.6 >;
+
+    auto d = a * b * 20.1_i32q16;
+    auto e = a * 20.1_i32q16 * b;
+    auto f = 20.1_i32q16 * a * b;
+
+    using expected_result_t = i32sq16_t::relimit_t<-1286.4, +1286.4>;
+    ASSERT_TRUE((std::is_same_v<expected_result_t, decltype(d)>));
+    ASSERT_TRUE((std::is_same_v<expected_result_t, decltype(e)>));
+    ASSERT_TRUE((std::is_same_v<expected_result_t, decltype(f)>));
+    ASSERT_NEAR(-287.43, d.toReal(), 100*i32sq16_t::resolution);
+    ASSERT_NEAR(-287.43, e.toReal(), 100*i32sq16_t::resolution);
+    ASSERT_NEAR(-287.43, f.toReal(), 100*i32sq16_t::resolution);
 }
 
 
