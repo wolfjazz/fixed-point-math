@@ -43,7 +43,7 @@ concept QType = requires (T t) {
 /// It's recommended to use -0 when a type is declared that has only negative numbers in its range.
 template<
     std::integral BaseT,  ///< type of the scaled integer stored in memory
-    scaling_t f_,         ///< number of fraction bits (precision 2^-f)
+    scaling_t f_,         ///< number of fraction bits (precision 2^(-f))
     double realVMin_ = details::lowestRealVMin<BaseT, f_>,   ///< minimum real value represented by this type
     double realVMax_ = details::highestRealVMax<BaseT, f_>,  ///< maximum real value represented by this type
     Overflow ovfBx_ = Overflow::forbidden  ///< overflow behavior; overflow is forbidden by default
@@ -76,6 +76,17 @@ public:
     /// Type alias for relimit::type.
     template< double newRealVMin, double newRealVMax, Overflow ovfBxOverride = ovfBx >
     using relimit_t = relimit<newRealVMin, newRealVMax, ovfBxOverride>::type;
+
+    // /// Re-limits the value at runtime. A value outside the new limits will be treated according to
+    // /// the overflow behavior of this class, unless overridden.
+    // template< double newRealVMin, double newRealVMax, Ovf ovfBxOverride = ovfBx,
+    //     /* deduced: */ QType QRelimited = relimit_t<newRealVMin, newRealVMax, ovfBxOverride> >
+    // constexpr
+    // QRelimited relimit_v() noexcept {
+    //     base_t newValue = value;
+    //     details::checkOverflow<ovfBxOverride, base_t>(newValue, QRelimited::vMin, QRelimited::vMax);
+    //     return QRelimited( newValue );
+    // }
 
     /// Named "constructor" from a runtime variable (lvalue) or a constant (rvalue).
     /// \note Overflow check is always included unless explicitly disabled.
@@ -456,6 +467,11 @@ template< QType Q1, QType Q2 > constexpr auto operator-(Q1 const q1, Q2 const &q
 template< QType Q, SqType Sq > constexpr auto operator*(Q const q, Sq const &sq) noexcept { return q.toSq() * sq; }
 template< QType Q, SqType Sq > constexpr auto operator*(Sq const sq, Q const &q) noexcept { return sq * q.toSq(); }
 template< QType Q1, QType Q2 > constexpr auto operator*(Q1 const q1, Q2 const &q2) noexcept { return q1.toSq() * q2.toSq(); }
+
+// Division operator
+template< QType Q, SqType Sq > constexpr auto operator/(Q const q, Sq const &sq) noexcept { return q.toSq() / sq; }
+template< QType Q, SqType Sq > constexpr auto operator/(Sq const sq, Q const &q) noexcept { return sq / q.toSq(); }
+template< QType Q1, QType Q2 > constexpr auto operator/(Q1 const q1, Q2 const &q2) noexcept { return q1.toSq() / q2.toSq(); }
 
 ///\}
 

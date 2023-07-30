@@ -423,6 +423,14 @@ namespace details {
         && (std::is_unsigned_v<BaseT> || (std::is_signed_v<BaseT> && vMin != std::numeric_limits<BaseT>::min()))
     );
 
+    /** Concept: Checks whether the given (S)Q-Type can be used as divisor in a division.
+     * \note If this fails, the given type has parts of -1 > x < +1 in its range. This is not allowed.
+     *       Limit the type to a range that excludes values between -1 and +1. */
+    template< typename T >
+    concept CanBeUsedAsDivisor = (
+        T::realVMax <= -1. || T::realVMin >= +1.
+    );
+
 }  // end of details
 
 

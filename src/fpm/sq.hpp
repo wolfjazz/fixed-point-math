@@ -38,7 +38,7 @@ concept SqType = requires (T t) {
 /// It's recommended to use -0 when a type is declared that has only negative numbers in its range.
 template<
     std::integral BaseT,  ///< type of the scaled integer stored in memory
-    scaling_t f_,         ///< number of fraction bits (precision 2^-f)
+    scaling_t f_,         ///< number of fraction bits (precision 2^(-f))
     double realVMin_ = details::lowestRealVMin<BaseT, f_>,  ///< minimum real value represented by this type
     double realVMax_ = details::highestRealVMax<BaseT, f_>  ///< maximum real value represented by this type
 >
@@ -65,6 +65,17 @@ public:
     /// Type alias for relimit::type.
     template< double newRealVMin, double newRealVMax >
     using relimit_t = relimit<newRealVMin, newRealVMax>::type;
+
+    // /// Re-limits the value at runtime. A value outside the new limits will be treated according to
+    // /// the overflow behavior (default: saturation).
+    // template< double newRealVMin, double newRealVMax, Ovf ovfBxOverride = Ovf::saturate,
+    //     /* deduced: */ SqType SqRelimited = relimit_t<newRealVMin, newRealVMax> >
+    // constexpr
+    // SqRelimited relimit_v() noexcept {
+    //     base_t newValue = value;
+    //     details::checkOverflow<ovfBxOverride, base_t>(newValue, SqRelimited::vMin, SqRelimited::vMax);
+    //     return SqRelimited( newValue );
+    // }
 
     /// Named compile-time-only "constructor" from a floating-point value. This will use v2s to scale
     /// the given floating-point value at compile-time before the sq value is constructed with the
@@ -165,10 +176,10 @@ public:
     }
 
     /// Adds two sq values.
-    /// \returns a value of a new sq type with the larger scaling (higher precision) and the user value
+    /// \returns a value of a new sq type with the larger scaling (higher precision) and the value
     /// ranges added together. If the base types are different, integral promotion rules will be applied.
     template< /* deduced: */ SqType SqRhs,
-        // common type is larger type, or unsigned type if same size, or type if same types
+        // common type is larger type, or unsigned type if same size, or type if same type
         std::integral BaseTR = std::common_type_t<base_t, typename SqRhs::base_t>, scaling_t fR = std::max(SqRhs::f, f),
         double realVMinR = realVMin + SqRhs::realVMin, double realVMaxR = realVMax + SqRhs::realVMax >
     requires details::RealLimitsInRangeOfBaseType<BaseTR, fR, realVMinR, realVMaxR>
@@ -187,6 +198,8 @@ public:
     /// \note A signed type can be negated if the corresponding INT_MIN value is not in the value
     /// range of the type. An unsigned type is promoted to a new type with a sized base integer that
     /// has twice the size (e.g. u16 is promoted to i32).
+    /// \note For a chain of n subtractions, the propagated error is approximately n * 2^(-f) plus the
+    /// representation error of the initial value.
     /// \warning a +0.0 in the limits will be negated to -0.0 and vice versa. Note that two sq types
     ///          which differ only by the sign of the 0 in a limit are not equal by design!
     /// \returns a value of a new sq type with negated limits and value.
@@ -203,10 +216,12 @@ public:
     }
 
     /// Subtracts the rhs value from the lhs value.
-    /// \returns a value of a new sq type with the larger scaling (higher precision) and the user value
+    /// \returns a value of a new sq type with the larger scaling (higher precision) and the value
     /// ranges subtracted. If the base types are different, integral promotion rules will be applied.
+    /// \note For a chain of n additions, the propagated error is approximately n * 2^(-f) plus the
+    /// representation error of the initial value.
     template< /* deduced: */ SqType SqRhs,
-        // common type is larger type, or unsigned type if same size, or type if same types
+        // common type is larger type, or unsigned type if same size, or type if same type
         std::integral BaseTR = std::common_type_t<base_t, typename SqRhs::base_t>, scaling_t fR = std::max(SqRhs::f, f),
         double realVMinR = std::min(realVMin - SqRhs::realVMax, SqRhs::realVMin - realVMax),
         double realVMaxR = std::max(realVMax - SqRhs::realVMin, SqRhs::realVMax - realVMin) >
@@ -223,14 +238,14 @@ public:
     }
 
     /// Multiplies the lhs value with the rhs value.
-    /// \returns a value of a new sq type with the larger scaling (higher precision) and the user value
+    /// \returns a value of a new sq type with the larger scaling (higher precision) and the value
     /// ranges multiplied. If the base types are different, integral promotion rules will be applied.
     /// \note The error propagation is complicated. When a number x is multiplied with itself n times,
-    ///       the real error is of order O( n * x^(n-1) * 2^-q ). For example, for a chain x*x*x
-    ///       the real error is of order O( 3*x^2 * 2^-q ). Higher terms O( 2^-mq ), m > 1 do occur
-    ///       for such chains, but are very close to 0 for larger q and can usually be ignored.
+    /// the real error is of order O( (n+1)*x^n * 2^(-f) ). For example, for a chain x*x*x (n=2) the
+    /// real error is of order O( 3*x^2 * 2^(-f) ). Higher terms O( 2^(-m*f) ), m > 1 also occur for
+    /// chains, but normally these are very close to 0 (when q is large enough) and can be ignored.
     template< /* deduced: */ SqType SqRhs,
-        // common type is larger type, or unsigned type if same size, or type if same types
+        // common type is larger type, or unsigned type if same size, or type if same type
         std::integral BaseTR = std::common_type_t<base_t, typename SqRhs::base_t>, scaling_t fR = std::max(SqRhs::f, f),
         double realVMinR = std::min(std::min(realVMin * SqRhs::realVMax, SqRhs::realVMin * realVMax),
                                     std::min(realVMin * SqRhs::realVMin, realVMax * SqRhs::realVMax)),
@@ -244,8 +259,47 @@ public:
         using interm_m_t = interm_t<BaseTR>;
 
         // multiply lhs with rhs in intermediate type and correct scaling to obtain result
+        // (a * 2^f) * (b * 2^f) / 2^f = a*b * 2^f
         auto intermediate = s2s<interm_m_t, f, SqResult::f>(lhs.value) * s2s<interm_m_t, SqRhs::f, SqResult::f>(rhs.reveal());
         auto result = s2s<typename SqResult::base_t, 2*SqResult::f, SqResult::f>(intermediate);
+        return SqResult( result );
+    }
+
+    /// Divides the lhs value by the rhs value.
+    /// \returns a value of a new sq type with the larger scaling (higher precision) and the value
+    /// ranges divided. If the base types are different, integral promotion rules will be applied.
+    /// \warning Arithmetic underflow can happen if the result is smaller than the target precision.
+    /// \warning To ensure that compile-time overflow checks are not required, the rhs type must not
+    /// have values between -1 and +1 in its value range.
+    /// \note The error propagation is complicated. When a number x is divided by itself n times,
+    /// the real error is roughly 2 * sum{k=0..n}( 2^(-f)*2^(k*f) / (|x|*2^(-f)+1)^k ), which approaches
+    /// 2*2^(-f) for large enough |x|. When |x|->1, the error approaches the limit
+    /// 2*2^(-f) * (1 + 2^f - 2^(nf)/(2^f+1)^n), which is 2*(1+2^(-f)) for large n.
+    /// For |x|->0 the error would approach infinity, thus the limitation of the divisor's value range.
+    /// For example, a chain x/x/x, where x is divided by itself two times (n=2), has an error of
+    /// 2*2^(-f)  <  2*2^(-f) * (1 + 2^f/(x*2^f+1) + 2^(2f)/(x*2^f+1)^2)  <  2*(1+2^(-f)).
+    /// However, for |x| >= 1 and n >= 2 the error can be approximated reasonably well with 3*n*2^(-f).
+    template< /* deduced: */ SqType SqRhs,
+        // common type is larger type, or unsigned type if same size, or type if same type
+        std::integral BaseTR = std::common_type_t<base_t, typename SqRhs::base_t>, scaling_t fR = std::max(SqRhs::f, f),
+        double realVMinR = std::min(std::min(realVMin / SqRhs::realVMax, realVMin / SqRhs::realVMin),
+                                    std::min(realVMax / SqRhs::realVMin, realVMax / SqRhs::realVMax)),
+        double realVMaxR = std::max(std::max(realVMin / SqRhs::realVMax, realVMin / SqRhs::realVMin),
+                                    std::max(realVMax / SqRhs::realVMin, realVMax / SqRhs::realVMax)) >
+    requires (
+        details::CanBeUsedAsDivisor<SqRhs>
+        && details::RealLimitsInRangeOfBaseType<BaseTR, fR, realVMinR, realVMaxR>
+    )
+    friend constexpr
+    // Note: Passing lhs by value helps optimize chained a/b/c.
+    auto operator/(sq const lhs, SqRhs const &rhs) noexcept {
+        using SqResult = sq<BaseTR, fR, realVMinR, realVMaxR>;
+        using interm_m_t = interm_t<BaseTR>;
+
+        // divide lhs by rhs in intermediate type and correct scaling to obtain result
+        // (a * 2^(2f)) / (b * 2^f) = a/b * 2^f
+        auto intermediate = s2s<interm_m_t, f, 2*SqResult::f>(lhs.value) / s2s<interm_m_t, SqRhs::f, SqResult::f>(rhs.reveal());
+        auto result = static_cast<typename SqResult::base_t>(intermediate);
         return SqResult( result );
     }
 

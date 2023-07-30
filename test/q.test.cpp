@@ -487,9 +487,9 @@ protected:
     }
 };
 
-TEST_F(QTest_CopyScale, q_relimit__some_q_type__relimited_q_type) {
-    constexpr double restrictedLimit = 1024.;
-    constexpr double extendedLimit = 4096.;
+TEST_F(QTest_CopyScale, q_relimit_t__some_q_type__relimited_q_type) {
+    constexpr double restrictedLimit = i32q4_t::realVMax/2;
+    constexpr double extendedLimit = i32q4_t::realVMax*2;
     using restricted_q_t   = i32q4_t::relimit_t<-restrictedLimit,  +restrictedLimit,  fpm::Ovf::saturate>;
     using restricted_l_q_t = i32q4_t::relimit_t<-restrictedLimit,  i32q4_t::realVMax, fpm::Ovf::saturate>;
     using restricted_r_q_t = i32q4_t::relimit_t<i32q4_t::realVMin, +restrictedLimit,  fpm::Ovf::saturate>;

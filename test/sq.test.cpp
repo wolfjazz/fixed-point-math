@@ -34,6 +34,12 @@ concept CanAbsolutizeSq = requires (Sq sq) {
     { (abs(sq), true) } -> std::same_as<bool>;  // false if expression cannot be compiled
 };
 
+/// Checks whether Sq1 can be divided by Sq2.
+template< class Sq1, class Sq2 >
+concept CanDivide = requires (Sq1 sq1, Sq2 sq2) {
+    { (sq1 / sq2, true)} -> std::same_as<bool>;  // false if expression cannot be compiled
+};
+
 
 // ////////////////////////////////////////////////////////////////////////////////////////////// //
 // ------------------------------------ SQ Test: Construction ----------------------------------- //
@@ -55,8 +61,8 @@ protected:
 };
 
 TEST_F(SQTest_Construct, sq_relimit__some_sq_type__relimited_sq_type) {
-    constexpr double restrictedLimit = 1024.;
-    constexpr double extendedLimit = 4096.;
+    constexpr double restrictedLimit = i32sq4_2k::realVMax/2;
+    constexpr double extendedLimit = i32sq4_2k::realVMax*2;
     using restricted_sq_t   = i32sq4_2k::relimit_t<-restrictedLimit,    +restrictedLimit>;
     using restricted_l_sq_t = i32sq4_2k::relimit_t<-restrictedLimit,    i32sq4_2k::realVMax>;
     using restricted_r_sq_t = i32sq4_2k::relimit_t<i32sq4_2k::realVMin, +restrictedLimit>;
@@ -729,6 +735,92 @@ TEST_F(SQTest_Multiplication, sq_multiplicate__two_values_same_type_and_int_q_co
     ASSERT_NEAR(-287.43, d.toReal(), 100*i32sq16_t::resolution);
     ASSERT_NEAR(-287.43, e.toReal(), 100*i32sq16_t::resolution);
     ASSERT_NEAR(-287.43, f.toReal(), 100*i32sq16_t::resolution);
+}
+
+
+// ////////////////////////////////////////////////////////////////////////////////////////////// //
+// ------------------------------------ SQ Test: Division --------------------------------------- //
+// ////////////////////////////////////////////////////////////////////////////////////////////// //
+
+class SQTest_Division : public ::testing::Test {
+protected:
+    void SetUp() override
+    {
+    }
+    void TearDown() override
+    {
+    }
+};
+
+TEST_F(SQTest_Division, sq_divide__three_values_same_sq_type__values_divided) {
+    using dividend_t = i32sq16<-80., 80.>;
+    using divisor_t = i32sq16<-20., -1.>;
+    auto a = dividend_t::fromReal< -45. >;
+    auto b = divisor_t::fromReal< -7./3 >;
+    auto c = divisor_t::fromReal< -5./3 >;
+
+    auto d = a / b / c;
+
+    using expected_result_t = dividend_t;
+    ASSERT_TRUE((std::is_same_v<expected_result_t, decltype(d)>));
+    ASSERT_NEAR(-11.57142857, d.toReal(), 3*2*dividend_t::resolution);
+}
+
+TEST_F(SQTest_Division, sq_divide__three_values_different_sq_type__values_divided_largest_resolution) {
+    using dividend_t = i32sq16<-8., -2.>;
+    using divisor_t = i32sq20<1., 10.>;
+    auto a = dividend_t::fromReal< -7.888 >;
+    auto b = divisor_t::fromReal< 2.666 >;
+    auto c = divisor_t::fromReal< 8.123 >;
+
+    auto d = a / b / c;
+
+    using expected_result_t = divisor_t::relimit_t<-8., -0.02>;
+    ASSERT_TRUE((std::is_same_v<expected_result_t, decltype(d)>));
+    ASSERT_NEAR(-0.364242236, d.toReal(), 3*2*dividend_t::resolution);
+}
+
+TEST_F(SQTest_Division, sq_divide__three_values_same_type_one_int_sq_constant__values_divided) {
+    using i32sq16_t = i32sq16<1., 8.>;
+    auto a = i32sq16_t::fromReal< 5.5 >;
+    auto b = i32sq16_t::fromReal< 2.6 >;
+
+    auto d = a / b / -2.5_i32sq16;
+    auto e = a / -2.5_i32sq16 / b;
+    auto f = -2.5_i32sq16 / a / b;
+
+    using expected_result_de_t = i32sq16_t::relimit_t<-3.2, -0.05>;
+    using expected_result_f_t = i32sq16_t::relimit_t<-2.5, -0.0390625>;
+    ASSERT_TRUE((std::is_same_v<expected_result_de_t, decltype(d)>));
+    ASSERT_TRUE((std::is_same_v<expected_result_de_t, decltype(e)>));
+    ASSERT_TRUE((std::is_same_v<expected_result_f_t, decltype(f)>));
+    ASSERT_NEAR(-0.846153846, d.toReal(), 3*2*i32sq16_t::resolution);
+    ASSERT_NEAR(-0.846153846, e.toReal(), 3*2*i32sq16_t::resolution);
+    ASSERT_NEAR(-0.174825175, f.toReal(), 3*2*i32sq16_t::resolution);
+}
+
+TEST_F(SQTest_Division, sq_divide__two_values_same_type_and_int_q_constant__values_divided) {
+    using i32sq16_t = i32sq16<10., 80.>;
+    auto a = i32sq16_t::fromReal< 55.5 >;
+    auto b = i32sq16_t::fromReal< 11.1 >;
+
+    auto d = a / b / 10_i32q8;
+    auto e = a / 10_i32q8 / b;
+    auto f = 10_i32q8 / a / b;
+
+    using expected_result_de_t = i32sq16_t::relimit_t<0.0125, 0.8>;
+    using expected_result_f_t = i32sq16_t::relimit_t<0.0015625, 0.1>;
+    ASSERT_TRUE((std::is_same_v<expected_result_de_t, decltype(d)>));
+    ASSERT_TRUE((std::is_same_v<expected_result_de_t, decltype(e)>));
+    ASSERT_TRUE((std::is_same_v<expected_result_f_t, decltype(f)>));
+    ASSERT_NEAR(0.5, d.toReal(), 3*2*i32sq16_t::resolution);
+    ASSERT_NEAR(0.5, e.toReal(), 3*2*i32sq16_t::resolution);
+    ASSERT_NEAR(0.016232449, f.toReal(), 3*2*i32sq16_t::resolution);
+}
+
+TEST_F(SQTest_Division, sq_divide__divisor_has_forbidden_range__does_not_compile) {
+    ASSERT_FALSE(( CanDivide< u32sq20<0., 200.>, i32sq16<-2., 20.> > ));
+    ASSERT_FALSE(( CanDivide< u32sq20<0., 200.>, u16sq6<0.5, 10.> > ));
 }
 
 

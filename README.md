@@ -39,6 +39,11 @@ In the end, we just want to perform calculations with a predefined value range a
   - root: &ensp; x<sup>1/y</sup> = [ (x\*2<sup>d</sup>)<sup>1/y</sup> \* 2<sup>d - d/y</sup> ]<sub>d</sub>
     - sqrt: &ensp; x<sup>1/2</sup> = [ (x\*2<sup>d</sup>)<sup>1/2</sup> \* (2<sup>d</sup>)<sup>1/2</sup> ]<sub>d</sub>
 
+### Further Ideas
+
+- Function to static-assert sq value range at compile-time (e.g. after a complicated calculation)
+- relimit_v<newMin, newMax>(value) that re-limits a value at runtime (in contrast to relimit_t that only creates a new type)
+
 ## This Library
 
 Provides different fixed-point types which fulfill the expectations from above (more or less).
