@@ -79,6 +79,21 @@ TEST_F(InternalTest, doubleFromLiteral__precise_double__returns_double) {
     ASSERT_NEAR(expectedResult, result, details::test::floatpEpsilonFor(expectedResult));
 }
 
+TEST_F(InternalTest, doubleFromLiteral__double_with_exponent__returns_double) {
+    auto resultS = details::doubleFromLiteral<'1', '0', '0', '5', '.', '8', '9', '6', '7', 'e', '-', '2', '7'>();
+
+    constexpr double expectedResult = 1005.8967e-27;
+    ASSERT_NEAR(expectedResult, resultS, details::test::floatpEpsilonFor(expectedResult));
+}
+
+TEST_F(InternalTest, doubleFromLiteral__smallest_and_largest_double_with_exponent__returns_double) {
+    auto resultS = details::doubleFromLiteral<'2', '.', '2', '2', '5', '0', '7', 'e', '-', '3', '0', '8'>();
+    auto resultL = details::doubleFromLiteral<'1', '.', '7', '9', '7', '6', '9', 'e', '3', '0', '8'>();
+
+    ASSERT_NEAR(2.22507e-308, resultS, 5e-323L);
+    ASSERT_NEAR(1.79769e308, resultL, 4e292L);
+}
+
 
 // ////////////////////////////////////////////////////////////////////////////////////////////// //
 // ------------------------------------ S2S Test ------------------------------------------------ //

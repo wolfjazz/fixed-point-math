@@ -408,10 +408,10 @@ auto abs(Sq const &of) noexcept {
 
 /// Converts a literal number into the corresponding best-fit sq type.
 /// Best-fit means that the literal number represents both limits and the value.
-template< std::integral BaseT, scaling_t f, char ...charArray >
+template< SqType Sq, char ...charArray >
 consteval auto sqFromLiteral() {
     constexpr double value = details::doubleFromLiteral<charArray...>();
-    return sq<BaseT, f, value, value>::template fromReal<value>;
+    return Sq::template relimit_t<value, value>::template fromReal<value>;
 }
 
 }  // end of fpm

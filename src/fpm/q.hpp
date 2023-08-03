@@ -223,6 +223,21 @@ public:
         return q(qValue);
     }
 
+    /// Alias for q::fromSq<Overflow::forbidden>(.)
+    template< /* deduced: */ SqType SqFrom >
+    static constexpr
+    q fromSqNOvf(SqFrom const &fromSq) noexcept { return q::template fromSq<Overflow::forbidden>(fromSq); }
+
+    /// Alias for q::fromSq<Overflow::saturate>(.)
+    template< /* deduced: */ SqType SqFrom >
+    static constexpr
+    q fromSqSat(SqFrom const &fromSq) noexcept { return q::template fromSq<Overflow::saturate>(fromSq); }
+
+    /// Alias for q::fromSq<Overflow::noCheck>(.) and q::fromSq<Overflow::allowed>(.)
+    template< /* deduced: */ SqType SqFrom >
+    static constexpr
+    q fromSqOvf(SqFrom const &fromSq) noexcept { return q::template fromSq<Overflow::noCheck>(fromSq); }
+
     /// Copy-Constructor from another q type with the same base type.
     /// Similar to q::fromQ(), however a bit stricter (q types have to be different) and there
     /// is no possibility to override the overflow behavior. If this is desired, use the named
@@ -477,10 +492,10 @@ template< QType Q1, QType Q2 > constexpr auto operator/(Q1 const q1, Q2 const &q
 
 /// Converts a literal number into the corresponding best-fit q type.
 /// Best-fit means that the literal number represents both limits and the value.
-template< std::integral BaseT, scaling_t f, char ...charArray >
+template< QType Q, char ...charArray >
 consteval auto qFromLiteral() {
     constexpr double value = details::doubleFromLiteral<charArray...>();
-    return q<BaseT, f, value, value, Ovf::forbidden>::template fromReal<value>;
+    return Q::template relimit_t<value, value>::template fromReal<value>;
 }
 
 }  // end of fpm

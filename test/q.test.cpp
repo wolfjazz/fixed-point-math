@@ -435,30 +435,38 @@ TEST_F(QTest_Sq, q_from_sq__different_value_range_saturate__q_value_is_saturated
     constexpr double realValue = 654.;
     auto sqValueN = i32q20_l_t::fromReal<-realValue>.toSq();
     auto sqValueP = i32q20_l_t::fromReal<+realValue>.toSq();
-    auto qValueN = i32q20_t::fromSq<fpm::Ovf::saturate>(sqValueN);
-    auto qValueP = i32q20_t::fromSq<fpm::Ovf::saturate>(sqValueP);
-    auto qValueNSat = i32q20_sat_t::fromSq(sqValueN);
-    auto qValuePSat = i32q20_sat_t::fromSq(sqValueP);
+    auto qValueNSat0 = i32q20_t::fromSq<fpm::Ovf::saturate>(sqValueN);
+    auto qValuePSat0 = i32q20_t::fromSq<fpm::Ovf::saturate>(sqValueP);
+    auto qValueNSat1 = i32q20_t::fromSqSat(sqValueN);
+    auto qValuePSat1 = i32q20_t::fromSqSat(sqValueP);
+    auto qValueNSat2 = i32q20_sat_t::fromSq(sqValueN);
+    auto qValuePSat2 = i32q20_sat_t::fromSq(sqValueP);
 
-    ASSERT_NEAR(i32q20_t::realVMin, qValueN.toReal(), i32q20_t::resolution);
-    ASSERT_NEAR(i32q20_t::realVMax, qValueP.toReal(), i32q20_t::resolution);
-    ASSERT_NEAR(i32q20_sat_t::realVMin, qValueNSat.toReal(), i32q20_sat_t::resolution);
-    ASSERT_NEAR(i32q20_sat_t::realVMax, qValuePSat.toReal(), i32q20_sat_t::resolution);
+    ASSERT_NEAR(i32q20_t::realVMin, qValueNSat0.toReal(), i32q20_t::resolution);
+    ASSERT_NEAR(i32q20_t::realVMax, qValuePSat0.toReal(), i32q20_t::resolution);
+    ASSERT_NEAR(i32q20_t::realVMin, qValueNSat1.toReal(), i32q20_t::resolution);
+    ASSERT_NEAR(i32q20_t::realVMax, qValuePSat1.toReal(), i32q20_t::resolution);
+    ASSERT_NEAR(i32q20_sat_t::realVMin, qValueNSat2.toReal(), i32q20_sat_t::resolution);
+    ASSERT_NEAR(i32q20_sat_t::realVMax, qValuePSat2.toReal(), i32q20_sat_t::resolution);
 }
 
 TEST_F(QTest_Sq, q_from_sq__different_value_range_overflow_allowed__q_value_can_overflow) {
     constexpr double realValue = 654.;
     auto sqValueN = i32q20_l_t::fromReal<-realValue>.toSq();
     auto sqValueP = i32q20_l_t::fromReal<+realValue>.toSq();
-    auto qValueN = i32q20_t::fromSq<fpm::Ovf::allowed>(sqValueN);
-    auto qValueP = i32q20_t::fromSq<fpm::Ovf::allowed>(sqValueP);
-    auto qValueNOvf = i32q20_ovf_t::fromSq(sqValueN);
-    auto qValuePOvf = i32q20_ovf_t::fromSq(sqValueP);
+    auto qValueNOvf0 = i32q20_t::fromSq<fpm::Ovf::allowed>(sqValueN);
+    auto qValuePOvf0 = i32q20_t::fromSq<fpm::Ovf::allowed>(sqValueP);
+    auto qValueNOvf1 = i32q20_t::fromSqOvf(sqValueN);
+    auto qValuePOvf1 = i32q20_t::fromSqOvf(sqValueP);
+    auto qValueNOvf2 = i32q20_ovf_t::fromSq(sqValueN);
+    auto qValuePOvf2 = i32q20_ovf_t::fromSq(sqValueP);
 
-    ASSERT_NEAR(-realValue, qValueN.toReal(), i32q20_t::resolution);
-    ASSERT_NEAR(+realValue, qValueP.toReal(), i32q20_t::resolution);
-    ASSERT_NEAR(-realValue, qValueNOvf.toReal(), i32q20_ovf_t::resolution);
-    ASSERT_NEAR(+realValue, qValuePOvf.toReal(), i32q20_ovf_t::resolution);
+    ASSERT_NEAR(-realValue, qValueNOvf0.toReal(), i32q20_t::resolution);
+    ASSERT_NEAR(+realValue, qValuePOvf0.toReal(), i32q20_t::resolution);
+    ASSERT_NEAR(-realValue, qValueNOvf1.toReal(), i32q20_t::resolution);
+    ASSERT_NEAR(+realValue, qValuePOvf1.toReal(), i32q20_t::resolution);
+    ASSERT_NEAR(-realValue, qValueNOvf2.toReal(), i32q20_ovf_t::resolution);
+    ASSERT_NEAR(+realValue, qValuePOvf2.toReal(), i32q20_ovf_t::resolution);
 }
 
 

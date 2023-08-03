@@ -153,24 +153,37 @@ namespace details {
         else { /* Overflow::allowed, Overflow::noCheck: no checks performed */ }
     }
 
-    /// Converts a given character array into a double value.
+    /// Calculates the given integer power of the given number.
+    /// Inspired by: https://prosepoetrycode.potterpcs.net/2015/07/a-simple-constexpr-power-function-c/
+    consteval double dpowi(double num, int pow) {
+        if (details::abs(pow) > std::numeric_limits<double>::max_exponent10) return 0.;
+        if (pow == 0) return 1.;
+        return (pow > 0) ? num * dpowi(num, pow-1) : dpowi(num, pow+1) / num;
+    }
+
+    /// Converts a given character array from a template literal operator into a double value.
     template< char ...charArray >
     consteval double doubleFromLiteral() {
         constexpr std::size_t length = sizeof...(charArray);
         constexpr char chars[length]{ charArray... };
         static_assert(length > 0u && length <= std::numeric_limits<double>::digits10
-            && std::all_of(chars, chars + length, [](char c) { return isdigit(c) || '.' == c; })
-            && std::accumulate(chars, chars + length, 0, [](int count, char c) { return c == '.' ? count+1 : count; }) <= 1,
-            "The argument to _literal must be a positive integer or double");
-        double number = 0.;
-        double fScale = 1.;
+            && std::all_of(chars, chars + length, [](char c) { return isdigit(c) || c == '.' || c == 'e' || c == 'E' || c == '-'; }),
+            "Argument to literal must be a positive integer or double");
+        double number = 0., fScale = 1.;
+        int exp = 0, eSign = 0;
         for (size_t i = 0u; i < length; ++i) {
             if (chars[i] == '.') { fScale = 0.1; continue; }
+            else if (chars[i] == 'e' || chars[i] == 'E') {
+                if (chars[i + 1] == '-') { eSign = -1; ++i; }
+                else { eSign = 1; }
+                continue;
+            }
             int d = chars[i] - '0';
-            if (fScale > 0.5) { number = number*10 + (double)d; }
+            if (eSign != 0) { exp = exp*10 + eSign*d; }
+            else if (fScale > 0.5) { number = number*10 + (double)d; }
             else { number += (double)d*fScale; fScale /= 10; }
         }
-        return number;
+        return number * dpowi(10., exp);
     }
 
     /// Helper that fits the smallest signed integral type that fits the given value.

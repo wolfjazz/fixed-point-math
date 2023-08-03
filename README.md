@@ -167,11 +167,11 @@ auto pos = pos_t::fromReal<1000.>;
 // in a formula, this whole calculation will not include any overflow checks at runtime, because the
 // compiler is doing these checks for the value ranges at compile-time and the code does not compile
 // when the calculated value range does not fit into the user-defined, expected value range.
-// Note: Transitions from q to sq space can be implicit, transitions from sq to q space must be explicit
-//       by design!
+// Note: Transitions from q to sq space can be implicit, transitions from sq to q space can only be
+//       implicit if no overflow check is necessary, otherwise it has to be done explicitly!
 //
 // Note: About conversions between q and sq: the q type knows the corresponding sq type, but the sq
-//       type does NOT know the corresponding sq type. Therefore conversions have to be performed
+//       type does NOT know the corresponding q type. Therefore conversions have to be performed
 //       from q perspective (i.e. q can be constructed from sq and it can be converted to sq, but
 //       sq cannot be converted to q or be constructed from q).
 //
@@ -205,8 +205,10 @@ pos_t::sq<-6500., 7000.> s2 = s + pos_t::sq<0., 500.>::fromReal<250.>;  // add s
 //
 // now update position in q scaling;
 // performs no check when value of s is assigned to pos this way because of smaller value range of s2
-// => calculations via sq, storage at runtime via q
-pos = pos_t::fromSq< ovf_override >(s2);  // conversion sq -> q (via named constructor of q)
+// => calculations via sq, storage at runtime via q;
+// explicit conversion sq -> q (via named constructor of q); implicit conversion is not possible here
+// because value range of sq type is larger than that of q type
+pos = pos_t::fromSq< ovf_override >(s2);
 
 // some thoughts about implicit conversion of numbers in formulas:
 // - numbers are converted implicitly at compile-time to the (resulting) type on the lhs, or to the
@@ -246,7 +248,7 @@ u32sq16<> j = aa + ee;  // addition performed in q20 (higher precision of e) and
 auto x = u32q16<40., 80.>::fromReal<50.>;
 auto y = u32q16<10., 20.>::fromReal<15.>;
 u32sq16<> sz = x + y;  // no range check performed here; implicit conversion of x and y to sq type!
-auto z = u32q16<>::fromSq(sz);  // convert to q-value
+u32q16<> z = sz;  // implicit conversion of sq result back to q-value (same value range)
 //
 //
 /* subtraction */

@@ -1,7 +1,8 @@
 cmake_minimum_required(VERSION 3.25)
 
 set(This FixedPointMath)
-set(ThisShort FpmQ)
+set(ThisShortLib FpmQ)
+set(ThisShort FpmQPg)
 project(${This} VERSION 0.1.0 LANGUAGES C CXX)
 
 set(CMAKE_C_STANDARD 17)
@@ -30,7 +31,10 @@ add_compile_options(-Wall -Wextra -pedantic -fconcepts-diagnostics-depth=2)
 # Clang options
 #add_compile_options(-Wall -Wextra -pedantic)
 
-add_library(${ThisShort} STATIC ${Headers} ${Sources})
+add_library(${ThisShortLib} STATIC ${Headers})
+set_target_properties(${ThisShortLib} PROPERTIES LINKER_LANGUAGE CXX)
+
+add_executable(${ThisShort} ${Headers} ${Sources})
 set_target_properties(${ThisShort} PROPERTIES LINKER_LANGUAGE CXX)
 
 set(CPACK_PROJECT_NAME ${PROJECT_NAME})
