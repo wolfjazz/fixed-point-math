@@ -25,19 +25,43 @@ concept CanConstructSqFromScaled = requires {
 /// Checks whether a value of the given sq type can be negated.
 template< class Sq >
 concept CanNegateSq = requires (Sq sq) {
-    { (-sq, true) } -> std::same_as<bool>;  // false if expression cannot be compiled
+    -sq;  // false if expression cannot be compiled
 };
 
 /// Checks whether the absolute value of the given sq type can be taken.
 template< class Sq >
 concept CanAbsolutizeSq = requires (Sq sq) {
-    { (abs(sq), true) } -> std::same_as<bool>;  // false if expression cannot be compiled
+    abs(sq);  // false if expression cannot be compiled
 };
 
 /// Checks whether Sq1 can be divided by Sq2.
 template< class Sq1, class Sq2 >
 concept CanDivide = requires (Sq1 sq1, Sq2 sq2) {
-    { (sq1 / sq2, true)} -> std::same_as<bool>;  // false if expression cannot be compiled
+    sq1 / sq2;  // false if expression cannot be compiled
+};
+
+/// Checks whether a lt comparison between Sq1 and Sq2 is possible.
+template< class Sq1, class Sq2 >
+concept CanUseLt = requires (Sq1 sq1, Sq2 sq2) {
+    sq1 < sq2;  // false if expression cannot be compiled
+};
+
+/// Checks whether a gt comparison between Sq1 and Sq2 is possible.
+template< class Sq1, class Sq2 >
+concept CanUseGt = requires (Sq1 sq1, Sq2 sq2) {
+    sq1 > sq2;  // false if expression cannot be compiled
+};
+
+/// Checks whether a comparison between Sq1 and Sq2 for equality is possible.
+template< class Sq1, class Sq2 >
+concept CanUseEq = requires (Sq1 sq1, Sq2 sq2) {
+    sq1 == sq2;  // false if expression cannot be compiled
+};
+
+/// Checks whether a comparison between Sq1 and Sq2 for non-equality is possible.
+template< class Sq1, class Sq2 >
+concept CanUseNEq = requires (Sq1 sq1, Sq2 sq2) {
+    sq1 != sq2;  // false if expression cannot be compiled
 };
 
 
@@ -821,6 +845,309 @@ TEST_F(SQTest_Division, sq_divide__two_values_same_type_and_int_q_constant__valu
 TEST_F(SQTest_Division, sq_divide__divisor_has_forbidden_range__does_not_compile) {
     ASSERT_FALSE(( CanDivide< u32sq20<0., 200.>, i32sq16<-2., 20.> > ));
     ASSERT_FALSE(( CanDivide< u32sq20<0., 200.>, u16sq6<0.5, 10.> > ));
+}
+
+
+// ////////////////////////////////////////////////////////////////////////////////////////////// //
+// ------------------------------------ SQ Test: Comparison ------------------------------------- //
+// ////////////////////////////////////////////////////////////////////////////////////////////// //
+
+class SQTest_Comparison : public ::testing::Test {
+protected:
+    void SetUp() override
+    {
+    }
+    void TearDown() override
+    {
+    }
+};
+
+TEST_F(SQTest_Comparison, sq_lt__same_type_some_value_and_larger_value__returns_true) {
+    using i32sq10_t = i32sq10<-100000., 100000.>;
+    auto a = i32sq10_t::fromReal<-34456.78>;
+    auto b = i32sq10_t::fromReal<-16789.25>;
+    auto c = i32sq10_t::fromReal<+16789.25>;
+    auto d = i32sq10_t::fromReal<+89999.99>;
+
+    ASSERT_TRUE(a < b);
+    ASSERT_TRUE(a < c);
+    ASSERT_TRUE(a < d);
+    ASSERT_TRUE(b < c);
+    ASSERT_TRUE(b < d);
+    ASSERT_TRUE(c < d);
+}
+
+TEST_F(SQTest_Comparison, sq_lt__different_types_some_value_and_larger_value__returns_true) {
+    using i32sq10_t = i32sq10<-100000., 100000.>;
+    using i16sq5_t = i16sq5<-1000., 1000.>;
+    using u16sq6_t = u16sq6<0., 1000.>;
+    auto a = i32sq10_t::fromReal<-34456.78>;
+    auto b = i16sq5_t::fromReal<-789.25>;
+    auto c = i16sq5_t::fromReal<+689.25>;
+    auto d = u16sq6_t::fromReal<+889.99>;
+
+    EXPECT_TRUE(( CanUseLt<i32sq10_t, i16sq5_t> ));
+    EXPECT_TRUE(( CanUseLt<i32sq10_t, u16sq6_t> ));
+    EXPECT_TRUE(( CanUseLt<i16sq5_t, i16sq5_t> ));
+
+    ASSERT_TRUE(a < b);
+    ASSERT_TRUE(a < c);
+    ASSERT_TRUE(a < d);
+    ASSERT_TRUE(b < c);
+    // b < d does not work
+    // c < d does not work
+    ASSERT_FALSE(( CanUseLt<i16sq5_t, u16sq6_t> ));
+}
+
+TEST_F(SQTest_Comparison, sq_lt__same_type_some_value_and_smaller_value__returns_false) {
+    using i32sq10_t = i32sq10<-100000., 100000.>;
+    auto a = i32sq10_t::fromReal<+38976.84>;
+    auto b = i32sq10_t::fromReal<+23456.43>;
+    auto c = i32sq10_t::fromReal<-12345.67>;
+    auto d = i32sq10_t::fromReal<-65432.19>;
+
+    ASSERT_FALSE(a < b);
+    ASSERT_FALSE(a < c);
+    ASSERT_FALSE(a < d);
+    ASSERT_FALSE(b < c);
+    ASSERT_FALSE(b < d);
+    ASSERT_FALSE(c < d);
+}
+
+TEST_F(SQTest_Comparison, sq_lt__different_types_some_value_and_smaller_value__returns_false) {
+    using i32sq10_t = i32sq10<-100000., 100000.>;
+    using i16sq5_t = i16sq5<-1000., 1000.>;
+    using u16sq6_t = u16sq6<0., 1000.>;
+    auto a = i32sq10_t::fromReal<+34456.78>;
+    auto b = u16sq6_t::fromReal<+889.99>;
+    auto c = i16sq5_t::fromReal<+678.25>;
+    auto d = i16sq5_t::fromReal<-567.25>;
+
+    ASSERT_FALSE(a < b);
+    ASSERT_FALSE(a < c);
+    ASSERT_FALSE(a < d);
+    ASSERT_FALSE(c < d);
+    // b < c does not work
+    // b < d does not work
+}
+
+TEST_F(SQTest_Comparison, sq_lt__same_type_same_value__returns_false) {
+    using i32sq10_t = i32sq10<-100000., 100000.>;
+    auto a = i32sq10_t::fromReal<-65432.19>;
+    auto b = i32sq10_t::fromReal<+56897.129>;
+    auto c = i32sq10_t::fromReal<-0.0>;
+    auto d = i32sq10_t::fromReal<+0.0>;
+
+    EXPECT_TRUE(( CanUseLt<i32sq10_t, i32sq10_t> ));
+
+    ASSERT_FALSE(a < a);
+    ASSERT_FALSE(b < b);
+
+    // +/- zero
+    ASSERT_FALSE(c < c);
+    ASSERT_FALSE(d < d);
+    ASSERT_FALSE(c < d);
+    ASSERT_FALSE(d < c);
+}
+
+TEST_F(SQTest_Comparison, sq_lt__different_types_same_value__returns_false) {
+    using i32sq10_t = i32sq10<-100000., 100000.>;
+    using i16sq5_t = i16sq5<-1000., 1000.>;
+    using u16sq6_t = u16sq6<0., 1000.>;
+    auto a = i32sq10_t::fromReal<+678.25>;
+    auto b = u16sq6_t::fromReal<+678.25>;
+    auto c = i16sq5_t::fromReal<+678.25>;
+    auto d = i16sq5_t::fromReal<+678.25>;
+
+    EXPECT_TRUE(( CanUseLt<i16sq5_t, i16sq5_t> ));
+    EXPECT_TRUE(( CanUseLt<u16sq6_t, u16sq6_t> ));
+
+    ASSERT_FALSE(a < b);
+    ASSERT_FALSE(a < c);
+    ASSERT_FALSE(a < d);
+    // b < c does not work
+    // b < d does not work
+    ASSERT_FALSE(c < d);
+}
+
+TEST_F(SQTest_Comparison, sq_gt__same_type_some_value_and_smaller_value__returns_true) {
+    using i32sq10_t = i32sq10<-100000., 100000.>;
+    auto a = i32sq10_t::fromReal<+89999.99>;
+    auto b = i32sq10_t::fromReal<+16789.25>;
+    auto c = i32sq10_t::fromReal<-16789.25>;
+    auto d = i32sq10_t::fromReal<-34456.78>;
+
+    ASSERT_TRUE(a > b);
+    ASSERT_TRUE(a > c);
+    ASSERT_TRUE(a > d);
+    ASSERT_TRUE(b > c);
+    ASSERT_TRUE(b > d);
+    ASSERT_TRUE(c > d);
+}
+
+TEST_F(SQTest_Comparison, sq_gt__different_types_some_value_and_smaller_value__returns_true) {
+    using i32sq10_t = i32sq10<-100000., 100000.>;
+    using i16sq5_t = i16sq5<-1000., 1000.>;
+    using u16sq6_t = u16sq6<0., 1000.>;
+    auto a = i32sq10_t::fromReal<+34456.78>;
+    auto b = u16sq6_t::fromReal<+889.99>;
+    auto c = i16sq5_t::fromReal<+789.25>;
+    auto d = i16sq5_t::fromReal<-689.25>;
+
+    EXPECT_TRUE(( CanUseGt<i32sq10_t, i16sq5_t> ));
+    EXPECT_TRUE(( CanUseGt<i32sq10_t, u16sq6_t> ));
+    EXPECT_TRUE(( CanUseGt<i16sq5_t, i16sq5_t> ));
+
+    ASSERT_TRUE(a > b);
+    ASSERT_TRUE(a > c);
+    ASSERT_TRUE(a > d);
+    ASSERT_TRUE(c > d);
+    // b > c does not work
+    // b > d does not work
+    ASSERT_FALSE(( CanUseGt<i16sq5_t, u16sq6_t> ));
+}
+
+TEST_F(SQTest_Comparison, sq_gt__same_type_some_value_and_smaller_value__returns_false) {
+    using i32sq10_t = i32sq10<-100000., 100000.>;
+    auto a = i32sq10_t::fromReal<-65432.19>;
+    auto b = i32sq10_t::fromReal<-12345.67>;
+    auto c = i32sq10_t::fromReal<+23456.43>;
+    auto d = i32sq10_t::fromReal<+38976.84>;
+
+    ASSERT_FALSE(a > b);
+    ASSERT_FALSE(a > c);
+    ASSERT_FALSE(a > d);
+    ASSERT_FALSE(b > c);
+    ASSERT_FALSE(b > d);
+    ASSERT_FALSE(c > d);
+}
+
+TEST_F(SQTest_Comparison, sq_gt__different_types_some_value_and_larger_value__returns_false) {
+    using i32sq10_t = i32sq10<-100000., 100000.>;
+    using i16sq5_t = i16sq5<-1000., 1000.>;
+    using u16sq6_t = u16sq6<0., 1000.>;
+    auto a = i32sq10_t::fromReal<-34456.78>;
+    auto b = i16sq5_t::fromReal<-689.25>;
+    auto c = i16sq5_t::fromReal<+789.25>;
+    auto d = u16sq6_t::fromReal<+889.99>;
+
+    ASSERT_FALSE(a > b);
+    ASSERT_FALSE(a > c);
+    ASSERT_FALSE(a > d);
+    ASSERT_FALSE(b > c);
+    // b > d does not work
+    // c > d does not work
+}
+
+TEST_F(SQTest_Comparison, sq_gt__same_type_same_value__returns_false) {
+    using i32sq10_t = i32sq10<-100000., 100000.>;
+    auto a = i32sq10_t::fromReal<-65432.19>;
+    auto b = i32sq10_t::fromReal<+56897.129>;
+    auto c = i32sq10_t::fromReal<-0.0>;
+    auto d = i32sq10_t::fromReal<+0.0>;
+
+    EXPECT_TRUE(( CanUseGt<i32sq10_t, i32sq10_t> ));
+
+    ASSERT_FALSE(a > a);
+    ASSERT_FALSE(b > b);
+
+    // +/- zero
+    ASSERT_FALSE(c > c);
+    ASSERT_FALSE(d > d);
+    ASSERT_FALSE(c > d);
+    ASSERT_FALSE(d > c);
+}
+
+TEST_F(SQTest_Comparison, sq_gt__different_types_same_value__returns_false) {
+    using i32sq10_t = i32sq10<-100000., 100000.>;
+    using i16sq5_t = i16sq5<-1000., 1000.>;
+    using u16sq6_t = u16sq6<0., 1000.>;
+    auto a = i32sq10_t::fromReal<+678.25>;
+    auto b = u16sq6_t::fromReal<+678.25>;
+    auto c = i16sq5_t::fromReal<+678.25>;
+    auto d = i16sq5_t::fromReal<+678.25>;
+
+    EXPECT_TRUE(( CanUseGt<i16sq5_t, i16sq5_t> ));
+    EXPECT_TRUE(( CanUseGt<u16sq6_t, u16sq6_t> ));
+
+    ASSERT_FALSE(a > b);
+    ASSERT_FALSE(a > c);
+    ASSERT_FALSE(a > d);
+    // b > c does not work
+    // b > d does not work
+    ASSERT_FALSE(c > d);
+}
+
+TEST_F(SQTest_Comparison, sq_equal__various_types_same_value__returns_true) {
+    using i32sq5_t = i32sq5<-20000., 20000.>;
+    using u16sq5_t = u16sq5<0., 1000.>;
+    using i16sq5_t = i16sq5<-1000., 1000.>;
+    auto a = i32sq5_t::fromReal<+488.7>;
+    auto b = u16sq5_t::fromReal<+488.7>;
+    auto c = i16sq5_t::fromReal<+488.7>;
+
+    EXPECT_TRUE(( CanUseEq<i32sq5_t, i32sq5_t> ));
+    EXPECT_TRUE(( CanUseEq<i32sq5_t, u16sq5_t> ));
+    EXPECT_TRUE(( CanUseEq<i32sq5_t, i16sq5_t> ));
+    EXPECT_TRUE(( CanUseEq<u16sq5_t, u16sq5_t> ));
+    EXPECT_TRUE(( CanUseEq<i16sq5_t, i16sq5_t> ));
+
+    ASSERT_TRUE(a == a);
+    ASSERT_TRUE(a == b);
+    ASSERT_TRUE(a == c);
+    ASSERT_TRUE(b == b);
+    ASSERT_TRUE(c == c);
+    // b == c does not work
+    ASSERT_FALSE(( CanUseEq<u16sq5_t, i16sq5_t> ));
+}
+
+TEST_F(SQTest_Comparison, sq_equal__various_types_different_value__returns_false) {
+    using i32sq5_t = i32sq5<-20000., 20000.>;
+    using u16sq5_t = u16sq5<0., 1000.>;
+    using i16sq5_t = i16sq5<-1000., 1000.>;
+    auto a = i32sq5_t::fromReal<+1488.7>;
+    auto b = u16sq5_t::fromReal<+488.7>;
+    auto c = i16sq5_t::fromReal<-288.4>;
+
+    ASSERT_FALSE(a == b);
+    ASSERT_FALSE(a == c);
+    // b == c does not work
+}
+
+TEST_F(SQTest_Comparison, sq_not_equal__various_types_same_value__returns_false) {
+    using i32sq5_t = i32sq5<-20000., 20000.>;
+    using u16sq5_t = u16sq5<0., 1000.>;
+    using i16sq5_t = i16sq5<-1000., 1000.>;
+    auto a = i32sq5_t::fromReal<+488.7>;
+    auto b = u16sq5_t::fromReal<+488.7>;
+    auto c = i16sq5_t::fromReal<+488.7>;
+
+    EXPECT_TRUE(( CanUseNEq<i32sq5_t, i32sq5_t> ));
+    EXPECT_TRUE(( CanUseNEq<i32sq5_t, u16sq5_t> ));
+    EXPECT_TRUE(( CanUseNEq<i32sq5_t, i16sq5_t> ));
+    EXPECT_TRUE(( CanUseNEq<u16sq5_t, u16sq5_t> ));
+    EXPECT_TRUE(( CanUseNEq<i16sq5_t, i16sq5_t> ));
+
+    ASSERT_FALSE(a != a);
+    ASSERT_FALSE(a != b);
+    ASSERT_FALSE(a != c);
+    ASSERT_FALSE(b != b);
+    // b != c does not work
+    ASSERT_FALSE(c != c);
+    ASSERT_FALSE(( CanUseNEq<u16sq5_t, i16sq5_t> ));
+}
+
+TEST_F(SQTest_Comparison, sq_not_equal__various_types_different_value__returns_true) {
+    using i32sq5_t = i32sq5<-20000., 20000.>;
+    using u16sq5_t = u16sq5<0., 1000.>;
+    using i16sq5_t = i16sq5<-1000., 1000.>;
+    auto a = i32sq5_t::fromReal<+1488.7>;
+    auto b = u16sq5_t::fromReal<+488.7>;
+    auto c = i16sq5_t::fromReal<-288.4>;
+
+    ASSERT_TRUE(a != b);
+    ASSERT_TRUE(a != c);
+    // b != c does not work
 }
 
 

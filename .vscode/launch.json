@@ -13,10 +13,8 @@
             "stopAtEntry": false,
             "cwd": "${workspaceFolder}",
             "environment": [
-                {
-                    "name": "PATH",
-                    "value": "${env:PATH}:${command:cmake.getLaunchTargetDirectory}"
-                }
+                { "name": "PATH", "value": "${env:PATH}:${command:cmake.getLaunchTargetDirectory}" },
+                { "name": "GTEST_SHUFFLE ", "value": "1" }
             ],
             "externalConsole": false,
             "MIMode": "gdb",

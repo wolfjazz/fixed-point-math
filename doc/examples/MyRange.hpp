@@ -22,7 +22,7 @@ public:
 
     template< class Rhs, int l = lower + Rhs::lower, int u = upper + Rhs::upper, typename R = MyRange<l,u> >
     friend
-    R operator+(MyRange const lhs, Rhs const &rhs) noexcept {
+    R operator + (MyRange const lhs, Rhs const &rhs) noexcept {
         int result = lhs.value + rhs.unwrap();
         return construct<R>( result );
     }
@@ -31,8 +31,8 @@ public:
 
 private:
     MyRange() = delete;
-    MyRange& operator=(MyRange const &) = delete;
-    MyRange& operator=(MyRange&&) = delete;
+    MyRange& operator = (MyRange const &) = delete;
+    MyRange& operator = (MyRange&&) = delete;
 
     // this must not be exposed because value has to be checked against limits at compile-time;
     // wrap<value> is the public "constructor"

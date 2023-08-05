@@ -153,8 +153,8 @@ namespace details {
         else { /* Overflow::allowed, Overflow::noCheck: no checks performed */ }
     }
 
-    /// Calculates the given integer power of the given number.
-    /// Inspired by: https://prosepoetrycode.potterpcs.net/2015/07/a-simple-constexpr-power-function-c/
+    /** Calculates the given integer power of the given number.
+     * Inspired by: https://prosepoetrycode.potterpcs.net/2015/07/a-simple-constexpr-power-function-c/ */
     consteval double dpowi(double num, int pow) {
         if (details::abs(pow) > std::numeric_limits<double>::max_exponent10) return 0.;
         if (pow == 0) return 1.;
@@ -231,8 +231,8 @@ namespace details {
  * Used to scale a given, already scaled (integer) value to a different scaling factor and target type
  * using multiplication/division.
  * \note Arithmetic multiplication/division is used here because these operations are symmetric for
- *       positive and negative values with respect to rounding (e.g. +-514 / 2^4 is +-32).
- *       Besides, floating-point types are also possible this way.
+ * positive and negative values with respect to rounding (e.g. +-514 / 2^4 is +-32).
+ * Besides, floating-point types are also possible this way.
  * \warning Floating-point types are possible, however quite expensive at runtime!
  *          Use carefully! */
 template< typename TargetT, scaling_t from, scaling_t to, /* deduced: */ typename ValueT >
@@ -259,7 +259,6 @@ constexpr TargetT s2smd(ValueT value) noexcept {
  * shift operations.
  * \note Shift operations are well defined for C++20 and above (signed integers are Two's Complement).
  * \note Floating-point target types are NOT possible, since shift operators are not defined for them.
- *
  * \warning Be aware that arithmetic right shift always rounds down. Consequently, the scaled result
  *          is not symmetric for the same value with a different sign
  *          (e.g. -514 >> 4u is -33 but +514 >> 4u is +32). */
@@ -279,10 +278,10 @@ constexpr TargetT s2sh(ValueT value) noexcept {
     }
 }
 
-/// Scale-To-Scale function used in the implementations of the (s)q types.
-/// Proxy for the s2sx function pre-selected by the user.
-/// \note FPM_USE_SH can be predefined before this header is included into a source file.
-/// \note constexpr implies inline.
+/** Scale-To-Scale function used in the implementations of the (s)q types.
+ * Proxy for the s2sx function pre-selected by the user.
+ * \note FPM_USE_SH can be predefined before this header is included into a source file.
+ * \note constexpr implies inline. */
 #if !defined FPM_USE_SH
 template< typename TargetT, scaling_t from, scaling_t to, /* deduced: */ typename ValueT >
 constexpr TargetT s2s(ValueT value) noexcept { return s2smd<TargetT, from, to>(value); }
@@ -318,7 +317,6 @@ constexpr TargetT v2smd(ValueT value) noexcept {
 /** Value-To-Scale scaling function. Uses arithmetic shifts for the conversion.
  * \note Shift operations are well defined for C++20 and above (signed integers are Two's Complement).
  * \note Floating-point target types are NOT possible, since shift operators are not defined for them.
- *
  * \warning Be aware that arithmetic right shift always rounds down. Consequently, the scaled result
  *          is not symmetric for the same value with a different sign
  *          (e.g. -514 >> 4u is -33 but +514 >> 4u is +32). */
@@ -338,10 +336,10 @@ constexpr TargetT v2sh(ValueT value) noexcept {
     }
 }
 
-/// Value-To-Scale function used in the implementations of the (s)q types.
-/// Proxy for the v2sx function pre-selected by the user.
-/// \note FPM_USE_SH can be predefined before this header is included into a source file.
-/// \note constexpr implies inline.
+/** Value-To-Scale function used in the implementations of the (s)q types.
+ * Proxy for the v2sx function pre-selected by the user.
+ * \note FPM_USE_SH can be predefined before this header is included into a source file.
+ * \note constexpr implies inline. */
 #if !defined FPM_USE_SH
 template< typename TargetT, scaling_t to, /* deduced: */ typename ValueT >
 constexpr TargetT v2s(ValueT value) noexcept { return v2smd<TargetT, to>(value); }
@@ -354,17 +352,17 @@ constexpr TargetT v2s(ValueT value) noexcept { return v2sh<TargetT, to>(value); 
 // Continue with internal implementations.
 namespace details {
 
-    /// \returns the real minimum value for the given integral type and scaling that can safely be
-    /// used in operations like negation or taking the absolute value
-    /// (i.e. 0u for unsigned, INT_MIN + 1 for signed).
-    /// \note Internal. Use Q<>::realVMin in applications.
+    /** returns the real minimum value for the given integral type and scaling that can safely be
+     * used in operations like negation or taking the absolute value
+     * (i.e. 0u for unsigned, INT_MIN + 1 for signed).
+     * \note Internal. Use Q<>::realVMin in applications. */
     template< std::integral T, scaling_t f >
     consteval double lowestRealVMin() {
         return v2s<double, -f>( std::is_unsigned_v<T> ? static_cast<T>(0) : std::numeric_limits<T>::min() + 1 );
     }
 
-    /// \returns the real maximum value for the given integral type and scaling.
-    /// \note Internal. Use Q<>::realVMax in applications.
+    /** \returns the real maximum value for the given integral type and scaling.
+     * \note Internal. Use Q<>::realVMax in applications. */
     template< std::integral T, scaling_t f >
     consteval double highestRealVMax() {
         return v2s<double, -f>( std::numeric_limits<T>::max() );
@@ -376,13 +374,15 @@ namespace details {
     template< typename BaseT >
     concept ValidBaseType = (
         std::is_integral_v<BaseT>
+        && std::is_same_v<std::remove_cv_t<BaseT>, BaseT>
         && sizeof(BaseT) <= MAX_BASETYPE_SIZE
     );
 
     /** Concept of a valid (s)q scaling value.
      * Types can be scaled by maximal the number of bits in the base type minus one bit, limited by the
      * size of double's mantissa.
-     * \note If this fails, the selected scaling factor is too large. Use a smaller scaling factor! */
+     * \note If this fails, the selected scaling factor is too large.
+     *       Use a smaller scaling factor! */
     template< typename BaseT, scaling_t f >
     concept ValidScaling = (
         f <= std::numeric_limits<std::make_signed_t<BaseT>>::digits  // CHAR_BIT * sizeof(BaseT) - 1
@@ -405,7 +405,7 @@ namespace details {
     /** Concept of a type that can overflow when allowed. Typically used in the context of casting.
      * \note In C++23, signed int overflow (i.e. the value does not fit in the type) is still undefined.
      * \note If this fails, a signed base type is used in the context of a potential overflow. This is
-     *       not allowed. Use an unsigned target base type. */
+     *       not allowed. Use an unsigned target base type! */
     template< typename BaseT, Overflow ovfBx >
     concept CanBaseTypeOverflow = ( std::is_unsigned_v<BaseT> && ovfBx == Overflow::allowed );
 
@@ -438,10 +438,21 @@ namespace details {
 
     /** Concept: Checks whether the given (S)Q-Type can be used as divisor in a division.
      * \note If this fails, the given type has parts of -1 > x < +1 in its range. This is not allowed.
-     *       Limit the type to a range that excludes values between -1 and +1. */
+     *       Limit the type to a range that excludes values between -1 and +1! */
     template< typename T >
     concept CanBeUsedAsDivisor = (
         T::realVMax <= -1. || T::realVMin >= +1.
+    );
+
+    /** Concept: Checks whether the two given base types can be compared.
+     * Comparison is possible if both types are the same, or both have the same signedness, or if
+     * the size of the lhs type is larger than the size of the rhs type.
+     * \note If this fails, the size of the lhs type is smaller than the size of the rhs type. This
+     *       is not allowed. Cast the lhs type to a larger base type! */
+    template< typename LhsT, typename RhsT >
+    concept CanBeCompared = (
+        std::is_integral_v<LhsT> && std::is_integral_v<RhsT>
+        && (std::is_signed_v<LhsT> == std::is_signed_v<RhsT> || sizeof(LhsT) > sizeof(RhsT))
     );
 
 }  // end of details
