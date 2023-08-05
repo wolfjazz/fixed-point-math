@@ -146,7 +146,7 @@ public:
         /* deduced: */
         Overflow ovfBxEffective = (vMin <= value && value <= vMax) ? Overflow::noCheck : ovfBxOverride >
     requires (
-       details::CompileTimeOnlyOverflowCheckPossible<ovfBxOverride>
+        details::CompileTimeOnlyOverflowCheckPossible<ovfBxOverride>
         && details::RuntimeOverflowCheckAllowedWhenNeeded<ovfBxEffective>
     )
     static constexpr
@@ -274,7 +274,7 @@ public:
         std::is_same_v<base_t, typename SqFrom::base_t>
         && details::ScalingIsPossible<base_t, SqFrom::f, base_t, f>
         && ( !is_ovf_stricter_v<ovfBx, Ovf::noCheck>
-            || (realVMin <= SqFrom::realVMin && SqFrom::realVMax <= realVMax) )
+            || (realVMin <= SqFrom::realVMin && SqFrom::realVMax <= realVMax))
     )
     constexpr q(SqFrom const &from) noexcept : value( s2s<base_t, SqFrom::f, f>(from.value) ) {}
 

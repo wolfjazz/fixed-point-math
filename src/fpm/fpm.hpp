@@ -431,7 +431,7 @@ namespace details {
      * \note If this fails, the given base type is either not integral, or it is a signed integer and
      *       INT_MIN is part of the value range. Exclude INT_MIN from the value range! */
     template< typename BaseT, BaseT vMin >
-    concept CanAbsolutize = (
+    concept Absolutizable = (
         std::is_integral_v<BaseT>
         && (std::is_unsigned_v<BaseT> || (std::is_signed_v<BaseT> && vMin != std::numeric_limits<BaseT>::min()))
     );
@@ -441,7 +441,7 @@ namespace details {
      *       Limit the type to a range that excludes values between -1 and +1! */
     template< typename T >
     concept CanBeUsedAsDivisor = (
-        T::realVMax <= -1. || T::realVMin >= +1.
+        T::realVMax <= -1. || +1. <= T::realVMin
     );
 
     /** Concept: Checks whether the two given base types can be compared.
@@ -450,7 +450,7 @@ namespace details {
      * \note If this fails, the size of the lhs type is smaller than the size of the rhs type. This
      *       is not allowed. Cast the lhs type to a larger base type! */
     template< typename LhsT, typename RhsT >
-    concept CanBeCompared = (
+    concept Comparable = (
         std::is_integral_v<LhsT> && std::is_integral_v<RhsT>
         && (std::is_signed_v<LhsT> == std::is_signed_v<RhsT> || sizeof(LhsT) > sizeof(RhsT))
     );

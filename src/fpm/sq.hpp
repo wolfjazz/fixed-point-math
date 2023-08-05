@@ -204,7 +204,7 @@ public:
             base_t,  // signed type stays
             // unsigned type is promoted to signed type with twice the size
             details::fit_signed_t<base_t, std::numeric_limits<base_t>::max()> > >
-    requires details::CanAbsolutize<base_t, vMin>
+    requires details::Absolutizable<base_t, vMin>
     constexpr
     auto operator - () const noexcept {
         using SqResult = sq<BaseTR, f, realVMinR, realVMaxR>;
@@ -310,7 +310,7 @@ public:
     template< /* deduced: */ SqType SqRhs,
         typename BaseTC = std::common_type_t<base_t, typename SqRhs::base_t>,
         scaling_t fC = std::max(f, SqRhs::f) >
-    requires details::CanBeCompared<base_t, typename SqRhs::base_t>
+    requires details::Comparable<base_t, typename SqRhs::base_t>
     friend constexpr
     bool operator < (sq const &lhs, SqRhs const &rhs) noexcept {
         return s2s<BaseTC, f, fC>(lhs.value) < s2s<BaseTC, SqRhs::f, fC>(rhs.value);
@@ -327,7 +327,7 @@ public:
     template< /* deduced: */ SqType SqRhs,
         typename BaseTC = std::common_type_t<base_t, typename SqRhs::base_t>,
         scaling_t fC = std::max(f, SqRhs::f) >
-    requires details::CanBeCompared<base_t, typename SqRhs::base_t>
+    requires details::Comparable<base_t, typename SqRhs::base_t>
     friend constexpr
     bool operator > (sq const &lhs, SqRhs const &rhs) noexcept {
         return s2s<BaseTC, f, fC>(lhs.value) > s2s<BaseTC, SqRhs::f, fC>(rhs.value);
@@ -343,7 +343,7 @@ public:
     /// \returns true if the value of lhs is equal to the value of rhs, and false otherwise.
     template< /* deduced: */ SqType SqRhs, typename BaseTC = std::common_type_t<base_t, typename SqRhs::base_t> >
     requires (
-        details::CanBeCompared<base_t, typename SqRhs::base_t>
+        details::Comparable<base_t, typename SqRhs::base_t>
         && f == SqRhs::f
     )
     friend constexpr
@@ -361,7 +361,7 @@ public:
     /// \returns true if the value of lhs is not equal to the value of rhs, and false otherwise.
     template< /* deduced: */ SqType SqRhs, typename BaseTC = std::common_type_t<base_t, typename SqRhs::base_t> >
     requires (
-        details::CanBeCompared<base_t, typename SqRhs::base_t>
+        details::Comparable<base_t, typename SqRhs::base_t>
         && f == SqRhs::f
     )
     friend constexpr
@@ -418,7 +418,7 @@ private:
     // friend abs() function so that it can access the private members of a q type to construct new
     // variants of it
     template< SqType Sq, std::integral BaseTR, double realVMinR, double realVMaxR >
-    requires details::CanAbsolutize<typename Sq::base_t, Sq::vMin>
+    requires details::Absolutizable<typename Sq::base_t, Sq::vMin>
     friend constexpr
     auto abs(Sq const &sqValue) noexcept;
 
@@ -462,7 +462,7 @@ template< /* deduced: */ SqType Sq,
         ? 0.0  // use 0 as new minimum if signed input type has a range of negative and positive values
         : std::min(details::abs((double)Sq::realVMin), details::abs((double)Sq::realVMax)),
     double realVMaxR = std::max(details::abs((double)Sq::realVMin), details::abs((double)Sq::realVMax)) >
-requires details::CanAbsolutize<typename Sq::base_t, Sq::vMin>
+requires details::Absolutizable<typename Sq::base_t, Sq::vMin>
 constexpr
 auto abs(Sq const &of) noexcept {
     return sq<BaseTR, Sq::f, realVMinR, realVMaxR>( std::abs(of.value) );
