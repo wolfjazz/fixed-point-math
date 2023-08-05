@@ -39,8 +39,8 @@ concept SqType = requires (T t) {
 template<
     std::integral BaseT,  ///< type of the scaled integer stored in memory
     scaling_t f_,         ///< number of fraction bits (precision 2^(-f))
-    double realVMin_ = details::lowestRealVMin<BaseT, f_>,  ///< minimum real value represented by this type
-    double realVMax_ = details::highestRealVMax<BaseT, f_>  ///< maximum real value represented by this type
+    double realVMin_ = details::lowestRealVMin<BaseT, f_>,  ///< minimum real value represented by the type
+    double realVMax_ = details::highestRealVMax<BaseT, f_>  ///< maximum real value represented by the type
 >
 requires (
     details::ValidBaseType<BaseT>
@@ -56,7 +56,7 @@ public:
     static constexpr double realVMax = realVMax_;  ///< maximum real value
     static constexpr base_t vMin = v2s<base_t, f>(realVMin_);  ///< minimum value of integer value range
     static constexpr base_t vMax = v2s<base_t, f>(realVMax_);  ///< maximum value of integer value range
-    static constexpr double resolution = v2s<double, -f>(1);  ///< real resolution of this type
+    static constexpr double resolution = v2s<double, -f>(1);  ///< real resolution
 
     /// Create a new sq type with the same base type and scaling but a different real value range.
     template< double newRealVMin, double newRealVMax >
@@ -107,8 +107,6 @@ public:
     template< /* deduced: */ SqType SqFrom >
     requires (
         std::is_same_v<base_t, typename SqFrom::base_t>
-        // scaling is only possible if the f difference allows scaling and the real value
-        // can be represented by the target type
         && details::ScalingIsPossible<base_t, SqFrom::f, base_t, f>
         && realVMin <= SqFrom::realVMin && SqFrom::realVMax <= realVMax
     )
@@ -129,8 +127,6 @@ public:
     requires (
         !std::is_same_v< sq, SqFrom >  // when the same, default copy constructor should be used
         && std::is_same_v<base_t, typename SqFrom::base_t>
-        // scaling is only possible if the f difference allows scaling and the real value
-        // can be represented by the target type
         && details::ScalingIsPossible<base_t, SqFrom::f, base_t, f>
         && realVMin <= SqFrom::realVMin && SqFrom::realVMax <= realVMax
     )
@@ -152,8 +148,6 @@ public:
     template< /* deduced: */ std::integral BaseTC, scaling_t fC, double realVMinC, double realVMaxC >
     requires (
         !std::is_same_v<base_t, BaseTC>
-        // scaling is only possible if the f difference allows scaling and the real value
-        // can be represented by the target type
         && details::ScalingIsPossible<base_t, f, BaseTC, fC>
         && realVMinC <= realVMin && realVMax <= realVMaxC
     )
@@ -194,7 +188,7 @@ public:
         return SqResult( static_cast<SqResult::base_t>(result) );
     }
 
-    /// Unary minus operator. Negates this type and its value.
+    /// Unary minus operator. Negates the type and its value.
     /// \note A signed type can be negated if the corresponding INT_MIN value is not in the value
     /// range of the type. An unsigned type is promoted to a new type with a sized base integer that
     /// has twice the size (e.g. u16 is promoted to i32).
@@ -339,7 +333,7 @@ private:
     )
     friend class sq;
 
-    // friend q type so that it can access the private members of this type to construct it
+    // friend q type so that it can access the private members of a q type to construct it
     // Note: As of May 2023, partial specializations cannot be friended, so we friend q in general.
     template< std::integral BaseTQ, scaling_t fQ, double realVMinQ, double realVMaxQ, Overflow ovfQ >
     requires (
@@ -349,7 +343,7 @@ private:
     )
     friend class q;
 
-    // friend abs() function so that it can access the private members of this type to construct new
+    // friend abs() function so that it can access the private members of a q type to construct new
     // variants of it
     template< SqType Sq, std::integral BaseTR, double realVMinR, double realVMaxR >
     requires details::CanAbsolutize<typename Sq::base_t, Sq::vMin>
@@ -365,8 +359,6 @@ private:
 template< SqType SqC, /* deduced: */ SqType SqFrom >
 requires (
     !std::is_same_v<typename SqFrom::base_t, typename SqC::base_t>
-    // scaling is only possible if the f difference allows scaling and the real value
-    // can be represented by the target type
     && details::ScalingIsPossible<typename SqFrom::base_t, SqFrom::f, typename SqC::base_t, SqC::f>
     && SqC::realVMin <= SqFrom::realVMin && SqFrom::realVMax <= SqC::realVMax
 )
@@ -380,8 +372,6 @@ SqC static_sq_cast(SqFrom from) noexcept {
 template< SqType SqC, /* deduced: */ SqType SqFrom >
 requires (
     !std::is_same_v<typename SqFrom::base_t, typename SqC::base_t>
-    // scaling is only possible if the f difference allows scaling and the real value
-    // can be represented by the target type
     && details::ScalingIsPossible<typename SqFrom::base_t, SqFrom::f, typename SqC::base_t, SqC::f>
     && SqC::realVMin <= SqFrom::realVMin && SqFrom::realVMax <= SqC::realVMax
 )

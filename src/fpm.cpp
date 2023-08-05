@@ -18,11 +18,11 @@ template< char ...chars > consteval auto operator""_s() { return fpm::qFromLiter
 
 
 void playground() {
-    // pos_t position = -10.0_mm;  // TODO: implicit conversion sq->q possible if no overflow check is needed
-    // speed_t velocity = 60.6_mm_p_s;
-    // accel_t acceleration = 100._mm_p_s2;
-    // auto dt = 1e-2_s;
-    // mtime_t time = 0_s;
+    pos_t position = -10.0_mm;
+    speed_t velocity = 60.6_mm_p_s;
+    accel_t acceleration = 100._mm_p_s2;
+    auto dt = 1e-2_s;
+    mtime_t time = 0_s;
 
     // for (mtime_t t = time; t < 1_s; t = mtime_t::fromSqOvf(t + dt)) {
     //     auto dv = acceleration * dt;

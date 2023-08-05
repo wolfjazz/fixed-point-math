@@ -44,8 +44,8 @@ concept QType = requires (T t) {
 template<
     std::integral BaseT,  ///< type of the scaled integer stored in memory
     scaling_t f_,         ///< number of fraction bits (precision 2^(-f))
-    double realVMin_ = details::lowestRealVMin<BaseT, f_>,   ///< minimum real value represented by this type
-    double realVMax_ = details::highestRealVMax<BaseT, f_>,  ///< maximum real value represented by this type
+    double realVMin_ = details::lowestRealVMin<BaseT, f_>,   ///< minimum real value represented by the type
+    double realVMax_ = details::highestRealVMax<BaseT, f_>,  ///< maximum real value represented by the type
     Overflow ovfBx_ = Overflow::forbidden  ///< overflow behavior; overflow is forbidden by default
 >
 requires (
@@ -62,7 +62,7 @@ public:
     static constexpr double realVMax = realVMax_;  ///< maximum real value
     static constexpr base_t vMin = v2s<base_t, f>(realVMin_);  ///< minimum value of integer value range
     static constexpr base_t vMax = v2s<base_t, f>(realVMax_);  ///< maximum value of integer value range
-    static constexpr double resolution = v2s<double, -f>(1);  ///< real resolution of this type
+    static constexpr double resolution = v2s<double, -f>(1);  ///< real resolution
     static constexpr Overflow ovfBx = ovfBx_;  ///< overflow behavior
 
     /// Corresponding (related) sq type.
@@ -175,7 +175,7 @@ public:
     template< Overflow ovfBxOverride = ovfBx,
         /* deduced: */
         QType QFrom,
-        // include overflow check if value range of this type is smaller than range of from-type
+        // include overflow check if value range of from-type is not fully within range of target type,
         // or if different overflow properties could result in overflow if not checked
         // note: real limits are compared because scaled integers with different q's cannot be compared so easily
         bool ovfCheckNeeded = (QFrom::realVMin < realVMin || realVMax < QFrom::realVMax
@@ -199,21 +199,23 @@ public:
         return q(static_cast<base_t>(fromValueScaled));
     }
 
-    /// Named "constructor" from a related sq variable.
-    /// \note Overflow check is included if the range of the sq type is larger than the range of this q type.
+    /// Named "constructor" from a sq variable with the same base type.
+    /// \note The representation error to be expected is comparable to that of q::fromQ.
+    /// \note An overflow check is included if the range of the sq type is not entirely within the
+    /// range of the q type.
     template< Overflow ovfBxOverride = ovfBx,
         /* deduced: */
         SqType SqFrom,
-        // include overflow check if the value range of q is smaller
-        bool ovfCheckNeeded = (SqFrom::vMin < vMin || vMax < SqFrom::vMax) >
+        // include overflow check if value range of source is not fully within range of target
+        bool ovfCheckNeeded = (SqFrom::realVMin < realVMin || realVMax < SqFrom::realVMax) >
     requires (
         std::is_same_v<base_t, typename SqFrom::base_t>
-        && f == SqFrom::f
+        && details::ScalingIsPossible<base_t, SqFrom::f, base_t, f>
         && details::RuntimeOverflowCheckAllowedWhenNeeded<ovfBxOverride, ovfCheckNeeded>
     )
     static constexpr
     q fromSq(SqFrom const &fromSq) noexcept {
-        base_t qValue = fromSq.value;
+        base_t qValue = s2s<base_t, SqFrom::f, f>(fromSq.value);
 
         // perform overflow check if needed
         if constexpr (ovfCheckNeeded) {
@@ -249,7 +251,7 @@ public:
     /// rounded towards zero to the next integer. The resulting representation error is at most the
     /// sum of the two resolutions before and after a down-scaling operation.
     template< /* deduced: */ QType QFrom,
-        // include overflow check if value range of this type is smaller than range of from-type
+        // include overflow check if value range of from-type is not fully within range of target type,
         // or if different overflow properties could result in overflow if not checked
         // note: real limits are compared because scaled integers with different q's cannot be compared so easily
         bool ovfCheckNeeded = (QFrom::realVMin < realVMin || realVMax < QFrom::realVMax
@@ -261,6 +263,18 @@ public:
         && details::RuntimeOverflowCheckAllowedWhenNeeded<ovfBx, ovfCheckNeeded>
     )
     constexpr q(QFrom const &from) noexcept : value( q::fromQ<ovfBx>(from).value ) {}
+
+    /// Implicit copy constructor from a sq type with the same or a narrower range.
+    /// \note This works as long as no overflow check is necessary.
+    /// \note The representation error to be expected is comparable to that of q::fromSq.
+    template< /* deduced: */ SqType SqFrom >
+    requires (
+        std::is_same_v<base_t, typename SqFrom::base_t>
+        && details::ScalingIsPossible<base_t, SqFrom::f, base_t, f>
+        && ( !is_ovf_stricter_v<ovfBx, Ovf::noCheck>
+            || (realVMin <= SqFrom::realVMin && SqFrom::realVMax <= realVMax) )
+    )
+    constexpr q(SqFrom const &from) noexcept : value( s2s<base_t, SqFrom::f, f>(from.value) ) {}
 
     /// Copy-Constructor from the same type.
     constexpr q(q const &) noexcept = default;
@@ -278,7 +292,7 @@ public:
     constexpr ~q() {}
 
     /// Copy-Assignment from a different q type with the same base type.
-    /// \note The rhs type must have a range that is fully inside the range of the target type.
+    /// \note The rhs type must have a range that is fully within the range of the target type.
     /// If this is not the case, use the static fromQ constructor function.
     template< /* deduced: */ QType QFrom >
     requires (
@@ -295,10 +309,9 @@ public:
     /// Explicit (static-) cast to a different q type with a different base type.
     /// \note If a cast does not work it's most probably due to unfulfilled requirements. Double check
     ///       whether a runtime overflow check is needed and make sure that it is allowed!
-    template< std::integral BaseTC, scaling_t fC, double realVMinC, double realVMaxC, Overflow ovfC,
-        /* deduced: */
-        // include overflow check if value range of cast-type is smaller than range of this type
-        // or if different overflow properties could result in overflow if not checked
+    template< /* deduced: */ std::integral BaseTC, scaling_t fC, double realVMinC, double realVMaxC, Overflow ovfC,
+        // include overflow check if value range of source type is not fully within range of target
+        // type, or if different overflow properties could result in overflow if not checked
         // note: real limits are compared because scaled integers with different base types and q's
         //       cannot be compared so easily
         bool ovfCheckNeeded = (realVMin < realVMinC || realVMaxC < realVMax || is_ovf_stricter_v<ovfC, ovfBx>) >
@@ -329,7 +342,7 @@ public:
     template< double realVMinSq = realVMin, double realVMaxSq = realVMax, Overflow ovfBxOverride = ovfBx,
         /* deduced: */
         class SqTo = sq<realVMinSq, realVMaxSq>,
-        // include overflow check if the value range of sq is smaller
+        // include overflow check if the value range of sq is narrower
         bool ovfCheckNeeded = (vMin < SqTo::vMin || SqTo::vMax < vMax) >
     requires details::RuntimeOverflowCheckAllowedWhenNeeded<ovfBxOverride, ovfCheckNeeded>
     constexpr
@@ -379,6 +392,16 @@ private:
     )
     friend class q;
 
+    // friend all sq types so that it can access the private members of an sq type to construct it
+    // Note: As of May 2023, partial specializations cannot be friended, so we friend sq in general.
+    template< std::integral BaseTSq, scaling_t fSq, double realVMinSq, double realVMaxSq >
+    requires (
+        details::ValidBaseType<BaseTSq>
+        && details::ValidScaling<BaseTSq, fSq>
+        && details::RealLimitsInRangeOfBaseType<BaseTSq, fSq, realVMinSq, realVMaxSq>
+    )
+    friend class sq;
+
     /// scaled integer value that represents a fixed-point value; stored in memory
     base_t value;
 };
@@ -388,8 +411,8 @@ private:
 template< QType QC, Overflow ovfBxOverride = QC::ovfBx,
     /* deduced: */
     QType QFrom,
-    // include overflow check if value range of cast-type is smaller than range of this type
-    // or if different overflow properties could result in overflow if not checked
+    // include overflow check if value range of source type is not fully within range of target
+    // type, or if different overflow properties could result in overflow if not checked
     // note: real limits are compared because scaled integers with different base types and q's
     //       cannot be compared so easily
     bool ovfCheckNeeded = (QFrom::realVMin < QC::realVMin || QC::realVMax < QFrom::realVMax

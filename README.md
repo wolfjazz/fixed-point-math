@@ -167,7 +167,7 @@ auto pos = pos_t::fromReal<1000.>;
 // in a formula, this whole calculation will not include any overflow checks at runtime, because the
 // compiler is doing these checks for the value ranges at compile-time and the code does not compile
 // when the calculated value range does not fit into the user-defined, expected value range.
-// Note: Transitions from q to sq space can be implicit, transitions from sq to q space can only be
+// Note: Conversion from q to sq space can be implicit, conversion from sq to q space can only be
 //       implicit if no overflow check is necessary, otherwise it has to be done explicitly!
 //
 // Note: About conversions between q and sq: the q type knows the corresponding sq type, but the sq

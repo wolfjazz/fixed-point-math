@@ -30,10 +30,17 @@ concept CanConvertQToSq = requires (Q q) {
 };
 
 /// Concept which checks whether an instance of a given Sq type can be converted to an instance of a
-/// given Q type.
+/// given Q type via explicit conversion.
 template< class Sq, class Q >
-concept CanConvertSqToQ = requires (Sq sq) {
+concept CanConvertSqToQExplicitly = requires (Sq sq) {
     { Q::template fromSq(sq) } -> std::same_as<Q>;  // false if expression cannot be compiled
+};
+
+/// Concept which checks whether an instance of a given Sq type can be converted to an instance of a
+/// given Q type via implicit conversion.
+template< class Sq, class Q >
+concept CanConvertSqToQImplicitly = requires (Q q, Sq sq) {
+    q = sq;  // false if expression cannot be compiled
 };
 
 /// Concept which checks whether an instance of a given Q type can be static_cast to an instance of
@@ -379,7 +386,7 @@ TEST_F(QTest_Sq, q_to_sq__same_value_range__no_overflow_check_performed) {
 
 TEST_F(QTest_Sq, q_to_sq__different_value_range_overflow_forbidden__does_not_compile) {
     // Note: Although the value is inside the value range in this case, the compiler will add
-    //       overflow checks as soon as the value range for sq is smaller (because the value of q
+    //       overflow checks as soon as the value range for sq is narrower (because the value of q
     //       might be changed before toSq() is called). Due to fpm::Ovf::forbidden, this must not compile.
     using SqT = i32q20_t::sq<i32q20_t::realVMin + 1., i32q20_t::realVMax - 1.>;
     ASSERT_FALSE(( CanConvertQToSq< i32q20_t, SqT > ));
@@ -417,18 +424,62 @@ TEST_F(QTest_Sq, q_to_sq__different_value_range_overflow_allowed__value_can_over
     ASSERT_NEAR(+realValue, sqValuePOvf.toReal(), i32q20_ovf_t::resolution);
 }
 
+TEST_F(QTest_Sq, q_from_sq__from_narrower_value_range__q_value_equal_no_overflow_check) {
+    constexpr double realValue = 234.5;
+    using i32sq20_n_t = i32sq20< i32q20_t::realVMin + 100., i32q20_t::realVMax - 100. >;
+    auto sqValue = i32sq20_n_t::fromReal<realValue>;
+    auto qValue = i32q20_t::fromSq(sqValue);
+
+    EXPECT_TRUE(( CanConvertSqToQImplicitly< i32sq20_n_t, i32q20_t > ));
+    i32q20_t qValueI = sqValue;  // implicit conversion from similar type with narrower range
+
+    ASSERT_NEAR(realValue, qValue.toReal(), i32q20_t::resolution);
+    ASSERT_NEAR(realValue, qValueI.toReal(), i32q20_t::resolution);
+}
+
+TEST_F(QTest_Sq, q_from_sq__from_narrower_value_range_and_lower_f__q_value_upscaled_no_overflow_check) {
+    constexpr double realValue = -234.5;
+    using i32sq16_t = i32sq16< i32q20_t::realVMin + 100., i32q20_t::realVMax - 100. >;
+    auto sqValue = i32sq16_t::fromReal<realValue>;
+    auto qValue = i32q20_t::fromSq(sqValue);
+
+    EXPECT_TRUE(( CanConvertSqToQImplicitly< i32sq16_t, i32q20_t > ));
+    i32q20_t qValueI = sqValue;  // implicit conversion from narrower range
+
+    ASSERT_NEAR(realValue, qValue.toReal(), i32q20_t::resolution);
+    ASSERT_NEAR(realValue, qValueI.toReal(), i32q20_t::resolution);
+}
+
+TEST_F(QTest_Sq, q_from_sq__from_narrower_value_range_and_larger_f__q_value_downscaled_no_overflow_check) {
+    constexpr double realValue = -94.5;
+    using i32sq24_t = i32sq24< -100., +100. >;
+    auto sqValue = i32sq24_t::fromReal<realValue>;
+    auto qValue = i32q20_t::fromSq(sqValue);
+
+    EXPECT_TRUE(( CanConvertSqToQImplicitly< i32sq24_t, i32q20_t > ));
+    i32q20_t qValueI = sqValue;  // implicit conversion from narrower range
+
+    ASSERT_NEAR(realValue, qValue.toReal(), i32q20_t::resolution);
+    ASSERT_NEAR(realValue, qValueI.toReal(), i32q20_t::resolution);
+}
+
 TEST_F(QTest_Sq, q_from_sq__same_value_range_value_within_limits__q_value_equal_no_overflow_check) {
     constexpr double realValue = -234.5;
     auto sqValue = i32q20_t::fromReal<realValue>.toSq();
     auto qValue = i32q20_t::fromSq(sqValue);  // does not perform overflow checks in this case
 
+    EXPECT_TRUE(( CanConvertSqToQImplicitly< i32q20_t::sq<>, i32q20_t > ));
+    i32q20_t qValueI = sqValue;  // implicit conversion from similar type with same range
+
     ASSERT_NEAR(realValue, qValue.toReal(), i32q20_t::resolution);
+    ASSERT_NEAR(realValue, qValueI.toReal(), i32q20_t::resolution);
 }
 
-TEST_F(QTest_Sq, q_from_sq__different_value_range_default__does_not_compile) {
+TEST_F(QTest_Sq, q_from_sq__from_larger_value_range__does_not_compile) {
     // sq with wider range cannot be converted to q with a narrower range if overflow is forbidden
     using SqT = i32sq20<-1010., 1010.>;
-    ASSERT_FALSE(( CanConvertSqToQ< SqT, i32q20_t > ));
+    ASSERT_FALSE(( CanConvertSqToQExplicitly< SqT, i32q20_t > ));
+    ASSERT_FALSE(( CanConvertSqToQImplicitly< SqT, i32q20_t > ));
 }
 
 TEST_F(QTest_Sq, q_from_sq__different_value_range_saturate__q_value_is_saturated) {
