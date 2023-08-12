@@ -173,7 +173,7 @@ public:
 
     /// Adds two sq values.
     /// \returns a value of a new sq type with the larger scaling (higher precision) and the value
-    /// ranges added together. If the base types are different, a common type is determined that can
+    /// ranges added together. For the base type of the result a common type is determined that can
     /// hold the lowest and highest value of the resulting value range.
     template< /* deduced: */ SqType SqRhs,
         scaling_t fR = std::max(SqRhs::f, f),
@@ -211,7 +211,7 @@ public:
 
     /// Subtracts the rhs value from the lhs value.
     /// \returns a value of a new sq type with the larger scaling (higher precision) and the value
-    /// ranges subtracted. If the base types are different, a common type is determined that can hold
+    /// ranges subtracted. For the base type of the result a common type is determined that can hold
     /// the lowest and highest value of the resulting value range.
     /// \note For a chain of n additions, the propagated error is approximately n * 2^(-f) plus the
     /// representation error of the initial value.
@@ -234,7 +234,7 @@ public:
 
     /// Multiplies the lhs value with the rhs value.
     /// \returns a value of a new sq type with the larger scaling (higher precision) and the value
-    /// ranges multiplied. If the base types are different, a common type is determined that can hold
+    /// ranges multiplied. For the base type of the result a common type is determined that can hold
     /// the lowest and highest value of the resulting value range.
     /// \note The error propagation is complicated. When a number x is multiplied with itself n times,
     /// the real error is of order O( (n+1)*x^n * 2^(-f) ). For example, for a chain x*x*x (n=2) the
@@ -263,7 +263,7 @@ public:
 
     /// Divides the lhs value by the rhs value.
     /// \returns a value of a new sq type with the larger scaling (higher precision) and the value
-    /// ranges divided. If the base types are different, a common type is determined that can hold
+    /// ranges divided. For the base type of the result a common type is determined that can hold
     /// the lowest and highest value of the resulting value range.
     /// \warning Arithmetic underflow can happen if the result is smaller than the target resolution.
     /// \warning To ensure that compile-time overflow checks are not required, the rhs type must not
