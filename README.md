@@ -12,17 +12,17 @@ Negative numbers are usually expressed as signed integers in two's complement re
 
 What sounds reasonable so far is actually one of the most underestimated sources for bugs:
 
-- Mathematical operations like multiplications and especially more complex formulas tend to exceed the value range of the underlying base type quite fast. When no overflow check is performed and the values are not saturated, the integers will quietly overflow and the calculations will return completely wrong values with unpredictable consequences.
+- Mathematical operations like multiplications and especially more complex formulas tend to exceed the value range of the underlying base type quite fast. When no overflow check is performed and the values are not saturated, the integers will quietly overflow and the calculations will return completely wrong values with unpredictable/undefined consequences.
 - Calculations with scaled values are quite complicated when done manually because scaling corrections are needed for many operators. As a result complex formulas are often hard to read and correcting factors can easily be forgotten since they are not intuitive.
 
-In the end, we just want to perform calculations with a predefined value range and precision without having to worry about things like overflow too much. So let's define a list of expectations what a fixed-point library with overflow protection should provide:
+In the end, one just wants to perform calculations within a predefined value range and a given precision, without having to worry about things like overflow too much. So let's define a list of expectations what a fixed-point library with overflow protection should provide:
 
-- predefined fixed-point types based on signed and unsigned integer types (8, 16, 32 and 64 bits)
+- predefined fixed-point types based on signed and unsigned integer types (8, 16, 32 and potentially 64 bits)
 - user-defined precision and value range (at compile-time)
 - ability to specify the value range via floats (= unscaled values) at compile-time
 - ability to change the precision and/or the value range later in code (at compile-time, via types)
 - no implicit construction from floating-point types (safety, to avoid confusion)
-- implicit construction (of sq) from static integers when they appear in formulas (e.g. as factors)
+- implicit construction (of sq) from static integers when they appear in formulas (e.g. as factors)  -->  not possible yet; literals can be used instead
 - explicit construction from static, scaled integers and real floating-point values at compile time
 - explicit construction from integer-based variables with scaled integer values at runtime
 - no runtime construction from floating-point variables (we don't want floats at runtime)
