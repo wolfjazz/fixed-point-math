@@ -167,21 +167,22 @@ public:
     /// Unary plus operator. Integral promotion does not make any sense, so this just creates a copy.
     /// \returns a copy of the value with the same type.
     constexpr
-    sq operator + () const noexcept {
+    sq operator +() const noexcept {
         return sq( value );
     }
 
     /// Adds two sq values.
     /// \returns a value of a new sq type with the larger scaling (higher precision) and the value
-    /// ranges added together. If the base types are different, integral promotion rules will be applied.
+    /// ranges added together. If the base types are different, a common type is determined that can
+    /// hold the lowest and highest value of the resulting value range.
     template< /* deduced: */ SqType SqRhs,
-        // common type is larger type, or unsigned type if same size, or type if same type
-        std::integral BaseTR = std::common_type_t<base_t, typename SqRhs::base_t>, scaling_t fR = std::max(SqRhs::f, f),
-        double realVMinR = realVMin + SqRhs::realVMin, double realVMaxR = realVMax + SqRhs::realVMax >
+        scaling_t fR = std::max(SqRhs::f, f),
+        double realVMinR = realVMin + SqRhs::realVMin, double realVMaxR = realVMax + SqRhs::realVMax,
+        std::integral BaseTR = details::common_q_base_t<base_t, typename SqRhs::base_t, fR, realVMinR, realVMaxR> >
     requires details::RealLimitsInRangeOfBaseType<BaseTR, fR, realVMinR, realVMaxR>
     friend constexpr
     // Note: Passing lhs by value helps optimize chained a+b+c.
-    auto operator + (sq const lhs, SqRhs const &rhs) noexcept {
+    auto operator +(sq const lhs, SqRhs const &rhs) noexcept {
         using SqResult = sq<BaseTR, fR, realVMinR, realVMaxR>;
 
         // add values
@@ -193,38 +194,36 @@ public:
     /// Unary minus operator. Negates the type and its value.
     /// \note A signed type can be negated if the corresponding INT_MIN value is not in the value
     /// range of the type. An unsigned type is promoted to a new type with a sized base integer that
-    /// has twice the size (e.g. u16 is promoted to i32).
+    /// has either the same size if possible, or twice the size (e.g. u16 -> i32).
     /// \note For a chain of n subtractions, the propagated error is approximately n * 2^(-f) plus the
     /// representation error of the initial value.
     /// \warning a +0.0 in the limits will be negated to -0.0 and vice versa. Note that two sq types
     ///          which differ only by the sign of the 0 in a limit are not equal by design!
     /// \returns a value of a new sq type with negated limits and value.
     template< /* deduced: */ double realVMinR = -realVMax, double realVMaxR = -realVMin,
-        std::integral BaseTR = std::conditional_t< std::is_signed_v<base_t>,
-            base_t,  // signed type stays
-            // unsigned type is promoted to signed type with twice the size
-            details::fit_signed_t<base_t, std::numeric_limits<base_t>::max()> > >
+        std::integral BaseTR = details::common_q_base_t<base_t, std::make_signed_t<base_t>, f, realVMinR, realVMaxR> >
     requires details::Absolutizable<base_t, vMin>
     constexpr
-    auto operator - () const noexcept {
+    auto operator -() const noexcept {
         using SqResult = sq<BaseTR, f, realVMinR, realVMaxR>;
         return SqResult( static_cast<typename SqResult::base_t>(-value) );
     }
 
     /// Subtracts the rhs value from the lhs value.
     /// \returns a value of a new sq type with the larger scaling (higher precision) and the value
-    /// ranges subtracted. If the base types are different, integral promotion rules will be applied.
+    /// ranges subtracted. If the base types are different, a common type is determined that can hold
+    /// the lowest and highest value of the resulting value range.
     /// \note For a chain of n additions, the propagated error is approximately n * 2^(-f) plus the
     /// representation error of the initial value.
     template< /* deduced: */ SqType SqRhs,
-        // common type is larger type, or unsigned type if same size, or type if same type
-        std::integral BaseTR = std::common_type_t<base_t, typename SqRhs::base_t>, scaling_t fR = std::max(SqRhs::f, f),
+        scaling_t fR = std::max(SqRhs::f, f),
         double realVMinR = std::min(realVMin - SqRhs::realVMax, SqRhs::realVMin - realVMax),
-        double realVMaxR = std::max(realVMax - SqRhs::realVMin, SqRhs::realVMax - realVMin) >
+        double realVMaxR = std::max(realVMax - SqRhs::realVMin, SqRhs::realVMax - realVMin),
+        std::integral BaseTR = details::common_q_base_t<base_t, typename SqRhs::base_t, fR, realVMinR, realVMaxR> >
     requires details::RealLimitsInRangeOfBaseType<BaseTR, fR, realVMinR, realVMaxR>
     friend constexpr
     // Note: Passing lhs by value helps optimize chained a-b-c.
-    auto operator - (sq const lhs, SqRhs const &rhs) noexcept {
+    auto operator -(sq const lhs, SqRhs const &rhs) noexcept {
         using SqResult = sq<BaseTR, fR, realVMinR, realVMaxR>;
 
         // subtract rhs value from lhs value
@@ -235,22 +234,23 @@ public:
 
     /// Multiplies the lhs value with the rhs value.
     /// \returns a value of a new sq type with the larger scaling (higher precision) and the value
-    /// ranges multiplied. If the base types are different, integral promotion rules will be applied.
+    /// ranges multiplied. If the base types are different, a common type is determined that can hold
+    /// the lowest and highest value of the resulting value range.
     /// \note The error propagation is complicated. When a number x is multiplied with itself n times,
     /// the real error is of order O( (n+1)*x^n * 2^(-f) ). For example, for a chain x*x*x (n=2) the
     /// real error is of order O( 3*x^2 * 2^(-f) ). Higher terms O( 2^(-m*f) ), m > 1 also occur for
     /// chains, but normally these are very close to 0 (when q is large enough) and can be ignored.
     template< /* deduced: */ SqType SqRhs,
-        // common type is larger type, or unsigned type if same size, or type if same type
-        std::integral BaseTR = std::common_type_t<base_t, typename SqRhs::base_t>, scaling_t fR = std::max(SqRhs::f, f),
+        scaling_t fR = std::max(SqRhs::f, f),
         double realVMinR = std::min(std::min(realVMin * SqRhs::realVMax, SqRhs::realVMin * realVMax),
                                     std::min(realVMin * SqRhs::realVMin, realVMax * SqRhs::realVMax)),
         double realVMaxR = std::max(std::max(realVMax * SqRhs::realVMin, SqRhs::realVMax * realVMin),
-                                    std::max(realVMin * SqRhs::realVMin, realVMax * SqRhs::realVMax)) >
+                                    std::max(realVMin * SqRhs::realVMin, realVMax * SqRhs::realVMax)),
+        std::integral BaseTR = details::common_q_base_t<base_t, typename SqRhs::base_t, fR, realVMinR, realVMaxR> >
     requires details::RealLimitsInRangeOfBaseType<BaseTR, fR, realVMinR, realVMaxR>
     friend constexpr
     // Note: Passing lhs by value helps optimize chained a*b*c.
-    auto operator * (sq const lhs, SqRhs const &rhs) noexcept {
+    auto operator *(sq const lhs, SqRhs const &rhs) noexcept {
         using SqResult = sq<BaseTR, fR, realVMinR, realVMaxR>;
         using interm_m_t = interm_t<BaseTR>;
 
@@ -263,8 +263,9 @@ public:
 
     /// Divides the lhs value by the rhs value.
     /// \returns a value of a new sq type with the larger scaling (higher precision) and the value
-    /// ranges divided. If the base types are different, integral promotion rules will be applied.
-    /// \warning Arithmetic underflow can happen if the result is smaller than the target precision.
+    /// ranges divided. If the base types are different, a common type is determined that can hold
+    /// the lowest and highest value of the resulting value range.
+    /// \warning Arithmetic underflow can happen if the result is smaller than the target resolution.
     /// \warning To ensure that compile-time overflow checks are not required, the rhs type must not
     ///          have values between -1 and +1 in its value range.
     /// \note The error propagation is complicated. When a number x is divided by itself n times,
@@ -276,19 +277,19 @@ public:
     /// 2*2^(-f)  <  2*2^(-f) * (1 + 2^f/(x*2^f+1) + 2^(2f)/(x*2^f+1)^2)  <  2*(1+2^(-f)).
     /// However, for |x| >= 1 and n >= 2 the error can be approximated reasonably well with 3*n*2^(-f).
     template< /* deduced: */ SqType SqRhs,
-        // common type is larger type, or unsigned type if same size, or type if same type
-        std::integral BaseTR = std::common_type_t<base_t, typename SqRhs::base_t>, scaling_t fR = std::max(SqRhs::f, f),
+        scaling_t fR = std::max(SqRhs::f, f),
         double realVMinR = std::min(std::min(realVMin / SqRhs::realVMax, realVMin / SqRhs::realVMin),
                                     std::min(realVMax / SqRhs::realVMin, realVMax / SqRhs::realVMax)),
         double realVMaxR = std::max(std::max(realVMin / SqRhs::realVMax, realVMin / SqRhs::realVMin),
-                                    std::max(realVMax / SqRhs::realVMin, realVMax / SqRhs::realVMax)) >
+                                    std::max(realVMax / SqRhs::realVMin, realVMax / SqRhs::realVMax)),
+        std::integral BaseTR = details::common_q_base_t<base_t, typename SqRhs::base_t, fR, realVMinR, realVMaxR> >
     requires (
         details::CanBeUsedAsDivisor<SqRhs>
         && details::RealLimitsInRangeOfBaseType<BaseTR, fR, realVMinR, realVMaxR>
     )
     friend constexpr
     // Note: Passing lhs by value helps optimize chained a/b/c.
-    auto operator / (sq const lhs, SqRhs const &rhs) noexcept {
+    auto operator /(sq const lhs, SqRhs const &rhs) noexcept {
         using SqResult = sq<BaseTR, fR, realVMinR, realVMaxR>;
         using interm_m_t = interm_t<BaseTR>;
 
@@ -299,11 +300,46 @@ public:
         return SqResult( result );
     }
 
+    /// Divides the lhs value by the rhs value and returns the remainder of the division.
+    /// The remainder of the division operation x/y calculated by this function is exactly the value
+    /// x - n*y, where n is x/y with its fractional part truncated. The returned value has the same
+    /// sign as x and is less or equal to y in magnitude.
+    /// \returns the remainder of the division, as a value of a new sq type with the larger scaling
+    /// (higher precision) and with the value ranges adopted. If the base types are different, a common
+    /// type is determined that can hold the lowest and highest value of the resulting value range.
+    /// \warning Arithmetic underflow can happen if the result is smaller than the target resolution.
+    /// \warning To ensure that compile-time overflow checks are not required, the rhs type must not
+    ///          have values between -resolution and +resolution in its value range.
+    /// \note The error propagation is similar to that of the division operator.
+    template< /* deduced: */ SqType SqRhs,
+        scaling_t fR = std::max(SqRhs::f, f),
+        double realVMinR = std::max(realVMin, details::signum(realVMin) *
+                                    std::max(details::abs(SqRhs::realVMin), details::abs(SqRhs::realVMax))),
+        double realVMaxR = std::min(realVMax, details::signum(realVMax) *
+                                    std::max(details::abs(SqRhs::realVMin), details::abs(SqRhs::realVMax))),
+        std::integral BaseTR = details::common_q_base_t<base_t, typename SqRhs::base_t, fR, realVMinR, realVMaxR> >
+    requires (
+        details::CanBeUsedAsModulusDivisor<SqRhs>
+        && details::RealLimitsInRangeOfBaseType<BaseTR, fR, realVMinR, realVMaxR>
+    )
+    friend constexpr
+    // Note: Passing lhs by value helps optimize chained a/b/c.
+    auto operator %(sq const lhs, SqRhs const &rhs) noexcept {
+        using SqResult = sq<BaseTR, fR, realVMinR, realVMaxR>;
+        using interm_m_t = interm_t<BaseTR>;
+
+        // divide lhs by rhs in intermediate type and correct scaling to obtain result
+        // (a * 2^f) % (b * 2^f) = a%b * 2^f
+        auto intermediate = s2s<interm_m_t, f, SqResult::f>(lhs.value) % s2s<interm_m_t, SqRhs::f, SqResult::f>(rhs.reveal());
+        auto result = static_cast<typename SqResult::base_t>(intermediate);
+        return SqResult( result );
+    }
+
     /// Compares lhs to rhs and returns true if the value of lhs is smaller than the value of rhs.
     /// Before comparison, both values are scaled to the larger f.
     /// \note Comparison is possible if both types are the same, or if the size of the lhs type is
     /// larger than the size of the rhs type. The common type is used for the comparison in these cases.
-    /// \warning If two values ​​are compared that are closer together than the precision, the result
+    /// \warning If two values ​​are compared that are closer together than the resolution, the result
     ///          may be false instead of true. The result is false if the values are identical, and
     ///          it is never true if it should be false.
     /// \returns true if the value of lhs is smaller than the value of rhs, and false otherwise.
@@ -312,7 +348,7 @@ public:
         scaling_t fC = std::max(f, SqRhs::f) >
     requires details::Comparable<base_t, typename SqRhs::base_t>
     friend constexpr
-    bool operator < (sq const &lhs, SqRhs const &rhs) noexcept {
+    bool operator <(sq const &lhs, SqRhs const &rhs) noexcept {
         return s2s<BaseTC, f, fC>(lhs.value) < s2s<BaseTC, SqRhs::f, fC>(rhs.value);
     }
 
@@ -320,7 +356,7 @@ public:
     /// Before comparison, both values are scaled to the larger f.
     /// \note Comparison is possible if both types are the same, or if the size of the lhs type is
     /// larger than the size of the rhs type. The common type is used for the comparison in these cases.
-    /// \warning If two values ​​are compared that are closer together than the precision, the result
+    /// \warning If two values ​​are compared that are closer together than the resolution, the result
     ///          may be false instead of true. The result is false if the values are identical, and
     ///          it is never true if it should be false.
     /// \returns true if the value of lhs is larger than the value of rhs, and false otherwise.
@@ -329,7 +365,7 @@ public:
         scaling_t fC = std::max(f, SqRhs::f) >
     requires details::Comparable<base_t, typename SqRhs::base_t>
     friend constexpr
-    bool operator > (sq const &lhs, SqRhs const &rhs) noexcept {
+    bool operator >(sq const &lhs, SqRhs const &rhs) noexcept {
         return s2s<BaseTC, f, fC>(lhs.value) > s2s<BaseTC, SqRhs::f, fC>(rhs.value);
     }
 
@@ -337,7 +373,7 @@ public:
     /// \note For this comparison to work reliably both types need to have the same scaling.
     /// \note Comparison is possible if base types are the same, or if the size of the lhs type is
     /// larger than the size of the rhs type. The common type is used for the comparison in these cases.
-    /// \warning If two values ​​are compared that are closer together than the precision, the result
+    /// \warning If two values ​​are compared that are closer together than the resolution, the result
     ///          may be true instead of false. The result is true if the values are identical, and
     ///          it is never false if it should be true.
     /// \returns true if the value of lhs is equal to the value of rhs, and false otherwise.
@@ -347,7 +383,7 @@ public:
         && f == SqRhs::f
     )
     friend constexpr
-    bool operator == (sq const &lhs, SqRhs const &rhs) noexcept {
+    bool operator ==(sq const &lhs, SqRhs const &rhs) noexcept {
         return static_cast<BaseTC>(lhs.value) == static_cast<BaseTC>(rhs.value);
     }
 
@@ -355,7 +391,7 @@ public:
     /// \note For this comparison to work reliably both types need to have the same scaling.
     /// \note Comparison is possible if base types are the same, or if the size of the lhs type is
     /// larger than the size of the rhs type. The common type is used for the comparison in these cases.
-    /// \warning If two values ​​are compared that are closer together than the precision, the result
+    /// \warning If two values ​​are compared that are closer together than the resolution, the result
     ///          may be true instead of false. The result is true if the values are identical, and
     ///          it is never false if it should be true.
     /// \returns true if the value of lhs is not equal to the value of rhs, and false otherwise.
@@ -365,7 +401,7 @@ public:
         && f == SqRhs::f
     )
     friend constexpr
-    bool operator != (sq const &lhs, SqRhs const &rhs) noexcept {
+    bool operator !=(sq const &lhs, SqRhs const &rhs) noexcept {
         return static_cast<BaseTC>(lhs.value) != static_cast<BaseTC>(rhs.value);
     }
 
@@ -376,7 +412,7 @@ public:
 
     /// Unwraps to the real value. May be used for debugging purposes.
     /// \warning This conversion is expensive if the target type is a floating-point type.
-    ///          If the target type is an integral type, there can be a significant loss of precision.
+    ///          If the target type is an integral type, there can be a significant loss of resolution.
     ///          Use carefully!
 #   if defined FPM_USE_SH
     template< typename TargetT = int >
@@ -390,8 +426,8 @@ public:
 private:
     // delete undesired special members
     sq() = delete;  // default constructor
-    sq& operator = (sq const &) = delete;  // copy-assignment
-    sq& operator = (sq&&) = delete;  // move-assignment
+    sq& operator =(sq const &) = delete;  // copy-assignment
+    sq& operator =(sq&&) = delete;  // move-assignment
 
     /// Explicit, possibly compile-time constructor from scaled integer value.
     explicit constexpr sq(base_t value) noexcept : value(value) {}

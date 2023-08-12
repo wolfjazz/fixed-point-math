@@ -40,6 +40,12 @@ concept Dividable = requires (Sq1 sq1, Sq2 sq2) {
     sq1 / sq2;  // false if expression cannot be compiled
 };
 
+/// Checks whether Sq1 can be remainder-divided by Sq2.
+template< class Sq1, class Sq2 >
+concept RemainderDividable = requires (Sq1 sq1, Sq2 sq2) {
+    sq1 % sq2;  // false if expression cannot be compiled
+};
+
 /// Checks whether a lt comparison between Sq1 and Sq2 is possible.
 template< class Sq1, class Sq2 >
 concept LtComparable = requires (Sq1 sq1, Sq2 sq2) {
@@ -483,7 +489,19 @@ TEST_F(SQTest_Unary, sq_unary_minus__some_signed_sq_type_with_intmin__does_not_c
     ASSERT_FALSE(( Negatable< i16sq4_t > ));
 }
 
-TEST_F(SQTest_Unary, sq_unary_minus__some_unsigned_sq_value__negated_value_and_limits) {
+TEST_F(SQTest_Unary, sq_unary_minus__small_unsigned_sq_value__negated_value_and_limits) {
+    using u16sq4_t = u16sq4<0., 500.>;
+    EXPECT_TRUE(( Negatable< u16sq4_t > ));
+
+    auto a = u16sq4_t::fromReal<234.56>;
+    auto b = -a;
+
+    using expected_result_t = i16sq4<-500., -0.>;  // (!) -0.0 is not equal to +0.0
+    ASSERT_TRUE((std::is_same_v<expected_result_t, decltype(b)>));
+    ASSERT_NEAR(-a.toReal(), b.toReal(), u16sq4_t::resolution);
+}
+
+TEST_F(SQTest_Unary, sq_unary_minus__large_unsigned_sq_value__negated_value_and_limits) {
     using u16sq4_t = u16sq4<>;  // use full range
     EXPECT_TRUE(( Negatable< u16sq4_t > ));
 
@@ -776,7 +794,7 @@ protected:
     }
 };
 
-TEST_F(SQTest_Division, sq_divide__three_values_same_sq_type__values_divided) {
+TEST_F(SQTest_Division, sq_divide__three_values_similar_sq_type__values_divided) {
     using dividend_t = i32sq16<-80., 80.>;
     using divisor_t = i32sq16<-20., -1.>;
     auto a = dividend_t::fromReal< -45. >;
@@ -792,19 +810,19 @@ TEST_F(SQTest_Division, sq_divide__three_values_same_sq_type__values_divided) {
 
 TEST_F(SQTest_Division, sq_divide__three_values_different_sq_type__values_divided_largest_resolution) {
     using dividend_t = i32sq16<-8., -2.>;
-    using divisor_t = i32sq20<1., 10.>;
+    using divisor_t = u32sq20<1., 10.>;
     auto a = dividend_t::fromReal< -7.888 >;
     auto b = divisor_t::fromReal< 2.666 >;
     auto c = divisor_t::fromReal< 8.123 >;
 
     auto d = a / b / c;
 
-    using expected_result_t = divisor_t::relimit_t<-8., -0.02>;
+    using expected_result_t = i32sq20<-8., -0.02>;
     ASSERT_TRUE((std::is_same_v<expected_result_t, decltype(d)>));
     ASSERT_NEAR(-0.364242236, d.toReal(), 3*2*dividend_t::resolution);
 }
 
-TEST_F(SQTest_Division, sq_divide__three_values_same_type_one_int_sq_constant__values_divided) {
+TEST_F(SQTest_Division, sq_divide__three_values_similar_type_one_int_sq_constant__values_divided) {
     using i32sq16_t = i32sq16<1., 8.>;
     auto a = i32sq16_t::fromReal< 5.5 >;
     auto b = i32sq16_t::fromReal< 2.6 >;
@@ -823,7 +841,7 @@ TEST_F(SQTest_Division, sq_divide__three_values_same_type_one_int_sq_constant__v
     ASSERT_NEAR(-0.174825175, f.toReal(), 3*2*i32sq16_t::resolution);
 }
 
-TEST_F(SQTest_Division, sq_divide__two_values_same_type_and_int_q_constant__values_divided) {
+TEST_F(SQTest_Division, sq_divide__two_values_similar_type_and_int_q_constant__values_divided) {
     using i32sq16_t = i32sq16<10., 80.>;
     auto a = i32sq16_t::fromReal< 55.5 >;
     auto b = i32sq16_t::fromReal< 11.1 >;
@@ -845,6 +863,91 @@ TEST_F(SQTest_Division, sq_divide__two_values_same_type_and_int_q_constant__valu
 TEST_F(SQTest_Division, sq_divide__divisor_has_forbidden_range__does_not_compile) {
     ASSERT_FALSE(( Dividable< u32sq20<0., 200.>, i32sq16<-2., 20.> > ));
     ASSERT_FALSE(( Dividable< u32sq20<0., 200.>, u16sq6<0.5, 10.> > ));
+}
+
+
+// ////////////////////////////////////////////////////////////////////////////////////////////// //
+// ------------------------------------ SQ Test: Modulus ---------------------------------------- //
+// ////////////////////////////////////////////////////////////////////////////////////////////// //
+
+class SQTest_Modulus : public ::testing::Test {
+protected:
+    void SetUp() override
+    {
+    }
+    void TearDown() override
+    {
+    }
+};
+
+TEST_F(SQTest_Modulus, sq_modulo__similar_type_negative_dividend_positive_divisor__modulo_works) {
+    using dividend_t = i16sq8<-8., 3.>;
+    using divisor_t = i16sq8<i16sq8<>::resolution, 6.>;
+    auto a = dividend_t::fromReal<-4.56>;
+    auto b = divisor_t::fromReal<+3.33>;
+
+    auto c = a % b;
+
+    using expected_result_t = i16sq8<-6., 3.>;
+    ASSERT_TRUE((std::is_same_v<expected_result_t, decltype(c)>));
+    ASSERT_NEAR(-1.23, c.toReal(), 3*expected_result_t::resolution);
+}
+
+TEST_F(SQTest_Modulus, sq_modulo__similar_type_negative_dividend__negative_divisor__modulo_works) {
+    using dividend_t = i16sq8<-8., 3.>;
+    using divisor_t = i16sq8<-6., -i16sq8<>::resolution>;
+    auto a = dividend_t::fromReal<-4.56>;
+    auto b = divisor_t::fromReal<-3.33>;
+
+    auto c = a % b;
+
+    using expected_result_t = i16sq8<-6., 3.>;
+    ASSERT_TRUE((std::is_same_v<expected_result_t, decltype(c)>));
+    ASSERT_NEAR(-1.23, c.toReal(), 3*expected_result_t::resolution);
+}
+
+TEST_F(SQTest_Modulus, sq_modulo__different_type_positive_dividend_positive_divisor__modulo_works) {
+    using dividend_t = u16sq8<0., 8.>;
+    using divisor_t = i16sq8<i16sq8<>::resolution, 6.>;
+    auto a = dividend_t::fromReal<+4.56>;
+    auto b = divisor_t::fromReal<+3.33>;
+
+    auto c = a % b;
+
+    using expected_result_t = i16sq8<0., 6.>;
+    ASSERT_TRUE((std::is_same_v<expected_result_t, decltype(c)>));
+    ASSERT_NEAR(1.23, c.toReal(), 3*expected_result_t::resolution);
+}
+
+TEST_F(SQTest_Modulus, sq_modulo__different_type_positive_dividend__negative_divisor__modulo_works) {
+    using dividend_t = u16sq8<0., 8.>;
+    using divisor_t = i16sq8<-6., -i16sq8<>::resolution>;
+    auto a = dividend_t::fromReal<+4.56>;
+    auto b = divisor_t::fromReal<-3.33>;
+
+    auto c = a % b;
+
+    using expected_result_t = i16sq8<0., 6.>;
+    ASSERT_TRUE((std::is_same_v<expected_result_t, decltype(c)>));
+    ASSERT_NEAR(1.23, c.toReal(), 3*expected_result_t::resolution);
+}
+
+TEST_F(SQTest_Modulus, sq_modulo__different_type_different_f_negative_dividend_positive_divisor__modulo_works) {
+    using dividend_t = i16sq8<-8., 3.>;
+    using divisor_t = u16sq12<i16sq8<>::resolution, 6.>;
+    auto a = dividend_t::fromReal<-4.56>;
+    auto b = divisor_t::fromReal<+3.33>;
+
+    auto c = a % b;
+
+    using expected_result_t = i16sq12<-6., 3.>;
+    ASSERT_TRUE((std::is_same_v<expected_result_t, decltype(c)>));
+    ASSERT_NEAR(-1.23, c.toReal(), 3*dividend_t::resolution);
+}
+
+TEST_F(SQTest_Modulus, sq_modulo__divisor_has_forbidden_range__does_not_compile) {
+    ASSERT_FALSE(( RemainderDividable< u32sq20<0., 200.>, i32sq16<-2., 20.> > ));
+    ASSERT_FALSE(( RemainderDividable< u32sq20<0., 200.>, u16sq6<0., 10.> > ));
 }
 
 

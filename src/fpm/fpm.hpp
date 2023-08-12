@@ -153,6 +153,13 @@ namespace details {
         else { /* Overflow::allowed, Overflow::noCheck: no checks performed */ }
     }
 
+    /** \returns +1 if the given value is positive, -1 if it is negative and 0 if the value is 0. */
+    template <typename T>
+    constexpr int signum(T const x) {
+        if constexpr (std::is_signed_v<T>) { return (T(0) < x) - (x < T(0)); }
+        else { return T(0) < x; }
+    }
+
     /** Calculates the given integer power of the given number.
      * Inspired by: https://prosepoetrycode.potterpcs.net/2015/07/a-simple-constexpr-power-function-c/ */
     consteval double dpowi(double num, int pow) {
@@ -186,18 +193,6 @@ namespace details {
         return number * dpowi(10., exp);
     }
 
-    /// Helper that fits the smallest signed integral type that fits the given value.
-    template< std::integral T, T value >
-    struct fit_signed {
-        using type = std::conditional_t<std::in_range<int8_t>(value), int8_t,
-            std::conditional_t<std::in_range<uint8_t>(value) || std::in_range<int16_t>(value), int16_t,
-            std::conditional_t<std::in_range<uint16_t>(value) || std::in_range<int32_t>(value), int32_t,
-            std::conditional_t<std::in_range<uint32_t>(value) || std::in_range<int64_t>(value), int64_t, intmax_t>>>>;
-    };
-    /// Determines the smallest signed integral type that fits the given value.
-    template< std::integral T, T value >
-    using fit_signed_t = typename fit_signed<T, value>::type;
-
     /// Functions defined for testing purposes.
     namespace test {
         /** Returns the minimum distance between doubles (epsilon) for numbers of the magnitude
@@ -209,8 +204,8 @@ namespace details {
         }
     }
 
-    /** Concept of a valid difference between two integral types and two scaling factors to support scaling
-     * without overflow or significant loss of precision.
+    /** Concept of a valid difference between two integral types and two scaling factors to support
+     * scaling without overflow or significant loss of precision.
      * Scaling is possible if:
      *  - target and source type are of equal size and the effective target value range is not outshifted, or
      *  - target and source type are of different size and the effective size difference is not outshifted, or
@@ -352,6 +347,33 @@ constexpr TargetT v2s(ValueT value) noexcept { return v2sh<TargetT, to>(value); 
 // Continue with internal implementations.
 namespace details {
 
+    /** Determines the smallest type that can hold the the given real minimum and maximum values for
+     * the given scaling f. The size of the resulting type will not be smaller than the smallest of
+     * the input types. If one of the given base types is signed, the result will be signed too,
+     * otherwise the result will be an unsigned type.
+     * For example, if the input types are int8_t and uint8_t and the scaled value range is 50..550,
+     * the resulting type will be int16_t. */
+    template< std::integral T1, std::integral T2, scaling_t f, double realVMin, double realVMax >
+    struct common_q_base {
+    private:
+        static constexpr bool isSigned = std::is_signed_v<T1> || std::is_signed_v<T2>;
+        static constexpr size_t minSize = std::min(sizeof(T1), sizeof(T2));
+        using interm_type = interm_t< typename std::conditional_t<isSigned, int, unsigned> >;
+        static constexpr auto vMin = v2s<interm_type, f>(realVMin);
+        static constexpr auto vMax = v2s<interm_type, f>(realVMax);
+    public:
+        using type =
+            std::conditional_t< isSigned && sizeof( int8_t ) >= minSize && std::in_range< int8_t >(vMin) && std::in_range< int8_t >(vMax),  int8_t,
+            std::conditional_t<!isSigned && sizeof(uint8_t ) >= minSize && std::in_range<uint8_t >(vMin) && std::in_range<uint8_t >(vMax), uint8_t,
+            std::conditional_t< isSigned && sizeof( int16_t) >= minSize && std::in_range< int16_t>(vMin) && std::in_range< int16_t>(vMax),  int16_t,
+            std::conditional_t<!isSigned && sizeof(uint16_t) >= minSize && std::in_range<uint16_t>(vMin) && std::in_range<uint16_t>(vMax), uint16_t,
+            std::conditional_t< isSigned && sizeof( int32_t) >= minSize && std::in_range< int32_t>(vMin) && std::in_range< int32_t>(vMax),  int32_t,
+            std::conditional_t<!isSigned && sizeof(uint32_t) >= minSize && std::in_range<uint32_t>(vMin) && std::in_range<uint32_t>(vMax), uint32_t, interm_type>>>>>>;
+    };
+    /// Alias for common_q_base<>::type.
+    template< std::integral T1, std::integral T2, scaling_t f, double realVMin, double realVMax >
+    using common_q_base_t = typename common_q_base<T1, T2, f, realVMin, realVMax>::type;
+
     /** returns the real minimum value for the given integral type and scaling that can safely be
      * used in operations like negation or taking the absolute value
      * (i.e. 0u for unsigned, INT_MIN + 1 for signed).
@@ -442,6 +464,16 @@ namespace details {
     template< typename T >
     concept CanBeUsedAsDivisor = (
         T::realVMax <= -1. || +1. <= T::realVMin
+    );
+
+    /** Concept: Checks whether the given (S)Q-Type can be used as divisor in a remainder-division
+     * (modulus).
+     * \note If this fails, the given type has parts of -resolution > x < +resolution in its range.
+     *       This is not allowed. Limit the type to a range that excludes values between
+     *       -resolution and +resolution! */
+    template< typename T >
+    concept CanBeUsedAsModulusDivisor = (
+        T::realVMax <= -T::resolution || T::resolution <= T::realVMin
     );
 
     /** Concept: Checks whether the two given base types can be compared.

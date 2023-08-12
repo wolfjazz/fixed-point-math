@@ -282,13 +282,13 @@ public:
     constexpr q(q const &) noexcept = default;
 
     /// Copy-Assignment from the same type.
-    constexpr q& operator = (q const &) noexcept = default;
+    constexpr q& operator =(q const &) noexcept = default;
 
     /// Move-Constructor from the same type.
     constexpr q(q&&) noexcept = default;
 
     /// Move-Assignment from the same type.
-    constexpr q& operator = (q&&) noexcept = default;
+    constexpr q& operator =(q&&) noexcept = default;
 
     /// Destructor.
     constexpr ~q() {}
@@ -303,7 +303,7 @@ public:
         && realVMin <= QFrom::realVMin && QFrom::realVMax <= realVMax
     )
     constexpr
-    q& operator = (QFrom const &from) noexcept {
+    q& operator =(QFrom const &from) noexcept {
         value = q::fromQ(from).value;
         return *this;
     }
@@ -489,46 +489,51 @@ QC force_q_cast(QFrom from) noexcept {
 // All template arguments are deduced.
 
 // Unary operations
-template< QType Q > constexpr auto operator + (Q const &q) noexcept { return +q.toSq(); }
-template< QType Q > constexpr auto operator - (Q const &q) noexcept { return -q.toSq(); }
+template< QType Q > constexpr auto operator +(Q const &q) noexcept { return +q.toSq(); }
+template< QType Q > constexpr auto operator -(Q const &q) noexcept { return -q.toSq(); }
 template< QType Q > constexpr auto abs(Q const &q) noexcept { return fpm::abs( q.toSq() ); }
 
 // Addition operator
-template< QType Q, SqType Sq > constexpr auto operator + (Q const q, Sq const &sq) noexcept { return q.toSq() + sq; }
-template< QType Q, SqType Sq > constexpr auto operator + (Sq const sq, Q const &q) noexcept { return sq + q.toSq(); }
-template< QType Q1, QType Q2 > constexpr auto operator + (Q1 const q1, Q2 const &q2) noexcept { return q1.toSq() + q2.toSq(); }
+template< QType Q, SqType Sq > constexpr auto operator +(Q const q, Sq const &sq) noexcept { return q.toSq() + sq; }
+template< QType Q, SqType Sq > constexpr auto operator +(Sq const sq, Q const &q) noexcept { return sq + q.toSq(); }
+template< QType Q1, QType Q2 > constexpr auto operator +(Q1 const q1, Q2 const &q2) noexcept { return q1.toSq() + q2.toSq(); }
 
 // Subtraction operator
-template< QType Q, SqType Sq > constexpr auto operator - (Q const q, Sq const &sq) noexcept { return q.toSq() - sq; }
-template< QType Q, SqType Sq > constexpr auto operator - (Sq const sq, Q const &q) noexcept { return sq - q.toSq(); }
-template< QType Q1, QType Q2 > constexpr auto operator - (Q1 const q1, Q2 const &q2) noexcept { return q1.toSq() - q2.toSq(); }
+template< QType Q, SqType Sq > constexpr auto operator -(Q const q, Sq const &sq) noexcept { return q.toSq() - sq; }
+template< QType Q, SqType Sq > constexpr auto operator -(Sq const sq, Q const &q) noexcept { return sq - q.toSq(); }
+template< QType Q1, QType Q2 > constexpr auto operator -(Q1 const q1, Q2 const &q2) noexcept { return q1.toSq() - q2.toSq(); }
 
 // Multiplication operator
-template< QType Q, SqType Sq > constexpr auto operator * (Q const q, Sq const &sq) noexcept { return q.toSq() * sq; }
-template< QType Q, SqType Sq > constexpr auto operator * (Sq const sq, Q const &q) noexcept { return sq * q.toSq(); }
-template< QType Q1, QType Q2 > constexpr auto operator * (Q1 const q1, Q2 const &q2) noexcept { return q1.toSq() * q2.toSq(); }
+template< QType Q, SqType Sq > constexpr auto operator *(Q const q, Sq const &sq) noexcept { return q.toSq() * sq; }
+template< QType Q, SqType Sq > constexpr auto operator *(Sq const sq, Q const &q) noexcept { return sq * q.toSq(); }
+template< QType Q1, QType Q2 > constexpr auto operator *(Q1 const q1, Q2 const &q2) noexcept { return q1.toSq() * q2.toSq(); }
 
 // Division operator
-template< QType Q, SqType Sq > constexpr auto operator / (Q const q, Sq const &sq) noexcept { return q.toSq() / sq; }
-template< QType Q, SqType Sq > constexpr auto operator / (Sq const sq, Q const &q) noexcept { return sq / q.toSq(); }
-template< QType Q1, QType Q2 > constexpr auto operator / (Q1 const q1, Q2 const &q2) noexcept { return q1.toSq() / q2.toSq(); }
+template< QType Q, SqType Sq > constexpr auto operator /(Q const q, Sq const &sq) noexcept { return q.toSq() / sq; }
+template< QType Q, SqType Sq > constexpr auto operator /(Sq const sq, Q const &q) noexcept { return sq / q.toSq(); }
+template< QType Q1, QType Q2 > constexpr auto operator /(Q1 const q1, Q2 const &q2) noexcept { return q1.toSq() / q2.toSq(); }
+
+// Modulus operator
+template< QType Q, SqType Sq > constexpr auto operator %(Q const q, Sq const &sq) noexcept { return q.toSq() % sq; }
+template< QType Q, SqType Sq > constexpr auto operator %(Sq const sq, Q const &q) noexcept { return sq % q.toSq(); }
+template< QType Q1, QType Q2 > constexpr auto operator %(Q1 const q1, Q2 const &q2) noexcept { return q1.toSq() % q2.toSq(); }
 
 // Comparison operators
-template< QType Q, SqType Sq > constexpr bool operator < (Q const q, Sq const &sq) noexcept { return q.toSq() < sq; }
-template< QType Q, SqType Sq > constexpr bool operator < (Sq const sq, Q const &q) noexcept { return sq < q.toSq(); }
-template< QType Q1, QType Q2 > constexpr bool operator < (Q1 const q1, Q2 const &q2) noexcept { return q1.toSq() < q2.toSq(); }
+template< QType Q, SqType Sq > constexpr bool operator <(Q const q, Sq const &sq) noexcept { return q.toSq() < sq; }
+template< QType Q, SqType Sq > constexpr bool operator <(Sq const sq, Q const &q) noexcept { return sq < q.toSq(); }
+template< QType Q1, QType Q2 > constexpr bool operator <(Q1 const q1, Q2 const &q2) noexcept { return q1.toSq() < q2.toSq(); }
 
-template< QType Q, SqType Sq > constexpr bool operator > (Q const q, Sq const &sq) noexcept { return q.toSq() > sq; }
-template< QType Q, SqType Sq > constexpr bool operator > (Sq const sq, Q const &q) noexcept { return sq > q.toSq(); }
-template< QType Q1, QType Q2 > constexpr bool operator > (Q1 const q1, Q2 const &q2) noexcept { return q1.toSq() > q2.toSq(); }
+template< QType Q, SqType Sq > constexpr bool operator >(Q const q, Sq const &sq) noexcept { return q.toSq() > sq; }
+template< QType Q, SqType Sq > constexpr bool operator >(Sq const sq, Q const &q) noexcept { return sq > q.toSq(); }
+template< QType Q1, QType Q2 > constexpr bool operator >(Q1 const q1, Q2 const &q2) noexcept { return q1.toSq() > q2.toSq(); }
 
-template< QType Q, SqType Sq > constexpr bool operator == (Q const q, Sq const &sq) noexcept { return q.toSq() == sq; }
-template< QType Q, SqType Sq > constexpr bool operator == (Sq const sq, Q const &q) noexcept { return sq == q.toSq(); }
-template< QType Q1, QType Q2 > constexpr bool operator == (Q1 const q1, Q2 const &q2) noexcept { return q1.toSq() == q2.toSq(); }
+template< QType Q, SqType Sq > constexpr bool operator ==(Q const q, Sq const &sq) noexcept { return q.toSq() == sq; }
+template< QType Q, SqType Sq > constexpr bool operator ==(Sq const sq, Q const &q) noexcept { return sq == q.toSq(); }
+template< QType Q1, QType Q2 > constexpr bool operator ==(Q1 const q1, Q2 const &q2) noexcept { return q1.toSq() == q2.toSq(); }
 
-template< QType Q, SqType Sq > constexpr bool operator != (Q const q, Sq const &sq) noexcept { return q.toSq() != sq; }
-template< QType Q, SqType Sq > constexpr bool operator != (Sq const sq, Q const &q) noexcept { return sq != q.toSq(); }
-template< QType Q1, QType Q2 > constexpr bool operator != (Q1 const q1, Q2 const &q2) noexcept { return q1.toSq() != q2.toSq(); }
+template< QType Q, SqType Sq > constexpr bool operator !=(Q const q, Sq const &sq) noexcept { return q.toSq() != sq; }
+template< QType Q, SqType Sq > constexpr bool operator !=(Sq const sq, Q const &q) noexcept { return sq != q.toSq(); }
+template< QType Q1, QType Q2 > constexpr bool operator !=(Q1 const q1, Q2 const &q2) noexcept { return q1.toSq() != q2.toSq(); }
 ///\}
 
 /// Converts a literal number into the corresponding best-fit q type.
