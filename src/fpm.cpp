@@ -5,25 +5,25 @@
 #include <iostream>
 
 #include "fpm.hpp"
-using namespace fpm::type;
+using namespace fpm::types;
+using Ovf = fpm::Ovf;
 
-
-using pos_t = fpm::q<int, 16, -2000., 2000.>;  // mm
+using pos_t = fpm::q::Q<int, 16, -2000., 2000.>;  // mm
 using speed_t = i32q16<-300., 300.>;  // mm_p_s
 using accel_t = i32q16<-200., 200.>;  // mm_p_s2
 using mtime_t = i32q20<-2000., 2000.>;  // s
-template< char ...chars > consteval auto operator ""_mm() { return fpm::qFromLiteral<pos_t, chars...>(); }
-template< char ...chars > consteval auto operator ""_mm_p_s() { return fpm::qFromLiteral<speed_t, chars...>(); }
-template< char ...chars > consteval auto operator ""_mm_p_s2() { return fpm::qFromLiteral<accel_t, chars...>(); }
-template< char ...chars > consteval auto operator ""_s() { return fpm::qFromLiteral<mtime_t, chars...>(); }
+template< char ...chars > consteval auto operator ""_mm() { return fpm::q::qFromLiteral<pos_t, chars...>(); }
+template< char ...chars > consteval auto operator ""_mm_p_s() { return fpm::q::qFromLiteral<speed_t, chars...>(); }
+template< char ...chars > consteval auto operator ""_mm_p_s2() { return fpm::q::qFromLiteral<accel_t, chars...>(); }
+template< char ...chars > consteval auto operator ""_s() { return fpm::q::qFromLiteral<mtime_t, chars...>(); }
 
 
 void accel(pos_t &position, speed_t &velocity, accel_t const acceleration, mtime_t const forTime, auto const dt) {
-    for (mtime_t t = 0_s; t < forTime; t = mtime_t::fromSqOvf(t + dt)) {
+    for (mtime_t t = 0_s; t < forTime; t = mtime_t::fromSq<Ovf::noCheck>(t + dt)) {
         auto dv = acceleration * dt;
         auto ds = velocity * dt;
-        velocity = speed_t::fromSqSat(velocity + dv);
-        position = pos_t::fromSqSat(position + ds);
+        velocity = speed_t::fromSq<Ovf::clamp>(velocity + dv);
+        position = pos_t::fromSqClamp(position + ds);
     }
 }
 
@@ -34,8 +34,10 @@ void playground() {
 
     accel(position, velocity, -100_mm_p_s2, 1_s, 1e-3_s);
 
-    // limit position via modulo
+    // limit results
     position = position % 50_mm;
+    //velocity = fpm::clamp(velocity, -100_mm_p_s, -10_mm_p_s);  // this
+    //velocity = fpm::clamp<-100., -10.>(velocity);  // and this; this re-limits type and clamps value
 
     std::cout << "pos size:" << sizeof(position) << ", spd size:" << sizeof(velocity) << std::endl;
     std::cout << "pos: " << position.toReal() << ", vel: " << velocity.toReal() << std::endl;

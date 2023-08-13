@@ -16,12 +16,11 @@
 #include <utility>
 
 
+/** Fixed-Point Math Namespace. */
+namespace fpm {
 /** \defgroup grp_fpm Fixed Point Math
  * Fixed point library with overflow protection.
  * \{ */
-
-/** Fixed-Point Math Namespace. */
-namespace fpm {
 
 /** Overflow behavior.
  * \note Prioritized order: highest priority at top (forbidden), lowest at bottom (no_check). */
@@ -38,10 +37,10 @@ enum class Overflow : uint8_t {
     /// \note This can be used e.g. in a debug build on types where 'forbidden' is not possible by design.
     assert = 1u,
 
-    /// In case of an overflow, the value will be saturated to the closest limit.
+    /// In case of an overflow, the value will be clamped to the closest limit.
     /// \note This is the type that should be used in released software when overflow checks cannot
     /// be avoided in the first place.
-    saturate = 2u,
+    clamp = 2u,
 
     /// Do not perform any overflow checks (i.e. overflow is explicitly allowed).
     /// \warning The value can overflow in this case!
@@ -109,7 +108,7 @@ namespace details {
                 assert(false);  // value is out of range
             }
         }
-        else if constexpr (Overflow::saturate == ovfBx) {
+        else if constexpr (Overflow::clamp == ovfBx) {
             // determine check type
             constexpr auto checkType = (std::is_signed_v<SrcValueT> && std::is_unsigned_v<ValueT>)
                 ? CHECKTYPE_SIGNED_TO_UNSIGNED
@@ -118,7 +117,7 @@ namespace details {
                     : CHECKTYPE_SIGN_UNCHANGED;
 
             // if the value was cast from a signed to an unsigned type and is in the upper half of the
-            // unsigned value range, the value was negative before; saturate it to the lower limit
+            // unsigned value range, the value was negative before; clamp it to the lower limit
             if constexpr (CHECKTYPE_SIGNED_TO_UNSIGNED == checkType) {
                 constexpr ValueT signedMax = static_cast<ValueT>(std::numeric_limits<std::make_signed_t<ValueT>>::max());
                 if (value < min || value > signedMax) {
@@ -130,7 +129,7 @@ namespace details {
                 else { /* okay */ }
             }
             // if the value was cast from an unsigned to a signed type and is negative, the value was
-            // positive before; saturate it to the upper limit
+            // positive before; clamp it to the upper limit
             else if constexpr (CHECKTYPE_UNSIGNED_TO_SIGNED == checkType) {
                 if (value < 0 || value > max) {
                     value = max;
@@ -490,8 +489,7 @@ namespace details {
 }  // end of details
 
 
-}  // end of fpm
 /**\}*/
-
+}  // end of fpm
 #endif
 // EOF

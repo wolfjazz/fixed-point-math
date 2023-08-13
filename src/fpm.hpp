@@ -13,5 +13,11 @@
 #include "fpm/sq_types.hpp"
 #include "fpm/q_types.hpp"
 
+/// Namespace providing all predefined types.
+namespace fpm::types {
+    using namespace fpm::q::types;
+    using namespace fpm::sq::types;
+}
+
 #endif
 // EOF

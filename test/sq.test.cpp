@@ -7,7 +7,7 @@
 #include <iostream>
 
 #include <fpm.hpp>
-using namespace fpm::type;
+using namespace fpm::types;
 
 
 /// Test concept to checks whether a value with the given Sq type can be constructed from the given real value.
@@ -22,13 +22,13 @@ concept ConstructibleFromScaled = requires {
     { Sq::template fromScaled<scaledValue> } -> std::same_as<Sq const &>;  // false if expression cannot be compiled
 };
 
-/// Checks whether a value of the given sq type can be negated.
+/// Checks whether a value of the given Sq type can be negated.
 template< class Sq >
 concept Negatable = requires (Sq sq) {
     -sq;  // false if expression cannot be compiled
 };
 
-/// Checks whether the absolute value of the given sq type can be taken.
+/// Checks whether the absolute value of the given Sq type can be taken.
 template< class Sq >
 concept Absolutizable = requires (Sq sq) {
     abs(sq);  // false if expression cannot be compiled
@@ -93,14 +93,14 @@ protected:
 TEST_F(SQTest_Construct, sq_relimit__some_sq_type__relimited_sq_type) {
     constexpr double restrictedLimit = i32sq4_2k::realVMax/2;
     constexpr double extendedLimit = i32sq4_2k::realVMax*2;
-    using restricted_sq_t   = i32sq4_2k::relimit_t<-restrictedLimit,    +restrictedLimit>;
-    using restricted_l_sq_t = i32sq4_2k::relimit_t<-restrictedLimit,    i32sq4_2k::realVMax>;
-    using restricted_r_sq_t = i32sq4_2k::relimit_t<i32sq4_2k::realVMin, +restrictedLimit>;
-    using extended_sq_t     = i32sq4_2k::relimit_t<-extendedLimit,      +extendedLimit>;
-    using extended_l_sq_t   = i32sq4_2k::relimit_t<-extendedLimit,      i32sq4_2k::realVMax>;
-    using extended_r_sq_t   = i32sq4_2k::relimit_t<i32sq4_2k::realVMin, +extendedLimit>;
-    using shifted_sq_l_t    = i32sq4_2k::relimit_t<-extendedLimit,      +restrictedLimit>;
-    using shifted_sq_r_t    = i32sq4_2k::relimit_t<-restrictedLimit,    +extendedLimit>;
+    using restricted_sq_t   = i32sq4_2k::clamp_t<-restrictedLimit,    +restrictedLimit>;
+    using restricted_l_sq_t = i32sq4_2k::clamp_t<-restrictedLimit,    i32sq4_2k::realVMax>;
+    using restricted_r_sq_t = i32sq4_2k::clamp_t<i32sq4_2k::realVMin, +restrictedLimit>;
+    using extended_sq_t     = i32sq4_2k::clamp_t<-extendedLimit,      +extendedLimit>;
+    using extended_l_sq_t   = i32sq4_2k::clamp_t<-extendedLimit,      i32sq4_2k::realVMax>;
+    using extended_r_sq_t   = i32sq4_2k::clamp_t<i32sq4_2k::realVMin, +extendedLimit>;
+    using shifted_sq_l_t    = i32sq4_2k::clamp_t<-extendedLimit,      +restrictedLimit>;
+    using shifted_sq_r_t    = i32sq4_2k::clamp_t<-restrictedLimit,    +extendedLimit>;
 
     ASSERT_TRUE((std::is_same_v< i32sq4<-restrictedLimit,    +restrictedLimit >,   restricted_sq_t >));
     ASSERT_TRUE((std::is_same_v< i32sq4<-restrictedLimit,    i32sq4_2k::realVMax>, restricted_l_sq_t >));
@@ -187,7 +187,7 @@ TEST_F(SQTest_Construct, sq_upscale_copy_constructor__int16_someF__int16_largerF
     i32sq8_2k c = a;
 
     // note: the representation error due to rounding is determined by the resolution of the initial
-    //       sq4 type and does not change if the value is up-scaled to another sq type
+    //       sq4 type and does not change if the value is up-scaled to another Sq type
     ASSERT_NEAR(realValueA, b.toReal(), i32sq4_2k::resolution);
     ASSERT_NEAR(realValueA, c.toReal(), i32sq4_2k::resolution);
 }
@@ -223,7 +223,7 @@ TEST_F(SQTest_Construct, sq_upscale_copy_constructor__int16_someF_literal__int16
     i32sq8_2k b = 1024_i32sq4;
 
     // note: the representation error due to rounding is determined by the resolution of the initial
-    //       sq4 type and does not change if the value is up-scaled to another sq type
+    //       sq4 type and does not change if the value is up-scaled to another Sq type
     ASSERT_NEAR((1024_i32sq4).toReal(), a.toReal(), i32sq4_2k::resolution);
     ASSERT_NEAR((1024_i32sq4).toReal(), b.toReal(), i32sq4_2k::resolution);
 }
@@ -443,7 +443,7 @@ TEST_F(SQTest_Unary, sq_unary_plus__some_signed_q_value__sq_with_same_value_and_
     auto a = i16q4_t::fromReal<-567.89>;
     auto b = +a;
 
-    ASSERT_TRUE(( std::is_same_v< i16q4_t::sq<>, decltype(b) > ));
+    ASSERT_TRUE(( std::is_same_v< i16q4_t::Sq<>, decltype(b) > ));
     ASSERT_NEAR(a.toReal(), b.toReal(), (std::numeric_limits<double>::epsilon()));
 }
 
@@ -543,7 +543,7 @@ TEST_F(SQTest_Unary, sq_unary_abs__some_signed_negative_sq_value__absolute_value
     EXPECT_TRUE(( Absolutizable< i16sq4_t > ));
 
     auto a = i16sq4_t::fromReal<-1897.6>;
-    auto b = fpm::abs(a);  // qualified lookup
+    auto b = fpm::sq::abs(a);  // qualified lookup
     auto c = abs(a);  // unqualified lookup (argument-dependent lookup, ADL)
 
     using expected_result_t = u16sq4< 0., i16sq4<>::realVMax >;
@@ -558,7 +558,7 @@ TEST_F(SQTest_Unary, sq_unary_abs__some_signed_positive_sq_value__same_value_abs
     EXPECT_TRUE(( Absolutizable< i16sq4_t > ));
 
     auto a = i16sq4_t::fromReal<+1897.6>;
-    auto b = fpm::abs(a);  // qualified lookup
+    auto b = fpm::sq::abs(a);  // qualified lookup
     auto c = abs(a);  // unqualified lookup (argument-dependent lookup, ADL)
 
     using expected_result_t = u16sq4< 0., i16sq4<>::realVMax >;
@@ -580,7 +580,7 @@ TEST_F(SQTest_Unary, sq_unary_abs__some_unsigned_sq_value__same_value_and_limits
     EXPECT_TRUE(( Absolutizable< u16sq4_t > ));
 
     auto a = u16sq4_t::fromReal<1563.77>;
-    auto b = fpm::abs(a);  // qualified lookup
+    auto b = fpm::sq::abs(a);  // qualified lookup
     auto c = abs(a);  // unqualified lookup (argument-dependent lookup, ADL)
 
     ASSERT_TRUE((std::is_same_v<u16sq4_t, decltype(b)>));
@@ -593,7 +593,7 @@ TEST_F(SQTest_Unary, sq_unary_abs__some_signed_q_value__absolute_sq_value_and_li
     using i16q4_t = i16q4<>;  // use full symmetric range
 
     auto a = i16q4_t::fromReal<-1897.6>;
-    auto b = fpm::abs(a);  // qualified lookup
+    auto b = fpm::q::abs(a);  // qualified lookup
     auto c = abs(a);  // unqualified lookup (argument-dependent lookup, ADL)
 
     using expected_result_t = u16sq4< 0., i16sq4<>::realVMax >;
@@ -626,7 +626,7 @@ TEST_F(SQTest_Addition, sq_add__three_sq_values_same_sq_type__values_added) {
 
     auto d = a + b + c;
 
-    using expected_result_t = i32sq16_t::relimit_t< 3*i32sq16_t::realVMin, 3*i32sq16_t::realVMax >;
+    using expected_result_t = i32sq16_t::clamp_t< 3*i32sq16_t::realVMin, 3*i32sq16_t::realVMax >;
     ASSERT_TRUE((std::is_same_v<expected_result_t, decltype(d)>));
     ASSERT_NEAR(3000., d.toReal(), 3*i32sq16_t::resolution);
 }
@@ -640,7 +640,7 @@ TEST_F(SQTest_Addition, sq_add__three_sq_values_different_sq_type__values_added_
 
     auto d = a + b + c;
 
-    using expected_result_t = i32sq20_t::relimit_t<-1300., 1300.>;
+    using expected_result_t = i32sq20_t::clamp_t<-1300., 1300.>;
     ASSERT_TRUE((std::is_same_v<expected_result_t, decltype(d)>));
     ASSERT_NEAR(-55., d.toReal(), 2*i32sq16_t::resolution + i32sq20_t::resolution);
 }
@@ -682,7 +682,7 @@ TEST_F(SQTest_Subtraction, sq_subtract__three_values_same_sq_type__values_subtra
 
     auto d = a - b - c;
 
-    using expected_result_t = i32sq16_t::relimit_t<-1500., +1500.>;
+    using expected_result_t = i32sq16_t::clamp_t<-1500., +1500.>;
     ASSERT_TRUE((std::is_same_v<expected_result_t, decltype(d)>));
     ASSERT_NEAR(-855., d.toReal(), 3*i32sq16_t::resolution);
 }
@@ -696,7 +696,7 @@ TEST_F(SQTest_Subtraction, sq_subtract__three_values_different_sq_type__values_s
 
     auto d = a - b - c;
 
-    using expected_result_t = i32sq20_t::relimit_t<-1300., +1300.>;
+    using expected_result_t = i32sq20_t::clamp_t<-1300., +1300.>;
     ASSERT_TRUE((std::is_same_v<expected_result_t, decltype(d)>));
     ASSERT_NEAR(-145.4444, d.toReal(), 2*i32sq16_t::resolution + i32sq20_t::resolution);
 }
@@ -724,7 +724,7 @@ TEST_F(SQTest_Multiplication, sq_multiplicate__three_values_same_sq_type__values
 
     auto d = a * b * c;
 
-    using expected_result_t = i32sq16_t::relimit_t<-512., +512.>;
+    using expected_result_t = i32sq16_t::clamp_t<-512., +512.>;
     ASSERT_TRUE((std::is_same_v<expected_result_t, decltype(d)>));
     ASSERT_NEAR(-17.5, d.toReal(), 12*i32sq16_t::resolution);
 }
@@ -738,7 +738,7 @@ TEST_F(SQTest_Multiplication, sq_multiplicate__three_values_different_sq_type__v
 
     auto d = a * b * c;
 
-    using expected_result_t = i32sq20_t::relimit_t<-800., +720.>;
+    using expected_result_t = i32sq20_t::clamp_t<-800., +720.>;
     ASSERT_TRUE((std::is_same_v<expected_result_t, decltype(d)>));
     ASSERT_NEAR(170.8218812, d.toReal(), 26*i32sq16_t::resolution);
 }
@@ -752,7 +752,7 @@ TEST_F(SQTest_Multiplication, sq_multiplicate__three_values_same_type_one_int_sq
     auto e = a * 15_i32sq16 * b;
     auto f = 15_i32sq16 * a * b;
 
-    using expected_result_t = i32sq16_t::relimit_t<-960., +960.>;
+    using expected_result_t = i32sq16_t::clamp_t<-960., +960.>;
     ASSERT_TRUE((std::is_same_v<expected_result_t, decltype(d)>));
     ASSERT_TRUE((std::is_same_v<expected_result_t, decltype(e)>));
     ASSERT_TRUE((std::is_same_v<expected_result_t, decltype(f)>));
@@ -770,7 +770,7 @@ TEST_F(SQTest_Multiplication, sq_multiplicate__two_values_same_type_and_int_q_co
     auto e = a * 20.1_i32q16 * b;
     auto f = 20.1_i32q16 * a * b;
 
-    using expected_result_t = i32sq16_t::relimit_t<-1286.4, +1286.4>;
+    using expected_result_t = i32sq16_t::clamp_t<-1286.4, +1286.4>;
     ASSERT_TRUE((std::is_same_v<expected_result_t, decltype(d)>));
     ASSERT_TRUE((std::is_same_v<expected_result_t, decltype(e)>));
     ASSERT_TRUE((std::is_same_v<expected_result_t, decltype(f)>));
@@ -831,8 +831,8 @@ TEST_F(SQTest_Division, sq_divide__three_values_similar_type_one_int_sq_constant
     auto e = a / -2.5_i32sq16 / b;
     auto f = -2.5_i32sq16 / a / b;
 
-    using expected_result_de_t = i32sq16_t::relimit_t<-3.2, -0.05>;
-    using expected_result_f_t = i32sq16_t::relimit_t<-2.5, -0.0390625>;
+    using expected_result_de_t = i32sq16_t::clamp_t<-3.2, -0.05>;
+    using expected_result_f_t = i32sq16_t::clamp_t<-2.5, -0.0390625>;
     ASSERT_TRUE((std::is_same_v<expected_result_de_t, decltype(d)>));
     ASSERT_TRUE((std::is_same_v<expected_result_de_t, decltype(e)>));
     ASSERT_TRUE((std::is_same_v<expected_result_f_t, decltype(f)>));
@@ -850,8 +850,8 @@ TEST_F(SQTest_Division, sq_divide__two_values_similar_type_and_int_q_constant__v
     auto e = a / 10_i32q8 / b;
     auto f = 10_i32q8 / a / b;
 
-    using expected_result_de_t = i32sq16_t::relimit_t<0.0125, 0.8>;
-    using expected_result_f_t = i32sq16_t::relimit_t<0.0015625, 0.1>;
+    using expected_result_de_t = i32sq16_t::clamp_t<0.0125, 0.8>;
+    using expected_result_f_t = i32sq16_t::clamp_t<0.0015625, 0.1>;
     ASSERT_TRUE((std::is_same_v<expected_result_de_t, decltype(d)>));
     ASSERT_TRUE((std::is_same_v<expected_result_de_t, decltype(e)>));
     ASSERT_TRUE((std::is_same_v<expected_result_f_t, decltype(f)>));
