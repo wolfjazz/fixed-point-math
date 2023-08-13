@@ -36,8 +36,8 @@ void playground() {
 
     // limit results
     position = position % 50_mm;
-    //velocity = fpm::clamp(velocity, -100_mm_p_s, -10_mm_p_s);  // this
-    //velocity = fpm::clamp<-100., -10.>(velocity);  // and this; this re-limits type and clamps value
+    velocity = fpm::q::clamp(velocity, -100_mm_p_s, -10_mm_p_s);
+    //velocity = fpm::q::clamp<-100., -10.>(velocity);  // and this; this re-limits type and clamps value
 
     std::cout << "pos size:" << sizeof(position) << ", spd size:" << sizeof(velocity) << std::endl;
     std::cout << "pos: " << position.toReal() << ", vel: " << velocity.toReal() << std::endl;

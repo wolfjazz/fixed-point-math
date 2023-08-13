@@ -13,23 +13,8 @@ namespace fpm::q {
  * \defgroup grp_fpmQ Q-Type
  * \{ */
 
-/// Concept of a Q-like type.
-/// \warning Does not guarantee that T is actually of type Q. Only checks for the basic properties.
-template< class T >
-concept QType = requires (T t) {
-    { std::bool_constant<T::isQType>() } -> std::same_as<std::true_type>;
-    typename T::base_t;
-    std::is_integral_v<typename T::base_t>;
-    std::is_same_v<std::remove_cv_t<typename T::base_t>, typename T::base_t>;
-    std::is_same_v<scaling_t, decltype(T::f)>;
-    std::is_same_v<double, decltype(T::realVMin)>;
-    std::is_same_v<double, decltype(T::realVMax)>;
-    std::is_same_v<typename T::base_t, decltype(T::vMin)>;
-    std::is_same_v<typename T::base_t, decltype(T::vMax)>;
-    std::is_same_v<double, decltype(T::resolution)>;
-    std::is_same_v<Overflow, decltype(T::ovfBx)>;
-    { t.reveal() } -> std::same_as<typename T::base_t>;
-};
+using details::QType;
+using details::SqType;
 
 /// Normal Q type. This type can be used to construct a new Q variable of any specialization.
 /// Depending on the configured overflow behavior, a Q type provides overflow protection with the
@@ -200,7 +185,7 @@ public:
     /// range of the Q type.
     template< Overflow ovfBxOverride = ovfBx,
         /* deduced: */
-        sq::SqType SqFrom,
+        SqType SqFrom,
         // include overflow check if value range of source is not fully within range of target
         bool ovfCheckNeeded = (SqFrom::realVMin < realVMin || realVMax < SqFrom::realVMax) >
     requires (
@@ -221,17 +206,17 @@ public:
     }
 
     /// Alias for Q::fromSq<Overflow::forbidden>(.)
-    template< /* deduced: */ sq::SqType SqFrom >
+    template< /* deduced: */ SqType SqFrom >
     static constexpr
     Q fromSqNOvf(SqFrom const &fromSq) noexcept { return Q::template fromSq<Overflow::forbidden>(fromSq); }
 
     /// Alias for Q::fromSq<Overflow::clamp>(.)
-    template< /* deduced: */ sq::SqType SqFrom >
+    template< /* deduced: */ SqType SqFrom >
     static constexpr
     Q fromSqClamp(SqFrom const &fromSq) noexcept { return Q::template fromSq<Overflow::clamp>(fromSq); }
 
     /// Alias for Q::fromSq<Overflow::noCheck>(.) and Q::fromSq<Overflow::allowed>(.)
-    template< /* deduced: */ sq::SqType SqFrom >
+    template< /* deduced: */ SqType SqFrom >
     static constexpr
     Q fromSqOvf(SqFrom const &fromSq) noexcept { return Q::template fromSq<Overflow::noCheck>(fromSq); }
 
@@ -262,13 +247,8 @@ public:
     /// Implicit copy constructor from a Sq type with the same or a narrower range.
     /// \note This works as long as no overflow check is necessary.
     /// \note The representation error to be expected is comparable to that of Q::fromSq.
-    template< /* deduced: */ sq::SqType SqFrom >
-    requires (
-        std::is_same_v<base_t, typename SqFrom::base_t>
-        && details::ScalingIsPossible<base_t, SqFrom::f, base_t, f>
-        && ( !is_ovf_stricter_v<ovfBx, Ovf::noCheck>
-            || (realVMin <= SqFrom::realVMin && SqFrom::realVMax <= realVMax))
-    )
+    template< /* deduced: */ SqType SqFrom >
+    requires details::ImplicitlyConvertible<SqFrom, Q>
     constexpr Q(SqFrom const &from) noexcept : value( s2s<base_t, SqFrom::f, f>(from.value) ) {}
 
     /// Copy-Constructor from the same type.
@@ -477,46 +457,56 @@ template< QType Q > constexpr auto operator -(Q const &q) noexcept { return -q.t
 template< QType Q > constexpr auto abs(Q const &q) noexcept { return sq::abs( q.toSq() ); }
 
 // Addition operator
-template< QType Q, sq::SqType Sq > constexpr auto operator +(Q const q, Sq const &sq) noexcept { return q.toSq() + sq; }
-template< QType Q, sq::SqType Sq > constexpr auto operator +(Sq const sq, Q const &q) noexcept { return sq + q.toSq(); }
+template< QType Q, SqType Sq > constexpr auto operator +(Q const q, Sq const &sq) noexcept { return q.toSq() + sq; }
+template< QType Q, SqType Sq > constexpr auto operator +(Sq const sq, Q const &q) noexcept { return sq + q.toSq(); }
 template< QType Q1, QType Q2 > constexpr auto operator +(Q1 const q1, Q2 const &q2) noexcept { return q1.toSq() + q2.toSq(); }
 
 // Subtraction operator
-template< QType Q, sq::SqType Sq > constexpr auto operator -(Q const q, Sq const &sq) noexcept { return q.toSq() - sq; }
-template< QType Q, sq::SqType Sq > constexpr auto operator -(Sq const sq, Q const &q) noexcept { return sq - q.toSq(); }
+template< QType Q, SqType Sq > constexpr auto operator -(Q const q, Sq const &sq) noexcept { return q.toSq() - sq; }
+template< QType Q, SqType Sq > constexpr auto operator -(Sq const sq, Q const &q) noexcept { return sq - q.toSq(); }
 template< QType Q1, QType Q2 > constexpr auto operator -(Q1 const q1, Q2 const &q2) noexcept { return q1.toSq() - q2.toSq(); }
 
 // Multiplication operator
-template< QType Q, sq::SqType Sq > constexpr auto operator *(Q const q, Sq const &sq) noexcept { return q.toSq() * sq; }
-template< QType Q, sq::SqType Sq > constexpr auto operator *(Sq const sq, Q const &q) noexcept { return sq * q.toSq(); }
+template< QType Q, SqType Sq > constexpr auto operator *(Q const q, Sq const &sq) noexcept { return q.toSq() * sq; }
+template< QType Q, SqType Sq > constexpr auto operator *(Sq const sq, Q const &q) noexcept { return sq * q.toSq(); }
 template< QType Q1, QType Q2 > constexpr auto operator *(Q1 const q1, Q2 const &q2) noexcept { return q1.toSq() * q2.toSq(); }
 
 // Division operator
-template< QType Q, sq::SqType Sq > constexpr auto operator /(Q const q, Sq const &sq) noexcept { return q.toSq() / sq; }
-template< QType Q, sq::SqType Sq > constexpr auto operator /(Sq const sq, Q const &q) noexcept { return sq / q.toSq(); }
+template< QType Q, SqType Sq > constexpr auto operator /(Q const q, Sq const &sq) noexcept { return q.toSq() / sq; }
+template< QType Q, SqType Sq > constexpr auto operator /(Sq const sq, Q const &q) noexcept { return sq / q.toSq(); }
 template< QType Q1, QType Q2 > constexpr auto operator /(Q1 const q1, Q2 const &q2) noexcept { return q1.toSq() / q2.toSq(); }
 
 // Modulus operator
-template< QType Q, sq::SqType Sq > constexpr auto operator %(Q const q, Sq const &sq) noexcept { return q.toSq() % sq; }
-template< QType Q, sq::SqType Sq > constexpr auto operator %(Sq const sq, Q const &q) noexcept { return sq % q.toSq(); }
+template< QType Q, SqType Sq > constexpr auto operator %(Q const q, Sq const &sq) noexcept { return q.toSq() % sq; }
+template< QType Q, SqType Sq > constexpr auto operator %(Sq const sq, Q const &q) noexcept { return sq % q.toSq(); }
 template< QType Q1, QType Q2 > constexpr auto operator %(Q1 const q1, Q2 const &q2) noexcept { return q1.toSq() % q2.toSq(); }
 
 // Comparison operators
-template< QType Q, sq::SqType Sq > constexpr bool operator <(Q const q, Sq const &sq) noexcept { return q.toSq() < sq; }
-template< QType Q, sq::SqType Sq > constexpr bool operator <(Sq const sq, Q const &q) noexcept { return sq < q.toSq(); }
+template< QType Q, SqType Sq > constexpr bool operator <(Q const q, Sq const &sq) noexcept { return q.toSq() < sq; }
+template< QType Q, SqType Sq > constexpr bool operator <(Sq const sq, Q const &q) noexcept { return sq < q.toSq(); }
 template< QType Q1, QType Q2 > constexpr bool operator <(Q1 const q1, Q2 const &q2) noexcept { return q1.toSq() < q2.toSq(); }
 
-template< QType Q, sq::SqType Sq > constexpr bool operator >(Q const q, Sq const &sq) noexcept { return q.toSq() > sq; }
-template< QType Q, sq::SqType Sq > constexpr bool operator >(Sq const sq, Q const &q) noexcept { return sq > q.toSq(); }
+template< QType Q, SqType Sq > constexpr bool operator >(Q const q, Sq const &sq) noexcept { return q.toSq() > sq; }
+template< QType Q, SqType Sq > constexpr bool operator >(Sq const sq, Q const &q) noexcept { return sq > q.toSq(); }
 template< QType Q1, QType Q2 > constexpr bool operator >(Q1 const q1, Q2 const &q2) noexcept { return q1.toSq() > q2.toSq(); }
 
-template< QType Q, sq::SqType Sq > constexpr bool operator ==(Q const q, Sq const &sq) noexcept { return q.toSq() == sq; }
-template< QType Q, sq::SqType Sq > constexpr bool operator ==(Sq const sq, Q const &q) noexcept { return sq == q.toSq(); }
+template< QType Q, SqType Sq > constexpr bool operator ==(Q const q, Sq const &sq) noexcept { return q.toSq() == sq; }
+template< QType Q, SqType Sq > constexpr bool operator ==(Sq const sq, Q const &q) noexcept { return sq == q.toSq(); }
 template< QType Q1, QType Q2 > constexpr bool operator ==(Q1 const q1, Q2 const &q2) noexcept { return q1.toSq() == q2.toSq(); }
 
-template< QType Q, sq::SqType Sq > constexpr bool operator !=(Q const q, Sq const &sq) noexcept { return q.toSq() != sq; }
-template< QType Q, sq::SqType Sq > constexpr bool operator !=(Sq const sq, Q const &q) noexcept { return sq != q.toSq(); }
+template< QType Q, SqType Sq > constexpr bool operator !=(Q const q, Sq const &sq) noexcept { return q.toSq() != sq; }
+template< QType Q, SqType Sq > constexpr bool operator !=(Sq const sq, Q const &q) noexcept { return sq != q.toSq(); }
 template< QType Q1, QType Q2 > constexpr bool operator !=(Q1 const q1, Q2 const &q2) noexcept { return q1.toSq() != q2.toSq(); }
+
+// Clamp
+template< QType Q1, QType Q2, QType Q3 > constexpr auto clamp(Q1 const &value, Q2 const &lo, Q3 const &hi) { return sq::clamp( value.toSq(), lo.toSq(), hi.toSq() ); }
+template< SqType Sq1, QType Q2, QType Q3 > constexpr auto clamp(Sq1 const &value, Q2 const &lo, Q3 const &hi) { return sq::clamp( value, lo.toSq(), hi.toSq() ); }
+template< QType Q1, SqType Sq2, QType Q3 > constexpr auto clamp(Q1 const &value, Sq2 const &lo, Q3 const &hi) { return sq::clamp( value.toSq(), lo, hi.toSq() ); }
+template< QType Q1, QType Q2, SqType Sq3 > constexpr auto clamp(Q1 const &value, Q2 const &lo, Sq3 const &hi) { return sq::clamp( value.toSq(), lo.toSq(), hi ); }
+template< SqType Sq1, SqType Sq2, QType Q3 > constexpr auto clamp(Sq1 const &value, Sq2 const &lo, Q3 const &hi) { return sq::clamp( value, lo, hi.toSq() ); }
+template< SqType Sq1, QType Q2, SqType Sq3 > constexpr auto clamp(Sq1 const &value, Q2 const &lo, Sq3 const &hi) { return sq::clamp( value, lo.toSq(), hi ); }
+template< QType Q1, SqType Sq2, SqType Sq3 > constexpr auto clamp(Q1 const &value, Sq2 const &lo, Sq3 const &hi) { return sq::clamp( value.toSq(), lo, hi ); }
+
 ///\}
 
 /// Converts a literal number into the corresponding best-fit Q type.

@@ -389,9 +389,46 @@ namespace details {
         return v2s<double, -f>( std::numeric_limits<T>::max() );
     }
 
-    /** Concept of a valid (s)q base-type.
-     * \note If this fails, the selected base type is not integral, or too large.
-             Use an integer with a proper size! */
+    /** Concept of a Q-like type.
+     * \warning Does not guarantee that T is actually of type Q. Only checks for the basic properties. */
+    template< class T >
+    concept QType = requires (T t) {
+        { std::bool_constant<T::isQType>() } -> std::same_as<std::true_type>;
+        typename T::base_t;
+        std::is_integral_v<typename T::base_t>;
+        std::is_same_v<std::remove_cv_t<typename T::base_t>, typename T::base_t>;
+        std::is_same_v<scaling_t, decltype(T::f)>;
+        std::is_same_v<double, decltype(T::realVMin)>;
+        std::is_same_v<double, decltype(T::realVMax)>;
+        std::is_same_v<typename T::base_t, decltype(T::vMin)>;
+        std::is_same_v<typename T::base_t, decltype(T::vMax)>;
+        std::is_same_v<double, decltype(T::resolution)>;
+        std::is_same_v<Overflow, decltype(T::ovfBx)>;
+        { t.reveal() } -> std::same_as<typename T::base_t>;
+    };
+
+    /** Concept of a Sq-like type.
+     * \warning Does not guarantee that T is actually of type Sq. Only checks for the basic properties. */
+    template< class T >
+    concept SqType = requires (T t) {
+        { std::bool_constant<T::isSqType>() } -> std::same_as<std::true_type>;
+        typename T::base_t;
+        std::is_integral_v<typename T::base_t>;
+        std::is_same_v<std::remove_cv_t<typename T::base_t>, typename T::base_t>;
+        std::is_same_v<scaling_t, decltype(T::f)>;
+        std::is_same_v<double, decltype(T::realVMin)>;
+        std::is_same_v<double, decltype(T::realVMax)>;
+        std::is_same_v<typename T::base_t, decltype(T::vMin)>;
+        std::is_same_v<typename T::base_t, decltype(T::vMax)>;
+        std::is_same_v<double, decltype(T::resolution)>;
+        { t.reveal() } -> std::same_as<typename T::base_t>;
+    };
+
+    /** Concept of a Q-like or a Sq-like type. */
+    template< class T >
+    concept SqOrQType = SqType<T> || QType<T>;
+
+    /** Concept of a valid (s)q base-type. The base type has to be a reasonably sized integral. */
     template< typename BaseT >
     concept ValidBaseType = (
         std::is_integral_v<BaseT>
@@ -401,9 +438,7 @@ namespace details {
 
     /** Concept of a valid (s)q scaling value.
      * Types can be scaled by maximal the number of bits in the base type minus one bit, limited by the
-     * size of double's mantissa.
-     * \note If this fails, the selected scaling factor is too large.
-     *       Use a smaller scaling factor! */
+     * size of double's mantissa. */
     template< typename BaseT, scaling_t f >
     concept ValidScaling = (
         f <= std::numeric_limits<std::make_signed_t<BaseT>>::digits  // CHAR_BIT * sizeof(BaseT) - 1
@@ -412,9 +447,8 @@ namespace details {
 
     /** Concept of a valid (s)q type value range that fits the specified base type.
      * \note If this fails, the specified real value limits exceed the value range of the selected
-     *       base type when scaled with the desired scaling factor.
-     *       Use a larger base type, a smaller scaling factor, or double-check the sign and value of
-     *       your selected real limits! */
+     * base type when scaled with the desired scaling factor. Double-check the sign and value of your
+     * selected real limits! */
     template< typename BaseT, scaling_t f, double realVMin, double realVMax >
     concept RealLimitsInRangeOfBaseType = (
         std::in_range<BaseT>(v2s<interm_t<BaseT>, f>(realVMin))
@@ -430,46 +464,64 @@ namespace details {
     template< typename BaseT, Overflow ovfBx >
     concept CanBaseTypeOverflow = ( std::is_unsigned_v<BaseT> && ovfBx == Overflow::allowed );
 
-    /** Concept of a valid value that fits the specified base type.
-     * \note If this fails, the scaled integer value exceeds the value range of the specified base type.
-     *       Use a larger base type or a smaller real value! */
+    /** Concept of a valid scaled value that fits the specified base type. */
     template< typename BaseT, scaling_t f, double realValue >
     concept RealValueScaledFitsBaseType = ( std::in_range<BaseT>(v2s<interm_t<BaseT>, f>(realValue)) );
 
-    /** Concept: Compile-time-only check is possible.
-     * \note If this fails, a runtime overflow check is probably needed but not allowed in the context
-     *       where this concept is required. Use a different overflow check! */
+    /** Concept: Compile-time-only check is possible, i.e. it is allowed when needed. */
     template< Overflow ovfBx >
     concept CompileTimeOnlyOverflowCheckPossible = ( Overflow::assert != ovfBx );
 
-    /** Concept: Runtime overflow check required when needed.
+    /** Concept: Runtime overflow check is allowed when needed.
      * \note If this fails, a runtime overflow check is needed but not allowed for the desired q type.
      *       Allow for type, or specify the overflow-override template argument (to be preferred)! */
     template< Overflow ovfBx, bool checkNeeded = true >
     concept RuntimeOverflowCheckAllowedWhenNeeded = ( !checkNeeded || Overflow::forbidden != ovfBx );
 
+    /** Concept: Checks whether From can be converted implicitly to To. This is possible when the
+     * base type is the same, scaling is possible and the value range of From is fully within the
+     * value range of To, or if the target type is a Q type without overflow checks. */
+    template< class From, class To >
+    concept ImplicitlyConvertible = (
+        SqOrQType<From> && SqOrQType<To>
+        && std::is_same_v<typename From::base_t, typename To::base_t>
+        && details::ScalingIsPossible<typename From::base_t, From::f, typename To::base_t, To::f>
+        && ((QType<To> && !is_ovf_stricter_v<To::ovfBx, Ovf::noCheck>)
+            || (To::realVMin <= From::realVMin && From::realVMax <= To::realVMax))
+    );
+
+    /** Concept: Checks whether casting of From to To is possible without an overflow check. This is
+     * possible if the base types are different (otherwise up- or downscaling is to be preferred),
+     * scaling is possible and the value range of the source type is fully within the range of the
+     * target type. */
+    template< class From, class To >
+    concept CastableWithoutChecks = (
+        SqOrQType<From> && SqOrQType<To>
+        && !std::is_same_v<typename From::base_t, typename To::base_t>
+        && details::ScalingIsPossible<typename From::base_t, From::f, typename To::base_t, To::f>
+        && To::realVMin <= From::realVMin && From::realVMax <= To::realVMax
+    );
+
     /** Concept: Checks whether the absolute value can be taken for a value of the given base type.
-     * \note If this fails, the given base type is either not integral, or it is a signed integer and
-     *       INT_MIN is part of the value range. Exclude INT_MIN from the value range! */
+     * This is possible if the base type is integral and unsigned, or signed but without INT_MIN in
+     * its value range. */
     template< typename BaseT, BaseT vMin >
     concept Absolutizable = (
         std::is_integral_v<BaseT>
         && (std::is_unsigned_v<BaseT> || (std::is_signed_v<BaseT> && vMin != std::numeric_limits<BaseT>::min()))
     );
 
-    /** Concept: Checks whether the given (S)Q-Type can be used as divisor in a division.
-     * \note If this fails, the given type has parts of -1 > x < +1 in its range. This is not allowed.
-     *       Limit the type to a range that excludes values between -1 and +1! */
+    /** Concept: Checks whether the given (S)Q-Type can be used as divisor in a division. This is
+     * possible if the given type doesn't have parts of -1 > x < +1 in its range. This is not allowed
+     * in order to prevent an uncontrollable explosion of the limits. */
     template< typename T >
     concept CanBeUsedAsDivisor = (
         T::realVMax <= -1. || +1. <= T::realVMin
     );
 
     /** Concept: Checks whether the given (S)Q-Type can be used as divisor in a remainder-division
-     * (modulus).
-     * \note If this fails, the given type has parts of -resolution > x < +resolution in its range.
-     *       This is not allowed. Limit the type to a range that excludes values between
-     *       -resolution and +resolution! */
+     * (modulus). This is possible as long as the given type doesn't have parts of
+     * -resolution > x < +resolution in its range to prevent a modulo zero. */
     template< typename T >
     concept CanBeUsedAsModulusDivisor = (
         T::realVMax <= -T::resolution || T::resolution <= T::realVMin
@@ -477,9 +529,7 @@ namespace details {
 
     /** Concept: Checks whether the two given base types can be compared.
      * Comparison is possible if both types are the same, or both have the same signedness, or if
-     * the size of the lhs type is larger than the size of the rhs type.
-     * \note If this fails, the size of the lhs type is smaller than the size of the rhs type. This
-     *       is not allowed. Cast the lhs type to a larger base type! */
+     * the size of the lhs type is larger than the size of the rhs type. */
     template< typename LhsT, typename RhsT >
     concept Comparable = (
         std::is_integral_v<LhsT> && std::is_integral_v<RhsT>

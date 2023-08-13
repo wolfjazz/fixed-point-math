@@ -25,22 +25,7 @@ namespace fpm::sq {
  * \defgroup grp_fpmSq Static Q-Type
  * \{ */
 
-/// Concept of a Sq-like type.
-/// \warning Does not guarantee that T is actually of type Sq. Only checks for the basic properties.
-template< class T >
-concept SqType = requires (T t) {
-    { std::bool_constant<T::isSqType>() } -> std::same_as<std::true_type>;
-    typename T::base_t;
-    std::is_integral_v<typename T::base_t>;
-    std::is_same_v<std::remove_cv_t<typename T::base_t>, typename T::base_t>;
-    std::is_same_v<scaling_t, decltype(T::f)>;
-    std::is_same_v<double, decltype(T::realVMin)>;
-    std::is_same_v<double, decltype(T::realVMax)>;
-    std::is_same_v<typename T::base_t, decltype(T::vMin)>;
-    std::is_same_v<typename T::base_t, decltype(T::vMax)>;
-    std::is_same_v<double, decltype(T::resolution)>;
-    { t.reveal() } -> std::same_as<typename T::base_t>;
-};
+using details::SqType;
 
 /// Static (safe) Q type. Implements mathematical operations and checks at compile-time whether these
 /// operations can be performed for the specified value range without running into overflow issues.
@@ -161,8 +146,6 @@ public:
 
         // scale value
         auto cValue = s2s<typename SqC::base_t, f, SqC::f>(value);
-
-        // create target Sq
         return SqC(cValue);
     }
 
@@ -185,12 +168,11 @@ public:
     friend constexpr
     // Note: Passing lhs by value helps optimize chained a+b+c.
     auto operator +(Sq const lhs, SqRhs const &rhs) noexcept {
-        using SqResult = Sq<BaseTR, fR, realVMinR, realVMaxR>;
+        using SqR = Sq<BaseTR, fR, realVMinR, realVMaxR>;
 
         // add values
-        auto result = s2s<BaseTR, f, SqResult::f>(lhs.value) + s2s<BaseTR, SqRhs::f, SqResult::f>(rhs.reveal());
-
-        return SqResult( static_cast<SqResult::base_t>(result) );
+        auto result = s2s<BaseTR, f, SqR::f>(lhs.value) + s2s<BaseTR, SqRhs::f, SqR::f>(rhs.reveal());
+        return SqR( static_cast<SqR::base_t>(result) );
     }
 
     /// Unary minus operator. Negates the type and its value.
@@ -207,8 +189,8 @@ public:
     requires details::Absolutizable<base_t, vMin>
     constexpr
     auto operator -() const noexcept {
-        using SqResult = Sq<BaseTR, f, realVMinR, realVMaxR>;
-        return SqResult( static_cast<typename SqResult::base_t>(-value) );
+        using SqR = Sq<BaseTR, f, realVMinR, realVMaxR>;
+        return SqR( static_cast<typename SqR::base_t>(-value) );
     }
 
     /// Subtracts the rhs value from the lhs value.
@@ -226,12 +208,11 @@ public:
     friend constexpr
     // Note: Passing lhs by value helps optimize chained a-b-c.
     auto operator -(Sq const lhs, SqRhs const &rhs) noexcept {
-        using SqResult = Sq<BaseTR, fR, realVMinR, realVMaxR>;
+        using SqR = Sq<BaseTR, fR, realVMinR, realVMaxR>;
 
         // subtract rhs value from lhs value
-        auto result = s2s<BaseTR, f, SqResult::f>(lhs.value) - s2s<BaseTR, SqRhs::f, SqResult::f>(rhs.reveal());
-
-        return SqResult( static_cast<SqResult::base_t>(result) );
+        auto result = s2s<BaseTR, f, SqR::f>(lhs.value) - s2s<BaseTR, SqRhs::f, SqR::f>(rhs.reveal());
+        return SqR( static_cast<SqR::base_t>(result) );
     }
 
     /// Multiplies the lhs value with the rhs value.
@@ -253,14 +234,14 @@ public:
     friend constexpr
     // Note: Passing lhs by value helps optimize chained a*b*c.
     auto operator *(Sq const lhs, SqRhs const &rhs) noexcept {
-        using SqResult = Sq<BaseTR, fR, realVMinR, realVMaxR>;
+        using SqR = Sq<BaseTR, fR, realVMinR, realVMaxR>;
         using interm_m_t = interm_t<BaseTR>;
 
         // multiply lhs with rhs in intermediate type and correct scaling to obtain result
         // (a * 2^f) * (b * 2^f) / 2^f = a*b * 2^f
-        auto intermediate = s2s<interm_m_t, f, SqResult::f>(lhs.value) * s2s<interm_m_t, SqRhs::f, SqResult::f>(rhs.reveal());
-        auto result = s2s<typename SqResult::base_t, 2*SqResult::f, SqResult::f>(intermediate);
-        return SqResult( result );
+        auto intermediate = s2s<interm_m_t, f, SqR::f>(lhs.value) * s2s<interm_m_t, SqRhs::f, SqR::f>(rhs.reveal());
+        auto result = s2s<typename SqR::base_t, 2*SqR::f, SqR::f>(intermediate);
+        return SqR( result );
     }
 
     /// Divides the lhs value by the rhs value.
@@ -292,14 +273,14 @@ public:
     friend constexpr
     // Note: Passing lhs by value helps optimize chained a/b/c.
     auto operator /(Sq const lhs, SqRhs const &rhs) noexcept {
-        using SqResult = Sq<BaseTR, fR, realVMinR, realVMaxR>;
+        using SqR = Sq<BaseTR, fR, realVMinR, realVMaxR>;
         using interm_m_t = interm_t<BaseTR>;
 
         // divide lhs by rhs in intermediate type and correct scaling to obtain result
         // (a * 2^(2f)) / (b * 2^f) = a/b * 2^f
-        auto intermediate = s2s<interm_m_t, f, 2*SqResult::f>(lhs.value) / s2s<interm_m_t, SqRhs::f, SqResult::f>(rhs.reveal());
-        auto result = static_cast<typename SqResult::base_t>(intermediate);
-        return SqResult( result );
+        auto intermediate = s2s<interm_m_t, f, 2*SqR::f>(lhs.value) / s2s<interm_m_t, SqRhs::f, SqR::f>(rhs.reveal());
+        auto result = static_cast<typename SqR::base_t>(intermediate);
+        return SqR( result );
     }
 
     /// Divides the lhs value by the rhs value and returns the remainder of the division.
@@ -327,14 +308,14 @@ public:
     friend constexpr
     // Note: Passing lhs by value helps optimize chained a/b/c.
     auto operator %(Sq const lhs, SqRhs const &rhs) noexcept {
-        using SqResult = Sq<BaseTR, fR, realVMinR, realVMaxR>;
+        using SqR = Sq<BaseTR, fR, realVMinR, realVMaxR>;
         using interm_m_t = interm_t<BaseTR>;
 
         // divide lhs by rhs in intermediate type and correct scaling to obtain result
         // (a * 2^f) % (b * 2^f) = a%b * 2^f
-        auto intermediate = s2s<interm_m_t, f, SqResult::f>(lhs.value) % s2s<interm_m_t, SqRhs::f, SqResult::f>(rhs.reveal());
-        auto result = static_cast<typename SqResult::base_t>(intermediate);
-        return SqResult( result );
+        auto intermediate = s2s<interm_m_t, f, SqR::f>(lhs.value) % s2s<interm_m_t, SqRhs::f, SqR::f>(rhs.reveal());
+        auto result = static_cast<typename SqR::base_t>(intermediate);
+        return SqR( result );
     }
 
     /// Compares lhs to rhs and returns true if the value of lhs is smaller than the value of rhs.
@@ -380,10 +361,7 @@ public:
     ///          it is never false if it should be true.
     /// \returns true if the value of lhs is equal to the value of rhs, and false otherwise.
     template< /* deduced: */ SqType SqRhs, typename BaseTC = std::common_type_t<base_t, typename SqRhs::base_t> >
-    requires (
-        details::Comparable<base_t, typename SqRhs::base_t>
-        && f == SqRhs::f
-    )
+    requires details::Comparable<base_t, typename SqRhs::base_t> && f == SqRhs::f
     friend constexpr
     bool operator ==(Sq const &lhs, SqRhs const &rhs) noexcept {
         return static_cast<BaseTC>(lhs.value) == static_cast<BaseTC>(rhs.value);
@@ -398,10 +376,7 @@ public:
     ///          it is never false if it should be true.
     /// \returns true if the value of lhs is not equal to the value of rhs, and false otherwise.
     template< /* deduced: */ SqType SqRhs, typename BaseTC = std::common_type_t<base_t, typename SqRhs::base_t> >
-    requires (
-        details::Comparable<base_t, typename SqRhs::base_t>
-        && f == SqRhs::f
-    )
+    requires details::Comparable<base_t, typename SqRhs::base_t> && f == SqRhs::f
     friend constexpr
     bool operator !=(Sq const &lhs, SqRhs const &rhs) noexcept {
         return static_cast<BaseTC>(lhs.value) != static_cast<BaseTC>(rhs.value);
@@ -452,12 +427,18 @@ private:
     )
     friend class q::Q;
 
-    // friend abs() function so that it can access the private members of a Q type to construct new
+    // friend some methods so that they can access private members of a Sq type to construct new
     // variants of it
+
     template< SqType SqT, std::integral BaseTR, double realVMinR, double realVMaxR >
     requires details::Absolutizable<typename SqT::base_t, SqT::vMin>
     friend constexpr
     auto abs(SqT const &sqValue) noexcept;
+
+    template< SqType SqV, SqType SqLo, SqType SqHi >
+    requires details::ImplicitlyConvertible<SqLo, SqV> && details::ImplicitlyConvertible<SqHi, SqV>
+    friend constexpr
+    auto clamp(SqV const &value, SqLo const &lo, SqHi const &hi) noexcept;
 
     /// scaled integer value that represents a fixed-point value; stored in memory
     base_t const value;
@@ -466,11 +447,7 @@ private:
 /// Explicit static cast to another Sq type with a different base type.
 /// Uses static_cast internally. Exists for consistency reasons.
 template< SqType SqC, /* deduced: */ SqType SqFrom >
-requires (
-    !std::is_same_v<typename SqFrom::base_t, typename SqC::base_t>
-    && details::ScalingIsPossible<typename SqFrom::base_t, SqFrom::f, typename SqC::base_t, SqC::f>
-    && SqC::realVMin <= SqFrom::realVMin && SqFrom::realVMax <= SqC::realVMax
-)
+requires details::CastableWithoutChecks<SqFrom, SqC>
 constexpr
 SqC static_sq_cast(SqFrom from) noexcept {
     return static_cast<SqC>(from);
@@ -479,11 +456,7 @@ SqC static_sq_cast(SqFrom from) noexcept {
 /// Explicit safe cast to another Sq type with a different base type.
 /// Uses static_cast internally. Exists for consistency reasons.
 template< SqType SqC, /* deduced: */ SqType SqFrom >
-requires (
-    !std::is_same_v<typename SqFrom::base_t, typename SqC::base_t>
-    && details::ScalingIsPossible<typename SqFrom::base_t, SqFrom::f, typename SqC::base_t, SqC::f>
-    && SqC::realVMin <= SqFrom::realVMin && SqFrom::realVMax <= SqC::realVMax
-)
+requires details::CastableWithoutChecks<SqFrom, SqC>
 constexpr
 SqC safe_sq_cast(SqFrom from) noexcept {
     return static_cast<SqC>(from);
@@ -503,6 +476,18 @@ requires details::Absolutizable<typename SqT::base_t, SqT::vMin>
 constexpr
 auto abs(SqT const &of) noexcept {
     return Sq<BaseTR, SqT::f, realVMinR, realVMaxR>( std::abs(of.value) );
+}
+
+/// If value compares less than lo, lo is returned; otherwise if hi compares less than value, hi is
+/// returned; otherwise value is returned.
+/// \returns a new Sq type with the lower limit of SqLo and the upper limit of SqHi and the clamped
+/// value.
+template< /* deduced: */ SqType SqV, SqType SqLo, SqType SqHi >
+requires details::ImplicitlyConvertible<SqLo, SqV> && details::ImplicitlyConvertible<SqHi, SqV>
+constexpr
+auto clamp(SqV const &value, SqLo const &lo, SqHi const &hi) noexcept {
+    using SqR = Sq<typename SqV::base_t, SqV::f, SqLo::realVMin, SqHi::realVMax>;
+    return SqR( (value < lo) ? SqLo::vMin : (hi < value) ? SqHi::vMax : value.reveal() );
 }
 
 /// Converts a literal number into the corresponding best-fit sq type.
