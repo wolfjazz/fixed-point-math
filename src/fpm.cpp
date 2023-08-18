@@ -20,7 +20,7 @@ template< char ...chars > consteval auto operator ""_s() { return fpm::q::qFromL
 
 void accel(pos_t &position, speed_t &velocity, accel_t const acceleration, mtime_t const forTime, auto const dt) {
     for (mtime_t t = 0_s; t < forTime; t = mtime_t::fromSq<Ovf::noCheck>(t + dt)) {
-        auto dv = acceleration * dt;
+        auto dv = +acceleration * dt;
         auto ds = velocity * dt;
         velocity = speed_t::fromSq<Ovf::clamp>(velocity + dv);
         position = pos_t::fromSqClamp(position + ds);

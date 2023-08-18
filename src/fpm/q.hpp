@@ -294,6 +294,8 @@ public:
     }
 
     /// Explicit conversion to the related Sq type.
+    /// \note If the limits are the same and the overflow behavior is not overridden, the unary plus
+    /// operator can be used on the q value instead to achieve the same conversion.
     template< double realVMinSq = realVMin, double realVMaxSq = realVMax, Overflow ovfBxOverride = ovfBx,
         /* deduced: */
         class SqTo = Sq<realVMinSq, realVMaxSq>,
@@ -417,7 +419,9 @@ QC force_q_cast(QFrom from) noexcept {
     return QC::template construct<Overflow::noCheck>( static_cast<QC::base_t>(from.reveal()) );
 }
 
-/// Helper operations for mixed Sq and Q types.
+/// Helper operations for mixed Sq and Q types. Converts Q to Sq and performs the operations on Sq.
+/// \note The result is always some value of Sq type! If implicit conversion does not work, one of
+/// Q's explicit conversion methods can be used to convert a value of Sq type to a value of Q type.
 ///\{
 // All template arguments are deduced.
 
@@ -477,7 +481,6 @@ template< SqType Sq1, SqType Sq2, QType Q3 > constexpr auto clamp(Sq1 const &val
 template< SqType Sq1, QType Q2, SqType Sq3 > constexpr auto clamp(Sq1 const &value, Q2 const &lo, Sq3 const &hi) { return sq::clamp( value, lo.toSq(), hi ); }
 template< QType Q1, SqType Sq2, SqType Sq3 > constexpr auto clamp(Q1 const &value, Sq2 const &lo, Sq3 const &hi) { return sq::clamp( value.toSq(), lo, hi ); }
 template< double realLo, double realHi, QType Q1 > constexpr auto clamp(Q1 const &value) { return sq::clamp<realLo, realHi>( value.toSq() ); }
-
 
 ///\}
 
