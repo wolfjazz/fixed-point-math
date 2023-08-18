@@ -476,6 +476,8 @@ template< QType Q1, QType Q2, SqType Sq3 > constexpr auto clamp(Q1 const &value,
 template< SqType Sq1, SqType Sq2, QType Q3 > constexpr auto clamp(Sq1 const &value, Sq2 const &lo, Q3 const &hi) { return sq::clamp( value, lo, hi.toSq() ); }
 template< SqType Sq1, QType Q2, SqType Sq3 > constexpr auto clamp(Sq1 const &value, Q2 const &lo, Sq3 const &hi) { return sq::clamp( value, lo.toSq(), hi ); }
 template< QType Q1, SqType Sq2, SqType Sq3 > constexpr auto clamp(Q1 const &value, Sq2 const &lo, Sq3 const &hi) { return sq::clamp( value.toSq(), lo, hi ); }
+template< double realLo, double realHi, QType Q1 > constexpr auto clamp(Q1 const &value) { return sq::clamp<realLo, realHi>( value.toSq() ); }
+
 
 ///\}
 

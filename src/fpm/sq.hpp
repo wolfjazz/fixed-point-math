@@ -403,9 +403,14 @@ private:
     auto abs(SqT const &sqValue) noexcept;
 
     template< SqType SqV, SqType SqLo, SqType SqHi >
-    requires ( details::ImplicitlyConvertible<SqLo, SqV> && details::ImplicitlyConvertible<SqHi, SqV> )
+    requires details::Clampable<SqV, SqLo, SqHi>
     friend constexpr
     auto clamp(SqV const &value, SqLo const &lo, SqHi const &hi) noexcept;
+
+    template< double realLo, double realHi, SqType SqV >
+    requires details::RealLimitsInRangeOfBaseType<typename SqV::base_t, SqV::f, realLo, realHi>
+    friend constexpr
+    auto clamp(SqV const &value) noexcept;
 
     /// scaled integer value that represents a fixed-point value; stored in memory
     base_t const value;
@@ -450,11 +455,25 @@ auto abs(SqT const &of) noexcept {
 /// \returns a new Sq type with the lower limit of SqLo and the upper limit of SqHi and the clamped
 /// value.
 template< /* deduced: */ SqType SqV, SqType SqLo, SqType SqHi >
-requires ( details::ImplicitlyConvertible<SqLo, SqV> && details::ImplicitlyConvertible<SqHi, SqV> )
+requires details::Clampable<SqV, SqLo, SqHi>
 constexpr
 auto clamp(SqV const &value, SqLo const &lo, SqHi const &hi) noexcept {
     using SqR = Sq<typename SqV::base_t, SqV::f, SqLo::realVMin, SqHi::realVMax>;
-    return SqR( (value < lo) ? SqLo::vMin : (hi < value) ? SqHi::vMax : value.reveal() );
+    // lo and hi are scaled via constructor from similar type if used; value's value just can be taken as is
+    return (value < lo) ? SqR(lo) : (hi < value) ? SqR(hi) : SqR(value.value);
+}
+
+/// Version of clamp() for limits known at compile-time: if value compares less than lo, lo is returned;
+/// otherwise if hi compares less than value, hi is returned; otherwise value is returned.
+/// \returns a new Sq type with the value range defined via template parameters and the clamped value.
+template< double realLo, double realHi, /* deduced: */ SqType SqV >
+requires details::RealLimitsInRangeOfBaseType<typename SqV::base_t, SqV::f, realLo, realHi>
+constexpr
+auto clamp(SqV const &value) noexcept {
+    using SqR = typename SqV::clamp_t<realLo, realHi>;
+    constexpr auto sqLo = SqR::template fromReal<realLo>;
+    constexpr auto sqHi = SqR::template fromReal<realHi>;
+    return (value < sqLo) ? sqLo : (sqHi < value) ? sqHi : SqR(value.value);
 }
 
 /// Converts a literal number into the corresponding best-fit sq type.

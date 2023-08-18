@@ -528,6 +528,17 @@ namespace details {
         && (std::is_signed_v<LhsT> == std::is_signed_v<RhsT> || sizeof(LhsT) > sizeof(RhsT))
     );
 
+    /** Concept: Checks whether a value of the given type SqV can be clamped to a value range between
+     * a value of the given type SqLo and a value of the given type SqHi.
+     * \note In order to avoid overflow, both types SqLo and SqHi have to be implicitly-convertible
+     * to SqV and SqLo must have a lower minimum than SqHi, which in turn must have the larger maximum. */
+    template< class SqV, class SqLo, class SqHi >
+    concept Clampable = (
+        SqType<SqV> && SqType<SqLo> && SqType<SqHi>
+        && details::ImplicitlyConvertible<SqLo, SqV> && details::ImplicitlyConvertible<SqHi, SqV>
+        && SqLo::realVMin <= SqHi::realVMin && SqLo::realVMax <= SqHi::realVMax
+    );
+
     /** Concept that defines the requirements for a valid Q type. */
     template< typename BaseT, scaling_t f, double realVMin, double realVMax, Overflow ovfBx >
     concept QRequirements = (
