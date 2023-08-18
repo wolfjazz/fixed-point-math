@@ -11,11 +11,7 @@
 // forward declare fpm::q::Q so that it can be friended by fpm::sq::Sq
 namespace fpm::q {
 template< std::integral BaseTQ, scaling_t fQ, double realVMinQ, double realVMaxQ, Overflow ovfQ >
-requires (
-    details::ValidBaseType<BaseTQ>
-    && details::ValidScaling<BaseTQ, fQ>
-    && details::RealLimitsInRangeOfBaseType<BaseTQ, fQ, realVMinQ, realVMaxQ>
-)
+requires details::QRequirements<BaseTQ, fQ, realVMinQ, realVMaxQ, ovfQ>
 class Q;
 }
 
@@ -40,13 +36,8 @@ template<
     std::integral BaseT,  ///< type of the scaled integer stored in memory
     scaling_t f_,         ///< number of fraction bits (precision 2^(-f))
     double realVMin_ = details::lowestRealVMin<BaseT, f_>,  ///< minimum real value represented by the type
-    double realVMax_ = details::highestRealVMax<BaseT, f_>  ///< maximum real value represented by the type
->
-requires (
-    details::ValidBaseType<BaseT>
-    && details::ValidScaling<BaseT, f_>
-    && details::RealLimitsInRangeOfBaseType<BaseT, f_, realVMin_, realVMax_>
-)
+    double realVMax_ = details::highestRealVMax<BaseT, f_> >  ///< maximum real value represented by the type
+requires details::SqRequirements<BaseT, f_, realVMin_, realVMax_>
 class Sq final {
 public:
     static constexpr bool isSqType = true;  ///< identifier for the SqType concept
@@ -94,11 +85,7 @@ public:
     /// rounded towards zero to the next integer. The resulting representation error is at most the
     /// sum of the two resolutions before and after a down-scaling operation.
     template< /* deduced: */ SqType SqFrom >
-    requires (
-        std::is_same_v<base_t, typename SqFrom::base_t>
-        && details::ScalingIsPossible<base_t, SqFrom::f, base_t, f>
-        && realVMin <= SqFrom::realVMin && SqFrom::realVMax <= realVMax
-    )
+    requires details::ImplicitlyConvertible<SqFrom, Sq>
     static constexpr
     Sq fromSq(SqFrom const &from) noexcept {
         return Sq( s2s<base_t, SqFrom::f, f>(from.reveal()) );
@@ -113,12 +100,8 @@ public:
     /// rounded towards zero to the next integer. The resulting representation error is at most the
     /// sum of the two resolutions before and after a down-scaling operation.
     template< /* deduced: */ SqType SqFrom >
-    requires (
-        !std::is_same_v< Sq, SqFrom >  // when the same, default copy constructor should be used
-        && std::is_same_v<base_t, typename SqFrom::base_t>
-        && details::ScalingIsPossible<base_t, SqFrom::f, base_t, f>
-        && realVMin <= SqFrom::realVMin && SqFrom::realVMax <= realVMax
-    )
+    requires ( !std::is_same_v< Sq, SqFrom >  // when the same, default copy constructor should be used
+               && details::ImplicitlyConvertible<SqFrom, Sq> )
     constexpr Sq(SqFrom const &from) noexcept : value( s2s<base_t, SqFrom::f, f>(from.reveal()) ) {}
 
     /// Copy-Constructor from the same type.
@@ -135,11 +118,7 @@ public:
     /// target value range is equal to or larger than the value range of this class.
     /// \note If a cast does not work it's most probably due to unfulfilled requirements.
     template< /* deduced: */ std::integral BaseTC, scaling_t fC, double realVMinC, double realVMaxC >
-    requires (
-        !std::is_same_v<base_t, BaseTC>
-        && details::ScalingIsPossible<base_t, f, BaseTC, fC>
-        && realVMinC <= realVMin && realVMax <= realVMaxC
-    )
+    requires ( details::Scalable<base_t, f, BaseTC, fC> && realVMinC <= realVMin && realVMax <= realVMaxC )
     explicit constexpr
     operator Sq<BaseTC, fC, realVMinC, realVMaxC>() const noexcept {
         using SqC = Sq<BaseTC, fC, realVMinC, realVMaxC>;
@@ -266,10 +245,8 @@ public:
         double realVMaxR = std::max(std::max(realVMin / SqRhs::realVMax, realVMin / SqRhs::realVMin),
                                     std::max(realVMax / SqRhs::realVMin, realVMax / SqRhs::realVMax)),
         std::integral BaseTR = details::common_q_base_t<base_t, typename SqRhs::base_t, fR, realVMinR, realVMaxR> >
-    requires (
-        details::CanBeUsedAsDivisor<SqRhs>
-        && details::RealLimitsInRangeOfBaseType<BaseTR, fR, realVMinR, realVMaxR>
-    )
+    requires ( details::CanBeUsedAsDivisor<SqRhs>
+               && details::RealLimitsInRangeOfBaseType<BaseTR, fR, realVMinR, realVMaxR> )
     friend constexpr
     // Note: Passing lhs by value helps optimize chained a/b/c.
     auto operator /(Sq const lhs, SqRhs const &rhs) noexcept {
@@ -301,10 +278,8 @@ public:
         double realVMaxR = std::min(realVMax, details::signum(realVMax) *
                                     std::max(details::abs(SqRhs::realVMin), details::abs(SqRhs::realVMax))),
         std::integral BaseTR = details::common_q_base_t<base_t, typename SqRhs::base_t, fR, realVMinR, realVMaxR> >
-    requires (
-        details::CanBeUsedAsModulusDivisor<SqRhs>
-        && details::RealLimitsInRangeOfBaseType<BaseTR, fR, realVMinR, realVMaxR>
-    )
+    requires ( details::CanBeUsedAsModulusDivisor<SqRhs>
+               && details::RealLimitsInRangeOfBaseType<BaseTR, fR, realVMinR, realVMaxR> )
     friend constexpr
     // Note: Passing lhs by value helps optimize chained a/b/c.
     auto operator %(Sq const lhs, SqRhs const &rhs) noexcept {
@@ -361,7 +336,7 @@ public:
     ///          it is never false if it should be true.
     /// \returns true if the value of lhs is equal to the value of rhs, and false otherwise.
     template< /* deduced: */ SqType SqRhs, typename BaseTC = std::common_type_t<base_t, typename SqRhs::base_t> >
-    requires details::Comparable<base_t, typename SqRhs::base_t> && f == SqRhs::f
+    requires ( details::Comparable<base_t, typename SqRhs::base_t> && f == SqRhs::f )
     friend constexpr
     bool operator ==(Sq const &lhs, SqRhs const &rhs) noexcept {
         return static_cast<BaseTC>(lhs.value) == static_cast<BaseTC>(rhs.value);
@@ -376,7 +351,7 @@ public:
     ///          it is never false if it should be true.
     /// \returns true if the value of lhs is not equal to the value of rhs, and false otherwise.
     template< /* deduced: */ SqType SqRhs, typename BaseTC = std::common_type_t<base_t, typename SqRhs::base_t> >
-    requires details::Comparable<base_t, typename SqRhs::base_t> && f == SqRhs::f
+    requires ( details::Comparable<base_t, typename SqRhs::base_t> && f == SqRhs::f )
     friend constexpr
     bool operator !=(Sq const &lhs, SqRhs const &rhs) noexcept {
         return static_cast<BaseTC>(lhs.value) != static_cast<BaseTC>(rhs.value);
@@ -411,20 +386,12 @@ private:
 
     // friend all Sq types so that private members of similar types can be accessed for construction
     template< std::integral BaseTSq, scaling_t fSq, double realVMinSq, double realVMaxSq >
-    requires (
-        details::ValidBaseType<BaseTSq>
-        && details::ValidScaling<BaseTSq, fSq>
-        && details::RealLimitsInRangeOfBaseType<BaseTSq, fSq, realVMinSq, realVMaxSq>
-    )
+    requires details::SqRequirements<BaseTSq, fSq, realVMinSq, realVMaxSq>
     friend class Sq;
 
     // friend Q type so that it can access the private members of a Sq type to construct it
     template< std::integral BaseTQ, scaling_t fQ, double realVMinQ, double realVMaxQ, Overflow ovfQ >
-    requires (
-        details::ValidBaseType<BaseTQ>
-        && details::ValidScaling<BaseTQ, fQ>
-        && details::RealLimitsInRangeOfBaseType<BaseTQ, fQ, realVMinQ, realVMaxQ>
-    )
+    requires details::QRequirements<BaseTQ, fQ, realVMinQ, realVMaxQ, ovfQ>
     friend class q::Q;
 
     // friend some methods so that they can access private members of a Sq type to construct new
@@ -436,7 +403,7 @@ private:
     auto abs(SqT const &sqValue) noexcept;
 
     template< SqType SqV, SqType SqLo, SqType SqHi >
-    requires details::ImplicitlyConvertible<SqLo, SqV> && details::ImplicitlyConvertible<SqHi, SqV>
+    requires ( details::ImplicitlyConvertible<SqLo, SqV> && details::ImplicitlyConvertible<SqHi, SqV> )
     friend constexpr
     auto clamp(SqV const &value, SqLo const &lo, SqHi const &hi) noexcept;
 
@@ -483,7 +450,7 @@ auto abs(SqT const &of) noexcept {
 /// \returns a new Sq type with the lower limit of SqLo and the upper limit of SqHi and the clamped
 /// value.
 template< /* deduced: */ SqType SqV, SqType SqLo, SqType SqHi >
-requires details::ImplicitlyConvertible<SqLo, SqV> && details::ImplicitlyConvertible<SqHi, SqV>
+requires ( details::ImplicitlyConvertible<SqLo, SqV> && details::ImplicitlyConvertible<SqHi, SqV> )
 constexpr
 auto clamp(SqV const &value, SqLo const &lo, SqHi const &hi) noexcept {
     using SqR = Sq<typename SqV::base_t, SqV::f, SqLo::realVMin, SqHi::realVMax>;

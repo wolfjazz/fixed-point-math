@@ -37,7 +37,7 @@ enum class Overflow : uint8_t {
     /// \note This can be used e.g. in a debug build on types where 'forbidden' is not possible by design.
     assert = 1u,
 
-    /// In case of an overflow, the value will be clamped to the closest limit.
+    /// In case of an overflow, the value will be clamped to the closest limit at runtime.
     /// \note This is the type that should be used in released software when overflow checks cannot
     /// be avoided in the first place.
     clamp = 2u,
@@ -93,8 +93,7 @@ namespace details {
     template<
         Overflow ovfBx,   ///< overflow behavior
         std::integral ValueT,  ///< type of the value to check (after a scaling/casting operation)
-        std::integral SrcValueT = ValueT  ///< type of the value before scaling/casting operation; required if different
-    >
+        std::integral SrcValueT = ValueT >  ///< type of the value before scaling/casting operation; required if different
     constexpr void checkOverflow(ValueT &value, ValueT const min, ValueT const max) noexcept {
         // Overflow check types.
         enum checktype : uint8_t {
@@ -202,22 +201,6 @@ namespace details {
             return epsilon;
         }
     }
-
-    /** Concept of a valid difference between two integral types and two scaling factors to support
-     * scaling without overflow or significant loss of precision.
-     * Scaling is possible if:
-     *  - target and source type are of equal size and the effective target value range is not outshifted, or
-     *  - target and source type are of different size and the effective size difference is not outshifted, or
-     *  - both types are equal and the number of shifted bits is at most the number of bits in each type
-     * \note If this fails, none of the conditions listed above is fulfilled. Double-check! */
-    template< typename from_t, scaling_t fFrom, typename to_t, scaling_t fTo >
-    concept ScalingIsPossible = (
-        ( sizeof(from_t) == sizeof(to_t) && details::abs(fTo - fFrom) <= std::numeric_limits<to_t>::digits )
-        || ( sizeof(from_t) != sizeof(to_t)
-            && details::abs(fTo - fFrom) <= details::abs(std::numeric_limits<to_t>::digits - std::numeric_limits<from_t>::digits) )
-        || ( std::is_same_v<from_t, to_t> && details::abs(fTo - fFrom) <= sizeof(to_t) * CHAR_BIT )
-    );
-
 }  // end of details
 
 
@@ -445,32 +428,43 @@ namespace details {
         && f <= MAX_F
     );
 
+    /** Concept of a valid difference between two integral types and two scaling factors to support
+     * scaling without overflow or significant loss of precision.
+     * Scaling is possible if:
+     *  - target and source type are of equal size and the effective target value range is not shifted out, or
+     *  - target and source type are of different size and the effective size difference is not shifted out, or
+     *  - both types are equal and the number of shifted bits is at most the number of bits in each type
+     * \note If this fails, none of the conditions listed above is fulfilled. Double-check! */
+    template< typename from_t, scaling_t fFrom, typename to_t, scaling_t fTo >
+    concept Scalable = (
+        ( sizeof(from_t) == sizeof(to_t) && details::abs(fTo - fFrom) <= std::numeric_limits<to_t>::digits )
+        || ( sizeof(from_t) != sizeof(to_t)
+            && details::abs(fTo - fFrom) <= details::abs(std::numeric_limits<to_t>::digits - std::numeric_limits<from_t>::digits) )
+        || ( std::is_same_v<from_t, to_t> && details::abs(fTo - fFrom) <= sizeof(to_t) * CHAR_BIT )
+    );
+
+    /** Concept of a valid scaled value that fits the specified base type. */
+    template< typename BaseT, scaling_t f, double realValue >
+    concept RealValueScaledFitsBaseType = ( std::in_range<BaseT>(v2s<interm_t<BaseT>, f>(realValue)) );
+
     /** Concept of a valid (s)q type value range that fits the specified base type.
      * \note If this fails, the specified real value limits exceed the value range of the selected
      * base type when scaled with the desired scaling factor. Double-check the sign and value of your
      * selected real limits! */
     template< typename BaseT, scaling_t f, double realVMin, double realVMax >
     concept RealLimitsInRangeOfBaseType = (
-        std::in_range<BaseT>(v2s<interm_t<BaseT>, f>(realVMin))
-        && std::in_range<BaseT>(v2s<interm_t<BaseT>, f>(realVMax))
+        RealValueScaledFitsBaseType<BaseT, f, realVMin>
+        && RealValueScaledFitsBaseType<BaseT, f, realVMax>
         && realVMin <= realVMax
         && (std::is_signed_v<BaseT> || realVMin >= 0.)
     );
 
-    /** Concept of a type that can overflow when allowed. Typically used in the context of casting.
+    /** Concept of a base type that can overflow when allowed. Typically used in the context of casting.
      * \note In C++23, signed int overflow (i.e. the value does not fit in the type) is still undefined.
      * \note If this fails, a signed base type is used in the context of a potential overflow. This is
      *       not allowed. Use an unsigned target base type! */
     template< typename BaseT, Overflow ovfBx >
-    concept CanBaseTypeOverflow = ( std::is_unsigned_v<BaseT> && ovfBx == Overflow::allowed );
-
-    /** Concept of a valid scaled value that fits the specified base type. */
-    template< typename BaseT, scaling_t f, double realValue >
-    concept RealValueScaledFitsBaseType = ( std::in_range<BaseT>(v2s<interm_t<BaseT>, f>(realValue)) );
-
-    /** Concept: Compile-time-only check is possible, i.e. it is allowed when needed. */
-    template< Overflow ovfBx >
-    concept CompileTimeOnlyOverflowCheckPossible = ( Overflow::assert != ovfBx );
+    concept BaseTypeCanOverflowWhenAllowed = ( std::is_unsigned_v<BaseT> && ovfBx == Overflow::allowed );
 
     /** Concept: Runtime overflow check is allowed when needed.
      * \note If this fails, a runtime overflow check is needed but not allowed for the desired q type.
@@ -485,20 +479,18 @@ namespace details {
     concept ImplicitlyConvertible = (
         SqOrQType<From> && SqOrQType<To>
         && std::is_same_v<typename From::base_t, typename To::base_t>
-        && details::ScalingIsPossible<typename From::base_t, From::f, typename To::base_t, To::f>
+        && details::Scalable<typename From::base_t, From::f, typename To::base_t, To::f>
         && ((QType<To> && !is_ovf_stricter_v<To::ovfBx, Ovf::noCheck>)
             || (To::realVMin <= From::realVMin && From::realVMax <= To::realVMax))
     );
 
     /** Concept: Checks whether casting of From to To is possible without an overflow check. This is
-     * possible if the base types are different (otherwise up- or downscaling is to be preferred),
-     * scaling is possible and the value range of the source type is fully within the range of the
-     * target type. */
+     * possible if scaling is possible and the value range of the source type is fully within the
+     * range of the target type. */
     template< class From, class To >
     concept CastableWithoutChecks = (
         SqOrQType<From> && SqOrQType<To>
-        && !std::is_same_v<typename From::base_t, typename To::base_t>
-        && details::ScalingIsPossible<typename From::base_t, From::f, typename To::base_t, To::f>
+        && details::Scalable<typename From::base_t, From::f, typename To::base_t, To::f>
         && To::realVMin <= From::realVMin && From::realVMax <= To::realVMax
     );
 
@@ -534,6 +526,22 @@ namespace details {
     concept Comparable = (
         std::is_integral_v<LhsT> && std::is_integral_v<RhsT>
         && (std::is_signed_v<LhsT> == std::is_signed_v<RhsT> || sizeof(LhsT) > sizeof(RhsT))
+    );
+
+    /** Concept that defines the requirements for a valid Q type. */
+    template< typename BaseT, scaling_t f, double realVMin, double realVMax, Overflow ovfBx >
+    concept QRequirements = (
+        details::ValidBaseType<BaseT>
+        && details::ValidScaling<BaseT, f>
+        && details::RealLimitsInRangeOfBaseType<BaseT, f, realVMin, realVMax>
+    );
+
+    /** Concept that defines the requirements for a valid Sq type. */
+    template< typename BaseT, scaling_t f, double realVMin, double realVMax >
+    concept SqRequirements = (
+        details::ValidBaseType<BaseT>
+        && details::ValidScaling<BaseT, f>
+        && details::RealLimitsInRangeOfBaseType<BaseT, f, realVMin, realVMax>
     );
 
 }  // end of details
