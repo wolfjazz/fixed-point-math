@@ -1422,5 +1422,187 @@ TEST_F(SQTest_Clamp, sq_clamp__some_cases_not_clampable__does_not_compile) {
     ASSERT_FALSE(( fpm::details::Clampable< i16sq8<-10., 10.>, i16sq8<-5., -2.>, i16sq8<-6., 8.> > ));
 }
 
+TEST_F(SQTest_Clamp, sq_clampLower__some_value_in_same_range__same_value_same_type) {
+    using u32sq10_t = u32sq10<50.0, 5000.0>;
+    auto a = u32sq10_t::fromReal<443.210>;
+    auto min = u32sq10_t::fromReal<u32sq10_t::realVMin>;
+
+    auto clamped1 = fpm::sq::clampLower(a, min);
+    auto clamped2 = clampLower(a, min);
+    auto clamped3 = clampLower<u32sq10_t::realVMin>(a);
+
+    ASSERT_TRUE(( std::is_same_v<u32sq10_t, decltype(clamped1)> ));
+    ASSERT_TRUE(( std::is_same_v<u32sq10_t, decltype(clamped2)> ));
+    ASSERT_TRUE(( std::is_same_v<u32sq10_t, decltype(clamped3)> ));
+    ASSERT_NEAR(a.toReal(), clamped1.toReal(), u32sq10_t::resolution);
+    ASSERT_NEAR(a.toReal(), clamped2.toReal(), u32sq10_t::resolution);
+    ASSERT_NEAR(a.toReal(), clamped3.toReal(), u32sq10_t::resolution);
+}
+
+TEST_F(SQTest_Clamp, sq_clampLower__some_value_in_narrower_range__same_value_new_type) {
+    using value_t = u32sq10<50.0, 5000.0>;
+    using min_t = value_t::clamp_t<60., 600.>;
+    auto a = value_t::fromReal<70.12>;
+    auto min = min_t::fromReal<66.67>;
+
+    auto clamped1 = fpm::sq::clampLower(a, min);
+    auto clamped2 = clampLower(a, min);
+
+    constexpr double sLo = 55.5;
+    auto clamped3 = clampLower<sLo>(a);
+
+    using expected_t = value_t::clamp_t<min_t::realVMin, value_t::realVMax>;
+    ASSERT_TRUE(( std::is_same_v<expected_t, decltype(clamped1)> ));
+    ASSERT_TRUE(( std::is_same_v<expected_t, decltype(clamped2)> ));
+    ASSERT_TRUE(( std::is_same_v<value_t::clamp_t<sLo, value_t::realVMax>, decltype(clamped3)> ));
+    ASSERT_NEAR(a.toReal(), clamped1.toReal(), value_t::resolution);
+    ASSERT_NEAR(a.toReal(), clamped2.toReal(), value_t::resolution);
+    ASSERT_NEAR(a.toReal(), clamped3.toReal(), value_t::resolution);
+}
+
+TEST_F(SQTest_Clamp, sq_clampLower__some_value_smaller_than_min__clamped_value_new_type) {
+    using value_t = i32sq10<-50.0, 5000.0>;
+    using min_t = value_t::clamp_t<-10., 500.>;
+    auto a = value_t::fromReal<-12.22>;
+    auto min = min_t::fromReal<-8.498>;
+
+    auto clamped1 = fpm::sq::clampLower(a, min);
+    auto clamped2 = clampLower(a, min);
+
+    constexpr double sLo = -12.12;
+    auto clamped3 = clampLower<sLo>(a);
+
+    using expected_t = value_t::clamp_t<min_t::realVMin, value_t::realVMax>;
+    ASSERT_TRUE(( std::is_same_v<expected_t, decltype(clamped1)> ));
+    ASSERT_TRUE(( std::is_same_v<expected_t, decltype(clamped2)> ));
+    ASSERT_TRUE(( std::is_same_v<value_t::clamp_t<sLo, value_t::realVMax>, decltype(clamped3)> ));
+    ASSERT_NEAR(min.toReal(), clamped1.toReal(), value_t::resolution);
+    ASSERT_NEAR(min.toReal(), clamped2.toReal(), value_t::resolution);
+    ASSERT_NEAR(sLo, clamped3.toReal(), value_t::resolution);
+}
+
+TEST_F(SQTest_Clamp, sq_clampLower__some_value_in_narrower_range_with_different_f__same_value_new_type) {
+    using value_t = i32sq10<-50.0, 5000.0>;
+    using min_t = i32sq15<60., 300.>;
+    auto a = value_t::fromReal<68.555>;
+    auto min = min_t::fromReal<61.>;
+
+    auto clamped1 = fpm::sq::clampLower(a, min);
+    auto clamped2 = clampLower(a, min);
+
+    using expected_t = value_t::clamp_t<min_t::realVMin, value_t::realVMax>;
+    ASSERT_TRUE(( std::is_same_v<expected_t, decltype(clamped1)> ));
+    ASSERT_TRUE(( std::is_same_v<expected_t, decltype(clamped2)> ));
+    ASSERT_NEAR(a.toReal(), clamped1.toReal(), expected_t::resolution);
+    ASSERT_NEAR(a.toReal(), clamped2.toReal(), expected_t::resolution);
+}
+
+TEST_F(SQTest_Clamp, sq_clampLower__some_value_smaller_than_min_with_different_f__clamped_value_new_type) {
+    using value_t = i32sq10<-50.0, 5000.0>;
+    using min_t = i32sq15<-20., 300.>;
+    auto a = value_t::fromReal<-22.22>;
+    auto min = min_t::fromReal<-18.98>;
+
+    auto clamped1 = fpm::sq::clampLower(a, min);
+    auto clamped2 = clampLower(a, min);
+
+    using expected_t = value_t::clamp_t<min_t::realVMin, value_t::realVMax>;
+    ASSERT_TRUE(( std::is_same_v<expected_t, decltype(clamped1)> ));
+    ASSERT_TRUE(( std::is_same_v<expected_t, decltype(clamped2)> ));
+    ASSERT_NEAR(min.toReal(), clamped1.toReal(), expected_t::resolution);
+    ASSERT_NEAR(min.toReal(), clamped2.toReal(), expected_t::resolution);
+}
+
+
+TEST_F(SQTest_Clamp, sq_clampUpper__some_value_in_same_range__same_value_same_type) {
+    using u32sq10_t = u32sq10<50.0, 5000.0>;
+    auto a = u32sq10_t::fromReal<543.21>;
+    auto max = u32sq10_t::fromReal<u32sq10_t::realVMax>;
+
+    auto clamped1 = fpm::sq::clampUpper(a, max);
+    auto clamped2 = clampUpper(a, max);
+    auto clamped3 = clampUpper<u32sq10_t::realVMax>(a);
+
+    ASSERT_TRUE(( std::is_same_v<u32sq10_t, decltype(clamped1)> ));
+    ASSERT_TRUE(( std::is_same_v<u32sq10_t, decltype(clamped2)> ));
+    ASSERT_TRUE(( std::is_same_v<u32sq10_t, decltype(clamped3)> ));
+    ASSERT_NEAR(a.toReal(), clamped1.toReal(), u32sq10_t::resolution);
+    ASSERT_NEAR(a.toReal(), clamped2.toReal(), u32sq10_t::resolution);
+    ASSERT_NEAR(a.toReal(), clamped3.toReal(), u32sq10_t::resolution);
+}
+
+TEST_F(SQTest_Clamp, sq_clampUpper__some_value_in_narrower_range__same_value_new_type) {
+    using value_t = u32sq10<50.0, 5000.0>;
+    using max_t = value_t::clamp_t<60., 600.>;
+    auto a = value_t::fromReal<521.09>;
+    auto max = max_t::fromReal<599.>;
+
+    auto clamped1 = fpm::sq::clampUpper(a, max);
+    auto clamped2 = clampUpper(a, max);
+
+    constexpr double sHi = 577.78;
+    auto clamped3 = clampUpper<sHi>(a);
+
+    using expected_t = value_t::clamp_t<value_t::realVMin, max_t::realVMax>;
+    ASSERT_TRUE(( std::is_same_v<expected_t, decltype(clamped1)> ));
+    ASSERT_TRUE(( std::is_same_v<expected_t, decltype(clamped2)> ));
+    ASSERT_TRUE(( std::is_same_v<value_t::clamp_t<value_t::realVMin, sHi>, decltype(clamped3)> ));
+    ASSERT_NEAR(a.toReal(), clamped1.toReal(), value_t::resolution);
+    ASSERT_NEAR(a.toReal(), clamped2.toReal(), value_t::resolution);
+    ASSERT_NEAR(a.toReal(), clamped3.toReal(), value_t::resolution);
+}
+
+TEST_F(SQTest_Clamp, sq_clampUpper__some_value_larger_than_max__clamped_value_new_type) {
+    using value_t = i32sq10<-50.0, 5000.0>;
+    using max_t = value_t::clamp_t<60., 500.>;
+    auto a = value_t::fromReal<504.12>;
+    auto max = max_t::fromReal<487.65>;
+
+    auto clamped1 = fpm::sq::clampUpper(a, max);
+    auto clamped2 = clampUpper(a, max);
+
+    constexpr double sHi = 466.67;
+    auto clamped3 = clampUpper<sHi>(a);
+
+    using expected_t = value_t::clamp_t<value_t::realVMin, max_t::realVMax>;
+    ASSERT_TRUE(( std::is_same_v<expected_t, decltype(clamped1)> ));
+    ASSERT_TRUE(( std::is_same_v<expected_t, decltype(clamped2)> ));
+    ASSERT_TRUE(( std::is_same_v<value_t::clamp_t<value_t::realVMin, sHi>, decltype(clamped3)> ));
+    ASSERT_NEAR(max.toReal(), clamped1.toReal(), value_t::resolution);
+    ASSERT_NEAR(max.toReal(), clamped2.toReal(), value_t::resolution);
+    ASSERT_NEAR(sHi, clamped3.toReal(), value_t::resolution);
+}
+
+TEST_F(SQTest_Clamp, sq_clampUpper__some_value_in_narrower_range_with_different_f__same_value_new_type) {
+    using value_t = i32sq10<-50.0, 5000.0>;
+    using max_t = i32sq20<80., 600.>;
+    auto a = value_t::fromReal<598.10>;
+    auto max = max_t::fromReal<598.99>;
+
+    auto clamped1 = fpm::sq::clampUpper(a, max);
+    auto clamped2 = clampUpper(a, max);
+
+    using expected_t = value_t::clamp_t<value_t::realVMin, max_t::realVMax>;
+    ASSERT_TRUE(( std::is_same_v<expected_t, decltype(clamped1)> ));
+    ASSERT_TRUE(( std::is_same_v<expected_t, decltype(clamped2)> ));
+    ASSERT_NEAR(a.toReal(), clamped1.toReal(), expected_t::resolution);
+    ASSERT_NEAR(a.toReal(), clamped2.toReal(), expected_t::resolution);
+}
+
+TEST_F(SQTest_Clamp, sq_clampUpper__some_value_larger_than_max_with_different_f__clamped_value_new_type) {
+    using value_t = i32sq10<-50.0, 5000.0>;
+    using max_t = i32sq20<80., 500.>;
+    auto a = value_t::fromReal<505.55>;
+    auto max = max_t::fromReal<494.22>;
+
+    auto clamped1 = fpm::sq::clampUpper(a, max);
+    auto clamped2 = clampUpper(a, max);
+
+    using expected_t = value_t::clamp_t<value_t::realVMin, max_t::realVMax>;
+    ASSERT_TRUE(( std::is_same_v<expected_t, decltype(clamped1)> ));
+    ASSERT_TRUE(( std::is_same_v<expected_t, decltype(clamped2)> ));
+    ASSERT_NEAR(max.toReal(), clamped1.toReal(), expected_t::resolution);
+    ASSERT_NEAR(max.toReal(), clamped2.toReal(), expected_t::resolution);
+}
 
 // EOF

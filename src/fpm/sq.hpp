@@ -407,10 +407,30 @@ private:
     friend constexpr
     auto clamp(SqV const &value, SqLo const &lo, SqHi const &hi) noexcept;
 
+    template< SqType SqV, SqType SqLo >
+    requires details::ImplicitlyConvertible<SqLo, SqV>
+    friend constexpr
+    auto clampLower(SqV const &value, SqLo const &lo) noexcept;
+
+    template< SqType SqV, SqType SqHi >
+    requires details::ImplicitlyConvertible<SqHi, SqV>
+    friend constexpr
+    auto clampUpper(SqV const &value, SqHi const &hi) noexcept;
+
     template< double realLo, double realHi, SqType SqV >
     requires details::RealLimitsInRangeOfBaseType<typename SqV::base_t, SqV::f, realLo, realHi>
     friend constexpr
     auto clamp(SqV const &value) noexcept;
+
+    template< double realLo, SqType SqV >
+    requires details::RealLimitsInRangeOfBaseType<typename SqV::base_t, SqV::f, realLo, SqV::realVMax>
+    friend constexpr
+    auto clampLower(SqV const &value) noexcept;
+
+    template< double realHi, SqType SqV >
+    requires details::RealLimitsInRangeOfBaseType<typename SqV::base_t, SqV::f, SqV::realVMin, realHi>
+    friend constexpr
+    auto clampUpper(SqV const &value) noexcept;
 
     /// scaled integer value that represents a fixed-point value; stored in memory
     base_t const value;
@@ -458,9 +478,31 @@ template< /* deduced: */ SqType SqV, SqType SqLo, SqType SqHi >
 requires details::Clampable<SqV, SqLo, SqHi>
 constexpr
 auto clamp(SqV const &value, SqLo const &lo, SqHi const &hi) noexcept {
-    using SqR = Sq<typename SqV::base_t, SqV::f, SqLo::realVMin, SqHi::realVMax>;
+    using SqR = typename SqV::clamp_t<SqLo::realVMin, SqHi::realVMax>;
     // lo and hi are scaled via constructor from similar type if used; value's value just can be taken as is
     return (value < lo) ? SqR(lo) : (hi < value) ? SqR(hi) : SqR(value.value);
+}
+
+/// If value compares less than lo, lo is returned; otherwise value is returned.
+/// \returns a new Sq type with the lower limit of SqLo and the clamped value.
+template< /* deduced: */ SqType SqV, SqType SqLo >
+requires details::ImplicitlyConvertible<SqLo, SqV>
+constexpr
+auto clampLower(SqV const &value, SqLo const &lo) noexcept {
+    using SqR = typename SqV::clamp_t<SqLo::realVMin, SqV::realVMax>;
+    // lo is scaled via constructor from similar type if used; value's value just can be taken as is
+    return (value < lo) ? SqR(lo) : SqR(value.value);
+}
+
+/// If hi compares less than value, hi is returned; otherwise value is returned.
+/// \returns a new Sq type with the upper limit of SqHi and the clamped value.
+template< /* deduced: */ SqType SqV, SqType SqHi >
+requires details::ImplicitlyConvertible<SqHi, SqV>
+constexpr
+auto clampUpper(SqV const &value, SqHi const &hi) noexcept {
+    using SqR = typename SqV::clamp_t<SqV::realVMin, SqHi::realVMax>;
+    // hi is scaled via constructor from similar type if used; value's value just can be taken as is
+    return (hi < value) ? SqR(hi) : SqR(value.value);
 }
 
 /// Version of clamp() for limits known at compile-time: if value compares less than lo, lo is returned;
@@ -474,6 +516,30 @@ auto clamp(SqV const &value) noexcept {
     constexpr auto sqLo = SqR::template fromReal<realLo>;
     constexpr auto sqHi = SqR::template fromReal<realHi>;
     return (value < sqLo) ? sqLo : (sqHi < value) ? sqHi : SqR(value.value);
+}
+
+/// Version of clampLower() for lower limit known at compile-time: if value compares less than lo,
+/// lo is returned; otherwise value is returned.
+/// \returns a new Sq type with the template parameter as lower limit and the clamped value.
+template< double realLo, /* deduced: */ SqType SqV >
+requires details::RealLimitsInRangeOfBaseType<typename SqV::base_t, SqV::f, realLo, SqV::realVMax>
+constexpr
+auto clampLower(SqV const &value) noexcept {
+    using SqR = typename SqV::clamp_t<realLo, SqV::realVMax>;
+    constexpr auto sqLo = SqR::template fromReal<realLo>;
+    return (value < sqLo) ? sqLo : SqR(value.value);
+}
+
+/// Version of clampUpper() for upper limit known at compile-time: if hi compares less than value,
+/// hi is returned; otherwise value is returned.
+/// \returns a new Sq type with the template parameter as upper limit and the clamped value.
+template< double realHi, /* deduced: */ SqType SqV >
+requires details::RealLimitsInRangeOfBaseType<typename SqV::base_t, SqV::f, SqV::realVMin, realHi>
+constexpr
+auto clampUpper(SqV const &value) noexcept {
+    using SqR = typename SqV::clamp_t<SqV::realVMin, realHi>;
+    constexpr auto sqHi = SqR::template fromReal<realHi>;
+    return (sqHi < value) ? sqHi : SqR(value.value);
 }
 
 /// Converts a literal number into the corresponding best-fit sq type.
