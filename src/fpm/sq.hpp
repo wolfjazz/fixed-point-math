@@ -295,8 +295,9 @@ public:
 
     /// Compares lhs to rhs and returns true if the value of lhs is smaller than the value of rhs.
     /// Before comparison, both values are scaled to the larger f.
-    /// \note Comparison is possible if both types are the same, or if the size of the lhs type is
-    /// larger than the size of the rhs type. The common type is used for the comparison in these cases.
+    /// \note Comparison is possible if both types have the same signedness, or if the size of the
+    /// lhs type is larger than the size of the rhs type if the signedness is different.
+    /// The common type is used for the comparison in these cases.
     /// \warning If two values ​​are compared that are closer together than the resolution, the result
     ///          may be false instead of true. The result is false if the values are identical, and
     ///          it is never true if it should be false.
@@ -310,10 +311,26 @@ public:
         return s2s<BaseTC, f, fC>(lhs.value) < s2s<BaseTC, SqRhs::f, fC>(rhs.value);
     }
 
+    /// Compares lhs to rhs and returns true if the value of lhs is smaller than or equal to the
+    /// value of rhs. Before comparison, both values are scaled to the larger f.
+    /// \note Comparison is possible if both types have the same signedness, or if the size of the
+    /// lhs type is larger than the size of the rhs type if the signedness is different.
+    /// The common type is used for the comparison in these cases.
+    /// \returns true if the value of lhs is smaller than or equal to the value of rhs.
+    template< /* deduced: */ SqType SqRhs,
+        typename BaseTC = std::common_type_t<base_t, typename SqRhs::base_t>,
+        scaling_t fC = std::max(f, SqRhs::f) >
+    requires details::Comparable<base_t, typename SqRhs::base_t>
+    friend constexpr
+    bool operator <=(Sq const &lhs, SqRhs const &rhs) noexcept {
+        return s2s<BaseTC, f, fC>(lhs.value) <= s2s<BaseTC, SqRhs::f, fC>(rhs.value);
+    }
+
     /// Compares lhs to rhs and returns true if the value of lhs is larger than the value of rhs.
     /// Before comparison, both values are scaled to the larger f.
-    /// \note Comparison is possible if both types are the same, or if the size of the lhs type is
-    /// larger than the size of the rhs type. The common type is used for the comparison in these cases.
+    /// \note Comparison is possible if both types have the same signedness, or if the size of the
+    /// lhs type is larger than the size of the rhs type if the signedness is different.
+    /// The common type is used for the comparison in these cases.
     /// \warning If two values ​​are compared that are closer together than the resolution, the result
     ///          may be false instead of true. The result is false if the values are identical, and
     ///          it is never true if it should be false.
@@ -327,13 +344,29 @@ public:
         return s2s<BaseTC, f, fC>(lhs.value) > s2s<BaseTC, SqRhs::f, fC>(rhs.value);
     }
 
+    /// Compares lhs to rhs and returns true if the value of lhs is larger than or equal to the
+    /// value of rhs. Before comparison, both values are scaled to the larger f.
+    /// \note Comparison is possible if both types have the same signedness, or if the size of the
+    /// lhs type is larger than the size of the rhs type if the signedness is different.
+    /// The common type is used for the comparison in these cases.
+    /// \returns true if the value of lhs is larger than or equal to the value of rhs.
+    template< /* deduced: */ SqType SqRhs,
+        typename BaseTC = std::common_type_t<base_t, typename SqRhs::base_t>,
+        scaling_t fC = std::max(f, SqRhs::f) >
+    requires details::Comparable<base_t, typename SqRhs::base_t>
+    friend constexpr
+    bool operator >=(Sq const &lhs, SqRhs const &rhs) noexcept {
+        return s2s<BaseTC, f, fC>(lhs.value) >= s2s<BaseTC, SqRhs::f, fC>(rhs.value);
+    }
+
     /// Compares lhs to rhs and returns true if the value of lhs is equal to the value of rhs.
     /// \note For this comparison to work reliably both types need to have the same scaling.
-    /// \note Comparison is possible if base types are the same, or if the size of the lhs type is
-    /// larger than the size of the rhs type. The common type is used for the comparison in these cases.
-    /// \warning If two values ​​are compared that are closer together than the resolution, the result
-    ///          may be true instead of false. The result is true if the values are identical, and
-    ///          it is never false if it should be true.
+    /// \note Comparison is possible if both types have the same signedness, or if the size of the
+    /// lhs type is larger than the size of the rhs type if the signedness is different.
+    /// The common type is used for the comparison in these cases.
+    /// \warning If two values ​​are compared which real values are closer together than the resolution,
+    ///          the result may be true instead of false. The result is true if the values are
+    ///          identical, and it is never false if it should be true.
     /// \returns true if the value of lhs is equal to the value of rhs, and false otherwise.
     template< /* deduced: */ SqType SqRhs, typename BaseTC = std::common_type_t<base_t, typename SqRhs::base_t> >
     requires ( details::Comparable<base_t, typename SqRhs::base_t> && f == SqRhs::f )
@@ -344,11 +377,12 @@ public:
 
     /// Compares lhs to rhs and returns true if the value of lhs is not equal to the value of rhs.
     /// \note For this comparison to work reliably both types need to have the same scaling.
-    /// \note Comparison is possible if base types are the same, or if the size of the lhs type is
-    /// larger than the size of the rhs type. The common type is used for the comparison in these cases.
-    /// \warning If two values ​​are compared that are closer together than the resolution, the result
-    ///          may be true instead of false. The result is true if the values are identical, and
-    ///          it is never false if it should be true.
+    /// \note Comparison is possible if both types have the same signedness, or if the size of the
+    /// lhs type is larger than the size of the rhs type if the signedness is different.
+    /// The common type is used for the comparison in these cases.
+    /// \warning If two values ​​are compared which real values are closer together than the resolution,
+    ///          the result may be false instead of true. The result is false if the values are
+    ///          identical, i.e. the result is never true if it should be false.
     /// \returns true if the value of lhs is not equal to the value of rhs, and false otherwise.
     template< /* deduced: */ SqType SqRhs, typename BaseTC = std::common_type_t<base_t, typename SqRhs::base_t> >
     requires ( details::Comparable<base_t, typename SqRhs::base_t> && f == SqRhs::f )
@@ -434,13 +468,13 @@ private:
 
     template< SqType Sq1, SqType Sq2, double realVMinMin, double realVMaxMin >
     requires ( details::Similar<Sq1, Sq2>
-            && details::RealLimitsInRangeOfBaseType<typename Sq1::base_t, Sq1::f, realVMinMin, realVMaxMin> )
+               && details::RealLimitsInRangeOfBaseType<typename Sq1::base_t, Sq1::f, realVMinMin, realVMaxMin> )
     friend constexpr
     auto min(Sq1 const &first, Sq2 const &second) noexcept;
 
     template< SqType Sq1, SqType Sq2, double realVMinMax, double realVMaxMax >
     requires ( details::Similar<Sq1, Sq2>
-            && details::RealLimitsInRangeOfBaseType<typename Sq1::base_t, Sq1::f, realVMinMax, realVMaxMax> )
+               && details::RealLimitsInRangeOfBaseType<typename Sq1::base_t, Sq1::f, realVMinMax, realVMaxMax> )
     friend constexpr
     auto max(Sq1 const &first, Sq2 const &second) noexcept;
 

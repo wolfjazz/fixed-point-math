@@ -528,8 +528,8 @@ namespace details {
     );
 
     /** Concept: Checks whether the two given base types can be compared.
-     * Comparison is possible if both types are the same, or both have the same signedness, or if
-     * the size of the lhs type is larger than the size of the rhs type. */
+     * Comparison is possible if both types have the same signedness, or if the size of the lhs type
+     * is larger than the size of the rhs type if the signedness is different. */
     template< typename LhsT, typename RhsT >
     concept Comparable = (
         std::is_integral_v<LhsT> && std::is_integral_v<RhsT>
