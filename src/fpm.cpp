@@ -32,7 +32,7 @@ void playground() {
     pos_t position = -10.2_mm;
     speed_t velocity = 0_mm_p_s;
 
-    accel(position, velocity, -100_mm_p_s2, 1_s, 1e-3_s);
+    accel(position, velocity, max(-100_mm_p_s2, -120_mm_p_s2), 1_s, min(1e-3_s, 1e-2_s));
 
     // limit results
     position = position % 50_mm;
