@@ -443,6 +443,14 @@ namespace details {
         || ( std::is_same_v<from_t, to_t> && details::abs(fTo - fFrom) <= sizeof(to_t) * CHAR_BIT )
     );
 
+    /** Concept of similar Q or Sq types, i.e. they have the same base type and scaling. */
+    template< class T1, class T2 >
+    concept Similar = (
+        ((SqType<T1> && SqType<T2>) || (QType<T1> && QType<T2>))
+        && std::is_same_v<typename T1::base_t, typename T2::base_t>
+        && T1::f == T2::f
+    );
+
     /** Concept of a valid scaled value that fits the specified base type. */
     template< typename BaseT, scaling_t f, double realValue >
     concept RealValueScaledFitsBaseType = ( std::in_range<BaseT>(v2s<interm_t<BaseT>, f>(realValue)) );

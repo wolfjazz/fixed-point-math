@@ -32,7 +32,7 @@ In the end, one just wants to perform calculations within a predefined value ran
 - explicit conversion to fixed-point type with same base type but different precision via up/downscale-copy
 - conversion to different base types only via explicit casts (static_q_cast, safe_q_cast, force_q_cast)
 - simple, easy-to-debug, on-point formulas without any obscuring scaling corrections
-- implementation of the most-common mathematical operators that make sense (+, -, \*, /, %, [<<, >>], ==, !=, <, >) --> shift operations are not possible at the moment (function arguments cannot be used as constexpr yet)
+- implementation of the most-common mathematical operators that make sense (+, -, \*, /, %, ==, !=, <, >, <=, >=); shift operations are not possible at the moment (function arguments cannot be used as constexpr yet, so no compile-time checks can be done)
 - abs, clamp, clampLower, clampUpper, min, max (constexpr impl. for both compile-time and runtime)
 - some sophisticated operators like pow, sqr, sqrt -> integral powers and roots
   - pow: &ensp; x<sup>y</sup> = [ (x\*2<sup>d</sup>)<sup>y</sup> \* 2<sup>d - d\*y</sup> ]<sub>d</sub> &emsp; x: real, y: int, d: int

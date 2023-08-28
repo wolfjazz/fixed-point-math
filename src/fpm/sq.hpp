@@ -432,6 +432,18 @@ private:
     friend constexpr
     auto clampUpper(SqV const &value) noexcept;
 
+    template< SqType Sq1, SqType Sq2, double realVMinMin, double realVMaxMin >
+    requires ( details::Similar<Sq1, Sq2>
+            && details::RealLimitsInRangeOfBaseType<typename Sq1::base_t, Sq1::f, realVMinMin, realVMaxMin> )
+    friend constexpr
+    auto min(Sq1 const &first, Sq2 const &second) noexcept;
+
+    template< SqType Sq1, SqType Sq2, double realVMinMax, double realVMaxMax >
+    requires ( details::Similar<Sq1, Sq2>
+            && details::RealLimitsInRangeOfBaseType<typename Sq1::base_t, Sq1::f, realVMinMax, realVMaxMax> )
+    friend constexpr
+    auto max(Sq1 const &first, Sq2 const &second) noexcept;
+
     /// scaled integer value that represents a fixed-point value; stored in memory
     base_t const value;
 };
@@ -540,6 +552,32 @@ auto clampUpper(SqV const &value) noexcept {
     using SqR = typename SqV::clamp_t<SqV::realVMin, realHi>;
     constexpr auto sqHi = SqR::template fromReal<realHi>;
     return (sqHi < value) ? sqHi : SqR(value.value);
+}
+
+/// \returns a new Sq type with the minimum of the limits and the minimum runtime value of the two
+// given sq values. If both values are equivalent, the first value returned.
+template< /* deduced: */ SqType Sq1, SqType Sq2,
+    double realVMinMin = std::min(Sq1::realVMin, Sq2::realVMin),
+    double realVMaxMin = std::min(Sq1::realVMax, Sq2::realVMax) >
+requires ( details::Similar<Sq1, Sq2>
+           && details::RealLimitsInRangeOfBaseType<typename Sq1::base_t, Sq1::f, realVMinMin, realVMaxMin> )
+constexpr
+auto min(Sq1 const &first, Sq2 const &second) noexcept {
+    using SqR = typename Sq1::clamp_t<realVMinMin, realVMaxMin>;
+    return (first > second) ? SqR(second.value) : SqR(first.value);
+}
+
+/// \returns a new Sq type with the maximum of the limits and the maximum runtime value of the two
+// given sq values. If both values are equivalent, the first value returned.
+template< /* deduced: */ SqType Sq1, SqType Sq2,
+    double realVMinMax = std::max(Sq1::realVMin, Sq2::realVMin),
+    double realVMaxMax = std::max(Sq1::realVMax, Sq2::realVMax) >
+requires ( details::Similar<Sq1, Sq2>
+           && details::RealLimitsInRangeOfBaseType<typename Sq1::base_t, Sq1::f, realVMinMax, realVMaxMax> )
+constexpr
+auto max(Sq1 const &first, Sq2 const &second) noexcept {
+    using SqR = typename Sq1::clamp_t<realVMinMax, realVMaxMax>;
+    return (first < second) ? SqR(second.value) : SqR(first.value);
 }
 
 /// Converts a literal number into the corresponding best-fit sq type.
