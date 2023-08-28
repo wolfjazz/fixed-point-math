@@ -425,7 +425,7 @@ QC force_q_cast(QFrom from) noexcept {
 ///\{
 
 // Unary operations
-template< /* deduced: */ QType Q > constexpr auto operator +(Q const &q) noexcept { return +q.toSq(); }
+template< /* deduced: */ QType Q > constexpr auto operator +(Q const &q) noexcept { return q.toSq(); }
 template< /* deduced: */ QType Q > constexpr auto operator -(Q const &q) noexcept { return -q.toSq(); }
 template< /* deduced: */ QType Q > constexpr auto abs(Q const &q) noexcept { return sq::abs( +q ); }
 
