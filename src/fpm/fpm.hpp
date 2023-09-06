@@ -203,7 +203,7 @@ namespace details {
     // Some standard functions are redefined here for use in concepts, otherwise VSCode would squiggle
     // the functions although the functions from std compile. :(
     inline namespace {
-        /** Returns the absolute value of the given input value. */
+        /** \returns the absolute value of the given input value. */
         template< typename ValueT >
         consteval ValueT abs(ValueT const input) noexcept {
             return input >= 0 ? input : -input;
@@ -363,7 +363,7 @@ namespace details {
     template< std::integral T1, std::integral T2, scaling_t f, double realVMin, double realVMax >
     using common_q_base_t = typename common_q_base<T1, T2, f, realVMin, realVMax>::type;
 
-    /** returns the real minimum value for the given integral type and scaling that can safely be
+    /** \returns the real minimum value for the given integral type and scaling that can safely be
      * used in operations like negation or taking the absolute value
      * (i.e. 0u for unsigned, INT_MIN + 1 for signed).
      * \note Internal. Use Q<>::realVMin in applications. */
@@ -381,7 +381,7 @@ namespace details {
 
     /// Functions defined for testing purposes.
     namespace test {
-        /** Returns the minimum distance between doubles (epsilon) for numbers of the magnitude
+        /** \returns the minimum distance between doubles (epsilon) for numbers of the magnitude
          * of the given value.
          * \warning Expensive when used in production code! */
         inline double floatpEpsilonFor(double value) noexcept {
@@ -582,6 +582,42 @@ namespace details {
     );
 
 }  // end of details
+
+
+/** Static assertion of the base type of the given sq (or q) type. */
+template< std::integral TExpected, /* deduced: */ details::SqOrQType QSq >
+constexpr void static_assert_basetype(QSq) {
+    static_assert(std::is_same_v<TExpected, typename QSq::base_t>,
+        "The given q or sq type does not comply with the expected base type.");
+}
+
+
+/** Static assertion of the scaling of the given sq (or q) type. */
+template< scaling_t expectedF, /* deduced: */ details::SqOrQType QSq >
+constexpr void static_assert_scaling(QSq) {
+    static_assert(QSq::f == expectedF,
+        "The given q or sq type does not comply with the expected scaling.");
+}
+
+
+/** Static assertion of the real value range of the given sq (or q) type. */
+template< double expectedMin, double expectedMax, /* deduced: */ details::SqOrQType QSq >
+constexpr void static_assert_range(QSq) {
+    static_assert(QSq::realVMin == expectedMin && QSq::realVMax == expectedMax,
+        "The given q or sq type does not comply with the expected value range.");
+}
+
+
+/** Static assertion of the core properties of the given sq (or q) type. */
+template< std::integral TExpected, scaling_t expectedF, double expectedMin, double expectedMax,
+          /* deduced: */ details::SqOrQType QSq >
+constexpr void static_assert_properties(QSq) {
+    static_assert(
+        std::is_same_v<TExpected, typename QSq::base_t>
+        && QSq::f == expectedF
+        && QSq::realVMin == expectedMin && QSq::realVMax == expectedMax,
+        "The given q or sq type does not comply with the expected properties.");
+}
 
 
 /**\}*/

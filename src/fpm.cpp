@@ -32,6 +32,11 @@ void playground() {
     pos_t position = -10.2_mm;
     speed_t velocity = 0_mm_p_s;
 
+    fpm::static_assert_basetype<int32_t>(velocity);
+    fpm::static_assert_scaling<16>(velocity);
+    fpm::static_assert_range<-300., 300.>(velocity);
+    fpm::static_assert_properties<int32_t, 16, -300., 300.>(velocity);
+
     accel(position, velocity, max(-100_mm_p_s2, -120_mm_p_s2), 1_s, min(1e-3_s, 1e-2_s));
 
     // limit results
@@ -42,6 +47,7 @@ void playground() {
     std::cout << "pos size:" << sizeof(position) << ", spd size:" << sizeof(velocity) << std::endl;
     std::cout << "pos: " << position.toReal() << ", vel: " << velocity.toReal() << std::endl;
 }
+
 
 int main(void) {
     playground();
