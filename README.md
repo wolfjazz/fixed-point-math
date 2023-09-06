@@ -32,13 +32,16 @@ In the end, one just wants to perform calculations within a predefined value ran
 - explicit conversion to fixed-point type with same base type but different precision via up/downscale-copy
 - conversion to different base types only via explicit casts (static_q_cast, safe_q_cast, force_q_cast)
 - simple, easy-to-debug, on-point formulas without any obscuring scaling corrections
-- implementation of the most-common mathematical operators that make sense (+, -, \*, /, %, ==, !=, <, >, <=, >=); shift operations are not possible at the moment (function arguments cannot be used as constexpr yet, so no compile-time checks can be done)
+- implementation of the most-common mathematical operators that make sense (+, -, \*, /, %, ==, !=, <, >, <=, >=)
+- at the moment, shift operations are only possible using std::integral_constant to shift a value; the integral constant can be constructed via literal: `x << 2_ic`
 - abs, clamp, clampLower, clampUpper, min, max (constexpr impl. for both compile-time and runtime)
 - some sophisticated operators like pow, sqr, sqrt -> integral powers and roots
-  - pow: &ensp; x<sup>y</sup> = [ (x\*2<sup>d</sup>)<sup>y</sup> \* 2<sup>d - d\*y</sup> ]<sub>d</sub> &emsp; x: real, y: int, d: int
-    - sqr: &ensp; x<sup>2</sup> = [ (x\*2<sup>d</sup>)<sup>2</sup> / 2<sup>d</sup> ]<sub>d</sub>
-  - root: &ensp; x<sup>1/y</sup> = [ (x\*2<sup>d</sup>)<sup>1/y</sup> \* 2<sup>d - d/y</sup> ]<sub>d</sub>
-    - sqrt: &ensp; x<sup>1/2</sup> = [ (x\*2<sup>d</sup>)<sup>1/2</sup> \* (2<sup>d</sup>)<sup>1/2</sup> ]<sub>d</sub>
+  - pow: &ensp; x<sup>y</sup> = [ (x\*2<sup>f</sup>)<sup>y</sup> \* 2<sup>f - f\*y</sup> ]<sub>f</sub> &emsp; x: real, y: int, f: int &emsp; <-- std::pow requires double!
+    - sqr: &ensp; x<sup>2</sup> = [ (x\*2<sup>f</sup>)\*(x\*2<sup>f</sup>) / 2<sup>f</sup> ]<sub>f</sub> &emsp; <-- this works!
+    - cub: &ensp; x<sup>3</sup> = [ (x\*2<sup>f</sup>)\*(x\*2<sup>f</sup>)/2<sup>f</sup>\*(x\*2<sup>f</sup>)/2<sup>f</sup> ]<sub>f</sub> &emsp; <-- this works!
+  - root: &ensp; x<sup>1/y</sup> = [ (x\*2<sup>f</sup>)<sup>1/y</sup> \* 2<sup>f - f/y</sup> ]<sub>f</sub> &emsp; <-- no generic root function in std library!
+    - sqrt: &ensp; x<sup>1/2</sup> = [ (x\*2<sup>f</sup>\*2<sup>f</sup>)<sup>1/2</sup> ]<sub>f</sub> &emsp; <-- std::sqrt requires double! use some approximation?
+    - cbrt: &ensp; x<sup>1/3</sup> = [ (x\*2<sup>f</sup>\*2<sup>f</sup>\*2<sup>f</sup>)<sup>1/3</sup> ]<sub>f</sub> &emsp; <-- std::cbrt requires double! use some approximation?
 
 ### Further Ideas
 

@@ -136,9 +136,9 @@ public:
     }
 
     /// Adds two Sq values.
-    /// \returns a value of a new Sq type with the larger scaling (higher precision) and the value
-    /// ranges added together. For the base type of the result a common type is determined that can
-    /// hold the lowest and highest value of the resulting value range.
+    /// \returns the sum, wrapped in a new Sq type with the larger scaling (higher precision) and the
+    /// value ranges added together. For the base type of the result a common type is determined that
+    /// can hold the lowest and highest value of the resulting value range.
     template< /* deduced: */ SqType SqRhs,
         scaling_t fR = std::max(SqRhs::f, f),
         double realVMinR = realVMin + SqRhs::realVMin, double realVMaxR = realVMax + SqRhs::realVMax,
@@ -162,7 +162,7 @@ public:
     /// representation error of the initial value.
     /// \warning a +0.0 in the limits will be negated to -0.0 and vice versa. Note that two Sq types
     ///          which differ only by the sign of the 0 in a limit are not equal by design!
-    /// \returns a value of a new Sq type with negated limits and value.
+    /// \returns the negated value, wrapped in a new Sq type with negated limits.
     template< /* deduced: */ double realVMinR = -realVMax, double realVMaxR = -realVMin,
         std::integral BaseTR = details::common_q_base_t<base_t, std::make_signed_t<base_t>, f, realVMinR, realVMaxR> >
     requires details::Absolutizable<base_t, vMin>
@@ -173,9 +173,9 @@ public:
     }
 
     /// Subtracts the rhs value from the lhs value.
-    /// \returns a value of a new Sq type with the larger scaling (higher precision) and the value
-    /// ranges subtracted. For the base type of the result a common type is determined that can hold
-    /// the lowest and highest value of the resulting value range.
+    /// \returns the difference, wrapped in a new Sq type with the larger scaling (higher precision)
+    /// and the value ranges subtracted. For the base type of the result a common type is determined
+    /// that can hold the lowest and highest value of the resulting value range.
     /// \note For a chain of n additions, the propagated error is approximately n * 2^(-f) plus the
     /// representation error of the initial value.
     template< /* deduced: */ SqType SqRhs,
@@ -195,9 +195,9 @@ public:
     }
 
     /// Multiplies the lhs value with the rhs value.
-    /// \returns a value of a new Sq type with the larger scaling (higher precision) and the value
-    /// ranges multiplied. For the base type of the result a common type is determined that can hold
-    /// the lowest and highest value of the resulting value range.
+    /// \returns the product, wrapped in a new Sq type with the larger scaling (higher precision)
+    /// and the value ranges multiplied. For the base type of the result a common type is determined
+    /// that can hold the lowest and highest value of the resulting value range.
     /// \note The error propagation is complicated. When a number x is multiplied with itself n times,
     /// the real error is of order O( (n+1)*x^n * 2^(-f) ). For example, for a chain x*x*x (n=2) the
     /// real error is of order O( 3*x^2 * 2^(-f) ). Higher terms O( 2^(-m*f) ), m > 1 also occur for
@@ -224,9 +224,9 @@ public:
     }
 
     /// Divides the lhs value by the rhs value.
-    /// \returns a value of a new Sq type with the larger scaling (higher precision) and the value
-    /// ranges divided. For the base type of the result a common type is determined that can hold
-    /// the lowest and highest value of the resulting value range.
+    /// \returns the quotient, wrapped in a new Sq type with the larger scaling (higher precision)
+    /// and the value ranges divided. For the base type of the result a common type is determined that
+    /// can hold the lowest and highest value of the resulting value range.
     /// \warning Arithmetic underflow can happen if the result is smaller than the target resolution.
     /// \warning To ensure that compile-time overflow checks are not required, the rhs type must not
     ///          have values between -1 and +1 in its value range.
@@ -264,7 +264,7 @@ public:
     /// The remainder of the division operation x/y calculated by this function is exactly the value
     /// x - n*y, where n is x/y with its fractional part truncated. The returned value has the same
     /// sign as x and is less or equal to y in magnitude.
-    /// \returns the remainder of the division, as a value of a new Sq type with the larger scaling
+    /// \returns the remainder of the division, wrapped in a new Sq type with the larger scaling
     /// (higher precision) and with the value ranges adopted. If the base types are different, a common
     /// type is determined that can hold the lowest and highest value of the resulting value range.
     /// \warning Arithmetic underflow can happen if the result is smaller than the target resolution.
@@ -389,6 +389,35 @@ public:
     friend constexpr
     bool operator !=(Sq const &lhs, SqRhs const &rhs) noexcept {
         return static_cast<BaseTC>(lhs.value) != static_cast<BaseTC>(rhs.value);
+    }
+
+    /// Left-Shifts lhs by the number of bits given by the rhs integral constant.
+    /// \note Shifting is possible if the shifted limits cannot exceed the base type's value range.
+    /// \warning Arithmetic underflow can happen if the result is smaller than the target resolution.
+    /// \returns the shifted value, wrapped in a new Sq type with shifted limits.
+    template< /* deduced: */ std::integral T, T v,
+        double realVMinR = v2s<double, -f>(static_cast<fpm::interm_t<base_t>>(vMin) << v),
+        double realVMaxR = v2s<double, -f>(static_cast<fpm::interm_t<base_t>>(vMax) << v) >
+    requires ( std::is_unsigned_v<T>
+               && details::RealLimitsInRangeOfBaseType<base_t, f, realVMinR, realVMaxR> )
+    friend constexpr
+    auto operator <<(Sq const &lhs, std::integral_constant<T, v> const) noexcept {
+        using SqR = Sq<base_t, f, realVMinR, realVMaxR>;
+        return SqR( lhs.value << v );
+    }
+
+    /// Right-Shifts lhs by the number of bits given by the rhs integral constant.
+    /// \note Shifting is possible if the shifted limits cannot exceed the base type's value range.
+    /// \returns the shifted value, wrapped in a new Sq type with shifted limits.
+    template< /* deduced: */ std::integral T, T v,
+        double realVMinR = v2s<double, -f>(static_cast<fpm::interm_t<base_t>>(vMin) >> v),
+        double realVMaxR = v2s<double, -f>(static_cast<fpm::interm_t<base_t>>(vMax) >> v) >
+    requires ( std::is_unsigned_v<T>
+               && details::RealLimitsInRangeOfBaseType<base_t, f, realVMinR, realVMaxR> )
+    friend constexpr
+    auto operator >>(Sq const &lhs, std::integral_constant<T, v> const) noexcept {
+        using SqR = Sq<base_t, f, realVMinR, realVMaxR>;
+        return SqR( lhs.value >> v );
     }
 
     /// Reveals the integer value stored in memory.
@@ -589,7 +618,7 @@ auto clampUpper(SqV const &value) noexcept {
 }
 
 /// \returns a new Sq type with the minimum of the limits and the minimum runtime value of the two
-// given sq values. If both values are equivalent, the first value returned.
+// given sq values. If both values are equivalent, the first value is returned.
 template< /* deduced: */ SqType Sq1, SqType Sq2,
     double realVMinMin = std::min(Sq1::realVMin, Sq2::realVMin),
     double realVMaxMin = std::min(Sq1::realVMax, Sq2::realVMax) >
@@ -602,7 +631,7 @@ auto min(Sq1 const &first, Sq2 const &second) noexcept {
 }
 
 /// \returns a new Sq type with the maximum of the limits and the maximum runtime value of the two
-// given sq values. If both values are equivalent, the first value returned.
+// given sq values. If both values are equivalent, the first value is returned.
 template< /* deduced: */ SqType Sq1, SqType Sq2,
     double realVMinMax = std::max(Sq1::realVMin, Sq2::realVMin),
     double realVMaxMax = std::max(Sq1::realVMax, Sq2::realVMax) >

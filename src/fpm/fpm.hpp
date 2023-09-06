@@ -75,135 +75,6 @@ constexpr size_t MAX_BASETYPE_SIZE = sizeof(uint32_t);
 constexpr scaling_t MAX_F = 53;
 
 
-/// Internal implementations.
-namespace details {
-
-    // Some standard functions are redefined here for use in concepts, otherwise VSCode would squiggle
-    // the functions although the functions from std compile. :(
-    inline namespace {
-        /** Returns the absolute value of the given input value. */
-        template< typename ValueT >
-        consteval ValueT abs(ValueT const input) noexcept {
-            return input >= 0 ? input : -input;
-        }
-    }
-
-    /** Overflow check function.
-     * \note Works for signed and unsigned value type. */
-    template<
-        Overflow ovfBx,   ///< overflow behavior
-        std::integral ValueT,  ///< type of the value to check (after a scaling/casting operation)
-        std::integral SrcValueT = ValueT >  ///< type of the value before scaling/casting operation; required if different
-    constexpr void checkOverflow(ValueT &value, ValueT const min, ValueT const max) noexcept {
-        // Overflow check types.
-        enum checktype : uint8_t {
-            CHECKTYPE_SIGN_UNCHANGED = 0u,  ///< default overflow check
-            CHECKTYPE_SIGNED_TO_UNSIGNED = 1u,  ///< sign has changed from signed to unsigned
-            CHECKTYPE_UNSIGNED_TO_SIGNED = 2u,  ///< sign has changed from unsigned to signed
-        };
-
-        if constexpr (Overflow::assert == ovfBx) {
-            if (value < min || value > max) {
-                assert(false);  // value is out of range
-            }
-        }
-        else if constexpr (Overflow::clamp == ovfBx) {
-            // determine check type
-            constexpr auto checkType = (std::is_signed_v<SrcValueT> && std::is_unsigned_v<ValueT>)
-                ? CHECKTYPE_SIGNED_TO_UNSIGNED
-                : (std::is_unsigned_v<SrcValueT> && std::is_signed_v<ValueT>)
-                    ? CHECKTYPE_UNSIGNED_TO_SIGNED
-                    : CHECKTYPE_SIGN_UNCHANGED;
-
-            // if the value was cast from a signed to an unsigned type and is in the upper half of the
-            // unsigned value range, the value was negative before; clamp it to the lower limit
-            if constexpr (CHECKTYPE_SIGNED_TO_UNSIGNED == checkType) {
-                constexpr ValueT signedMax = static_cast<ValueT>(std::numeric_limits<std::make_signed_t<ValueT>>::max());
-                if (value < min || value > signedMax) {
-                    value = min;
-                }
-                else if (value > max) {
-                    value = max;
-                }
-                else { /* okay */ }
-            }
-            // if the value was cast from an unsigned to a signed type and is negative, the value was
-            // positive before; clamp it to the upper limit
-            else if constexpr (CHECKTYPE_UNSIGNED_TO_SIGNED == checkType) {
-                if (value < 0 || value > max) {
-                    value = max;
-                }
-                else if (value < min) {
-                    value = min;
-                }
-                else { /* okay */ }
-            }
-            else /* checktype sign unchanged */ {
-                if (value < min) {
-                    value = min;
-                }
-                else if (value > max) {
-                    value = max;
-                }
-                else { /* okay */ }
-            }
-        }
-        else { /* Overflow::allowed, Overflow::noCheck: no checks performed */ }
-    }
-
-    /** \returns +1 if the given value is positive, -1 if it is negative and 0 if the value is 0. */
-    template <typename T>
-    constexpr int signum(T const x) {
-        if constexpr (std::is_signed_v<T>) { return (T(0) < x) - (x < T(0)); }
-        else { return T(0) < x; }
-    }
-
-    /** Calculates the given integer power of the given number.
-     * Inspired by: https://prosepoetrycode.potterpcs.net/2015/07/a-simple-constexpr-power-function-c/ */
-    consteval double dpowi(double num, int pow) {
-        if (details::abs(pow) > std::numeric_limits<double>::max_exponent10) return 0.;
-        if (pow == 0) return 1.;
-        return (pow > 0) ? num * dpowi(num, pow-1) : dpowi(num, pow+1) / num;
-    }
-
-    /// Converts a given character array from a template literal operator into a double value.
-    template< char ...charArray >
-    consteval double doubleFromLiteral() {
-        constexpr std::size_t length = sizeof...(charArray);
-        constexpr char chars[length]{ charArray... };
-        static_assert(length > 0u && length <= std::numeric_limits<double>::digits10
-            && std::all_of(chars, chars + length, [](char c) { return isdigit(c) || c == '.' || c == 'e' || c == 'E' || c == '-'; }),
-            "Argument to literal must be a positive integer or double");
-        double number = 0., fScale = 1.;
-        int exp = 0, eSign = 0;
-        for (size_t i = 0u; i < length; ++i) {
-            if (chars[i] == '.') { fScale = 0.1; continue; }
-            else if (chars[i] == 'e' || chars[i] == 'E') {
-                if (chars[i + 1] == '-') { eSign = -1; ++i; }
-                else { eSign = 1; }
-                continue;
-            }
-            int d = chars[i] - '0';
-            if (eSign != 0) { exp = exp*10 + eSign*d; }
-            else if (fScale > 0.5) { number = number*10 + (double)d; }
-            else { number += (double)d*fScale; fScale /= 10; }
-        }
-        return number * dpowi(10., exp);
-    }
-
-    /// Functions defined for testing purposes.
-    namespace test {
-        /** Returns the minimum distance between doubles (epsilon) for numbers of the magnitude
-         * of the given value.
-         * \warning Expensive when used in production code! */
-        inline double floatpEpsilonFor(double value) noexcept {
-            double epsilon = nextafter(value, std::numeric_limits<double>::infinity()) - value;
-            return epsilon;
-        }
-    }
-}  // end of details
-
-
 /** Scale-To-Scale scaling function.
  * Used to scale a given, already scaled (integer) value to a different scaling factor and target type
  * using multiplication/division.
@@ -326,8 +197,144 @@ constexpr TargetT v2s(ValueT value) noexcept { return v2sh<TargetT, to>(value); 
 #endif
 
 
-// Continue with internal implementations.
+// Internal implementations.
 namespace details {
+
+    // Some standard functions are redefined here for use in concepts, otherwise VSCode would squiggle
+    // the functions although the functions from std compile. :(
+    inline namespace {
+        /** Returns the absolute value of the given input value. */
+        template< typename ValueT >
+        consteval ValueT abs(ValueT const input) noexcept {
+            return input >= 0 ? input : -input;
+        }
+    }
+
+    /** Overflow check function.
+     * \note Works for signed and unsigned value type. */
+    template<
+        Overflow ovfBx,   ///< overflow behavior
+        std::integral ValueT,  ///< type of the value to check (after a scaling/casting operation)
+        std::integral SrcValueT = ValueT >  ///< type of the value before scaling/casting operation; required if different
+    constexpr void checkOverflow(ValueT &value, ValueT const min, ValueT const max) noexcept {
+        // Overflow check types.
+        enum checktype : uint8_t {
+            CHECKTYPE_SIGN_UNCHANGED = 0u,  ///< default overflow check
+            CHECKTYPE_SIGNED_TO_UNSIGNED = 1u,  ///< sign has changed from signed to unsigned
+            CHECKTYPE_UNSIGNED_TO_SIGNED = 2u,  ///< sign has changed from unsigned to signed
+        };
+
+        if constexpr (Overflow::assert == ovfBx) {
+            if (value < min || value > max) {
+                assert(false);  // value is out of range
+            }
+        }
+        else if constexpr (Overflow::clamp == ovfBx) {
+            // determine check type
+            constexpr auto checkType = (std::is_signed_v<SrcValueT> && std::is_unsigned_v<ValueT>)
+                ? CHECKTYPE_SIGNED_TO_UNSIGNED
+                : (std::is_unsigned_v<SrcValueT> && std::is_signed_v<ValueT>)
+                    ? CHECKTYPE_UNSIGNED_TO_SIGNED
+                    : CHECKTYPE_SIGN_UNCHANGED;
+
+            // if the value was cast from a signed to an unsigned type and is in the upper half of the
+            // unsigned value range, the value was negative before; clamp it to the lower limit
+            if constexpr (CHECKTYPE_SIGNED_TO_UNSIGNED == checkType) {
+                constexpr ValueT signedMax = static_cast<ValueT>(std::numeric_limits<std::make_signed_t<ValueT>>::max());
+                if (value < min || value > signedMax) {
+                    value = min;
+                }
+                else if (value > max) {
+                    value = max;
+                }
+                else { /* okay */ }
+            }
+            // if the value was cast from an unsigned to a signed type and is negative, the value was
+            // positive before; clamp it to the upper limit
+            else if constexpr (CHECKTYPE_UNSIGNED_TO_SIGNED == checkType) {
+                if (value < 0 || value > max) {
+                    value = max;
+                }
+                else if (value < min) {
+                    value = min;
+                }
+                else { /* okay */ }
+            }
+            else /* checktype sign unchanged */ {
+                if (value < min) {
+                    value = min;
+                }
+                else if (value > max) {
+                    value = max;
+                }
+                else { /* okay */ }
+            }
+        }
+        else { /* Overflow::allowed, Overflow::noCheck: no checks performed */ }
+    }
+
+    /** \returns +1 if the given value is positive, -1 if it is negative and 0 if the value is 0. */
+    template <typename T>
+    constexpr int signum(T const x) {
+        if constexpr (std::is_signed_v<T>) { return (T(0) < x) - (x < T(0)); }
+        else { return T(0) < x; }
+    }
+
+    /** Calculates the given integer power of the given number.
+     * Inspired by: https://prosepoetrycode.potterpcs.net/2015/07/a-simple-constexpr-power-function-c/ */
+    consteval double dpowi(double num, int pow) {
+        if (details::abs(pow) > std::numeric_limits<double>::max_exponent10) return 0.;
+        if (pow == 0) return 1.;
+        return (pow > 0) ? num * dpowi(num, pow-1) : dpowi(num, pow+1) / num;
+    }
+
+    /// Converts a given character array from a template literal operator into a double value.
+    template< char ...charArray >
+    consteval double doubleFromLiteral() {
+        constexpr std::size_t length = sizeof...(charArray);
+        constexpr char chars[length]{ charArray... };
+        static_assert(length > 0u && length <= std::numeric_limits<double>::digits10
+            && std::all_of(chars, chars + length, [](char c) { return isdigit(c) || c == '.' || c == 'e' || c == 'E' || c == '-'; }),
+            "Argument to literal must be a positive integer or double");
+        double number = 0., fScale = 1.;
+        int exp = 0, eSign = 0;
+        for (size_t i = 0u; i < length; ++i) {
+            if (chars[i] == '.') { fScale = 0.1; continue; }
+            else if (chars[i] == 'e' || chars[i] == 'E') {
+                if (chars[i + 1] == '-') { eSign = -1; ++i; }
+                else { eSign = 1; }
+                continue;
+            }
+            int d = chars[i] - '0';
+            if (eSign != 0) { exp = exp*10 + eSign*d; }
+            else if (fScale > 0.5) { number = number*10 + (double)d; }
+            else { number += (double)d*fScale; fScale /= 10; }
+        }
+        return number * dpowi(10., exp);
+    }
+
+    /// Converts a given character array into an unsigned integer value that can be used as constexpr.
+    template< char ...charArray >
+    consteval unsigned int intFromLiteral() {
+        constexpr std::size_t length = sizeof...(charArray);
+        constexpr char chars[length]{ charArray... };
+        static_assert(length > 0u && length <= std::numeric_limits<unsigned int>::digits10
+            && std::all_of(chars, chars + length, [](char c) { return isdigit(c); }),
+            "Argument to literal must be a positive integer");
+        unsigned int value = 0;
+        for (size_t i = 0u; i < length; ++i) {
+            unsigned int d = chars[i] - '0';
+            value = value*10 + d;
+        }
+        return value;
+    }
+
+    /// Converts a given character array into a integral_constant expression.
+    template< char ...charArray >
+    consteval auto operator ""_ic() {
+        constexpr unsigned int value = intFromLiteral<charArray...>();
+        return std::integral_constant<unsigned int, value>{};
+    }
 
     /** Determines the smallest type that can hold the the given real minimum and maximum values for
      * the given scaling f. The size of the resulting type will not be smaller than the smallest of
@@ -370,6 +377,17 @@ namespace details {
     template< std::integral T, scaling_t f >
     consteval double highestRealVMax() {
         return v2s<double, -f>( std::numeric_limits<T>::max() );
+    }
+
+    /// Functions defined for testing purposes.
+    namespace test {
+        /** Returns the minimum distance between doubles (epsilon) for numbers of the magnitude
+         * of the given value.
+         * \warning Expensive when used in production code! */
+        inline double floatpEpsilonFor(double value) noexcept {
+            double epsilon = nextafter(value, std::numeric_limits<double>::infinity()) - value;
+            return epsilon;
+        }
     }
 
     /** Concept of a Q-like type.

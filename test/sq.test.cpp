@@ -82,6 +82,18 @@ concept GtEqComparable = requires (Sq1 sq1, Sq2 sq2) {
     sq1 >= sq2;  // false if expression cannot be compiled
 };
 
+/// Checks whether a shift-left operation of Sq by the given number of bits is possible.
+template< class Sq, class B >
+concept LeftShiftable = requires (Sq sq, B bits) {
+    sq << bits;  // false if expression cannot be compiled
+};
+
+/// Checks whether a shift-right operation of Sq by the given number of bits is possible.
+template< class Sq, class B >
+concept RightShiftable = requires (Sq sq, B bits) {
+    sq >> bits;  // false if expression cannot be compiled
+};
+
 
 // ////////////////////////////////////////////////////////////////////////////////////////////// //
 // ------------------------------------ SQ Test: Construction ----------------------------------- //
@@ -1479,6 +1491,94 @@ TEST_F(SQTest_Comparison, sq_not_equal__various_types_different_value__returns_t
     ASSERT_TRUE(a != b);
     ASSERT_TRUE(a != c);
     // b != c does not work
+}
+
+
+// ////////////////////////////////////////////////////////////////////////////////////////////// //
+// ------------------------------------ SQ Test: Shift ------------------------------------------ //
+// ////////////////////////////////////////////////////////////////////////////////////////////// //
+
+class SQTest_Shift : public ::testing::Test {
+protected:
+    void SetUp() override
+    {
+    }
+    void TearDown() override
+    {
+    }
+};
+
+TEST_F(SQTest_Shift, sq_shiftL__some_value__shifted_value) {
+    using i32sq14_t = i32sq14<-1000., +1000.>;
+    auto value = i32sq14_t::fromReal<-555.55>;
+
+    EXPECT_TRUE(( LeftShiftable<i32sq14_t, decltype(7_ic)> ));
+    auto shifted = value << 7_ic;
+
+    using expected_t = i32sq14_t::clamp_t<-128000., +128000.>;
+    ASSERT_TRUE(( std::is_same_v<expected_t, decltype(shifted)> ));
+    ASSERT_NEAR(128*value.toReal(), shifted.toReal(), 128*i32sq14_t::resolution);
+}
+
+TEST_F(SQTest_Shift, sq_shiftL__some_value_shifted_by_0__same_value) {
+    using i32sq14_t = i32sq14<-10000., +10000.>;
+    auto value = i32sq14_t::fromReal<-5555.55>;
+
+    EXPECT_TRUE(( LeftShiftable<i32sq14_t, decltype(0_ic)> ));
+    auto shifted = value << 0_ic;
+
+    ASSERT_TRUE(( std::is_same_v<i32sq14_t, decltype(shifted)> ));
+    ASSERT_NEAR(value.toReal(), shifted.toReal(), i32sq14_t::resolution);
+}
+
+TEST_F(SQTest_Shift, sq_shiftL__invalid_shift__not_possible) {
+    ASSERT_FALSE(( LeftShiftable< i32sq14<-128., 127.>, std::integral_constant<int, -2> > ));
+    ASSERT_FALSE(( LeftShiftable< i32sq14<-128., 127.>, std::integral_constant<int, 4> > ));
+    EXPECT_TRUE(( LeftShiftable< i32sq14<-128., 127.>, decltype(10_ic) > ));
+    ASSERT_FALSE(( LeftShiftable< i32sq14<-128., 127.>, decltype(11_ic) > ));
+}
+
+TEST_F(SQTest_Shift, sq_shiftR__some_value__shifted_value) {
+    using i32sq14_t = i32sq14<-10000., +10000.>;
+    auto value = i32sq14_t::fromReal<-5555.55>;
+
+    EXPECT_TRUE(( RightShiftable<i32sq14_t, decltype(2_ic)> ));
+    auto shifted = value >> 2_ic;
+
+    using expected_t = i32sq14_t::clamp_t<-2500., +2500.>;
+    ASSERT_TRUE(( std::is_same_v<expected_t, decltype(shifted)> ));
+    ASSERT_NEAR(value.toReal()/4, shifted.toReal(), i32sq14_t::resolution);
+}
+
+TEST_F(SQTest_Shift, sq_shiftR__some_value_shifted_by_much__shifted_value_is_minus_one) {
+    using i32sq14_t = i32sq14<-10000., +10000.>;
+    auto value1 = i32sq14_t::fromReal<-5555.55>;
+    auto value2 = i32sq14_t::fromReal<+5555.55>;
+
+    EXPECT_TRUE(( RightShiftable<i32sq14_t, decltype(31_ic)> ));
+    auto shifted1 = value1 >> 31_ic;  //< smallest: -1 when source value is negative
+    auto shifted2 = value2 >> 31_ic;  //< smallest:  0 when source value is positive
+
+    ASSERT_NEAR(-i32sq14_t::resolution, shifted1.toReal(), 1e-10);  // -1 * 2^-14
+    ASSERT_NEAR(0.0, shifted2.toReal(), 1e-10);  // 0 * 2^-14
+}
+
+TEST_F(SQTest_Shift, sq_shiftR__some_value_shifted_by_0__same_value) {
+    using i32sq14_t = i32sq14<-10000., +10000.>;
+    auto value = i32sq14_t::fromReal<-5555.55>;
+
+    EXPECT_TRUE(( RightShiftable<i32sq14_t, decltype(0_ic)> ));
+    auto shifted = value >> 0_ic;
+
+    ASSERT_TRUE(( std::is_same_v<i32sq14_t, decltype(shifted)> ));
+    ASSERT_NEAR(value.toReal(), shifted.toReal(), i32sq14_t::resolution);
+}
+
+TEST_F(SQTest_Shift, sq_shiftR__invalid_shift__not_possible) {
+    ASSERT_FALSE(( RightShiftable< i32sq14<-1024., 1023.>, std::integral_constant<int, -2> > ));
+    ASSERT_FALSE(( RightShiftable< i32sq14<-1024., 1023.>, std::integral_constant<int, 4> > ));
+    EXPECT_TRUE(( RightShiftable< i32sq14<-1024., 1023.>, decltype(8_ic) > ));
+    EXPECT_TRUE(( RightShiftable< i32sq14<-1024., 1023.>, decltype(11_ic) > ));
 }
 
 

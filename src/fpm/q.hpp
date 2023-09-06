@@ -455,29 +455,33 @@ template< /* deduced: */ QType Q, SqType Sq > constexpr auto operator %(Sq const
 template< /* deduced: */ QType Q1, QType Q2 > constexpr auto operator %(Q1 const q1, Q2 const &q2) noexcept { return +q1 % +q2; }
 
 // Comparison operators
-template< /* deduced: */ QType Q, SqType Sq > constexpr bool operator <(Q const q, Sq const &sq) noexcept { return +q < sq; }
-template< /* deduced: */ QType Q, SqType Sq > constexpr bool operator <(Sq const sq, Q const &q) noexcept { return sq < +q; }
-template< /* deduced: */ QType Q1, QType Q2 > constexpr bool operator <(Q1 const q1, Q2 const &q2) noexcept { return +q1 < +q2; }
+template< /* deduced: */ QType Q, SqType Sq > constexpr bool operator <(Q const &q, Sq const &sq) noexcept { return +q < sq; }
+template< /* deduced: */ QType Q, SqType Sq > constexpr bool operator <(Sq const &sq, Q const &q) noexcept { return sq < +q; }
+template< /* deduced: */ QType Q1, QType Q2 > constexpr bool operator <(Q1 const &q1, Q2 const &q2) noexcept { return +q1 < +q2; }
 
-template< /* deduced: */ QType Q, SqType Sq > constexpr bool operator <=(Q const q, Sq const &sq) noexcept { return +q <= sq; }
-template< /* deduced: */ QType Q, SqType Sq > constexpr bool operator <=(Sq const sq, Q const &q) noexcept { return sq <= +q; }
-template< /* deduced: */ QType Q1, QType Q2 > constexpr bool operator <=(Q1 const q1, Q2 const &q2) noexcept { return +q1 <= +q2; }
+template< /* deduced: */ QType Q, SqType Sq > constexpr bool operator <=(Q const &q, Sq const &sq) noexcept { return +q <= sq; }
+template< /* deduced: */ QType Q, SqType Sq > constexpr bool operator <=(Sq const &sq, Q const &q) noexcept { return sq <= +q; }
+template< /* deduced: */ QType Q1, QType Q2 > constexpr bool operator <=(Q1 const &q1, Q2 const &q2) noexcept { return +q1 <= +q2; }
 
-template< /* deduced: */ QType Q, SqType Sq > constexpr bool operator >(Q const q, Sq const &sq) noexcept { return +q > sq; }
-template< /* deduced: */ QType Q, SqType Sq > constexpr bool operator >(Sq const sq, Q const &q) noexcept { return sq > +q; }
-template< /* deduced: */ QType Q1, QType Q2 > constexpr bool operator >(Q1 const q1, Q2 const &q2) noexcept { return +q1 > +q2; }
+template< /* deduced: */ QType Q, SqType Sq > constexpr bool operator >(Q const &q, Sq const &sq) noexcept { return +q > sq; }
+template< /* deduced: */ QType Q, SqType Sq > constexpr bool operator >(Sq const &sq, Q const &q) noexcept { return sq > +q; }
+template< /* deduced: */ QType Q1, QType Q2 > constexpr bool operator >(Q1 const &q1, Q2 const &q2) noexcept { return +q1 > +q2; }
 
-template< /* deduced: */ QType Q, SqType Sq > constexpr bool operator >=(Q const q, Sq const &sq) noexcept { return +q >= sq; }
-template< /* deduced: */ QType Q, SqType Sq > constexpr bool operator >=(Sq const sq, Q const &q) noexcept { return sq >= +q; }
-template< /* deduced: */ QType Q1, QType Q2 > constexpr bool operator >=(Q1 const q1, Q2 const &q2) noexcept { return +q1 >= +q2; }
+template< /* deduced: */ QType Q, SqType Sq > constexpr bool operator >=(Q const &q, Sq const &sq) noexcept { return +q >= sq; }
+template< /* deduced: */ QType Q, SqType Sq > constexpr bool operator >=(Sq const &sq, Q const &q) noexcept { return sq >= +q; }
+template< /* deduced: */ QType Q1, QType Q2 > constexpr bool operator >=(Q1 const &q1, Q2 const &q2) noexcept { return +q1 >= +q2; }
 
-template< /* deduced: */ QType Q, SqType Sq > constexpr bool operator ==(Q const q, Sq const &sq) noexcept { return +q == sq; }
-template< /* deduced: */ QType Q, SqType Sq > constexpr bool operator ==(Sq const sq, Q const &q) noexcept { return sq == +q; }
-template< /* deduced: */ QType Q1, QType Q2 > constexpr bool operator ==(Q1 const q1, Q2 const &q2) noexcept { return +q1 == +q2; }
+template< /* deduced: */ QType Q, SqType Sq > constexpr bool operator ==(Q const &q, Sq const &sq) noexcept { return +q == sq; }
+template< /* deduced: */ QType Q, SqType Sq > constexpr bool operator ==(Sq const &sq, Q const &q) noexcept { return sq == +q; }
+template< /* deduced: */ QType Q1, QType Q2 > constexpr bool operator ==(Q1 const &q1, Q2 const &q2) noexcept { return +q1 == +q2; }
 
-template< /* deduced: */ QType Q, SqType Sq > constexpr bool operator !=(Q const q, Sq const &sq) noexcept { return +q != sq; }
-template< /* deduced: */ QType Q, SqType Sq > constexpr bool operator !=(Sq const sq, Q const &q) noexcept { return sq != +q; }
-template< /* deduced: */ QType Q1, QType Q2 > constexpr bool operator !=(Q1 const q1, Q2 const &q2) noexcept { return +q1 != +q2; }
+template< /* deduced: */ QType Q, SqType Sq > constexpr bool operator !=(Q const &q, Sq const &sq) noexcept { return +q != sq; }
+template< /* deduced: */ QType Q, SqType Sq > constexpr bool operator !=(Sq const &sq, Q const &q) noexcept { return sq != +q; }
+template< /* deduced: */ QType Q1, QType Q2 > constexpr bool operator !=(Q1 const &q1, Q2 const &q2) noexcept { return +q1 != +q2; }
+
+// Shift operators
+template< /* deduced: */ QType Q, std::integral T, T v > constexpr bool operator <<(Q const &q, std::integral_constant<T, v> const b) noexcept { return +q << b; }
+template< /* deduced: */ QType Q, std::integral T, T v > constexpr bool operator >>(Q const &q, std::integral_constant<T, v> const b) noexcept { return +q >> b; }
 
 // Clamp
 template< /* deduced: */ QType Q1, QType Q2, QType Q3 > constexpr auto clamp(Q1 const &value, Q2 const &lo, Q3 const &hi) { return sq::clamp( +value, +lo, +hi ); }
@@ -498,14 +502,14 @@ template< double realLo, /* deduced: */ QType Q1 > constexpr auto clampLower(Q1 
 template< double realHi, /* deduced: */ QType Q1 > constexpr auto clampUpper(Q1 const &value) { return sq::clampUpper<realHi>( +value ); }
 
 // Min
-template< /* deduced: */ QType Q, SqType Sq > constexpr auto min(Q const q, Sq const &sq) noexcept { return sq::min(+q, sq); }
-template< /* deduced: */ QType Q, SqType Sq > constexpr auto min(Sq const sq, Q const &q) noexcept { return sq::min(sq, +q); }
-template< /* deduced: */ QType Q1, QType Q2 > constexpr auto min(Q1 const q1, Q2 const &q2) noexcept { return sq::min(+q1, +q2); }
+template< /* deduced: */ QType Q, SqType Sq > constexpr auto min(Q const &q, Sq const &sq) noexcept { return sq::min(+q, sq); }
+template< /* deduced: */ QType Q, SqType Sq > constexpr auto min(Sq const &sq, Q const &q) noexcept { return sq::min(sq, +q); }
+template< /* deduced: */ QType Q1, QType Q2 > constexpr auto min(Q1 const &q1, Q2 const &q2) noexcept { return sq::min(+q1, +q2); }
 
 // Max
-template< /* deduced: */ QType Q, SqType Sq > constexpr auto max(Q const q, Sq const &sq) noexcept { return sq::max(+q, sq); }
-template< /* deduced: */ QType Q, SqType Sq > constexpr auto max(Sq const sq, Q const &q) noexcept { return sq::max(sq, +q); }
-template< /* deduced: */ QType Q1, QType Q2 > constexpr auto max(Q1 const q1, Q2 const &q2) noexcept { return sq::max(+q1, +q2); }
+template< /* deduced: */ QType Q, SqType Sq > constexpr auto max(Q const &q, Sq const &sq) noexcept { return sq::max(+q, sq); }
+template< /* deduced: */ QType Q, SqType Sq > constexpr auto max(Sq const &sq, Q const &q) noexcept { return sq::max(sq, +q); }
+template< /* deduced: */ QType Q1, QType Q2 > constexpr auto max(Q1 const &q1, Q2 const &q2) noexcept { return sq::max(+q1, +q2); }
 
 ///\}
 
