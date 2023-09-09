@@ -21,6 +21,14 @@ protected:
     void TearDown() override
     {
     }
+
+    /** \returns the minimum distance between doubles (epsilon) for numbers of the magnitude
+     * of the given value.
+     * \warning Expensive when used in production code! */
+    inline double floatpEpsilonFor(double value) noexcept {
+        double epsilon = nextafter(value, std::numeric_limits<double>::infinity()) - value;
+        return epsilon;
+    }
 };
 
 TEST_F(InternalTest, abs__signed_positive__returns_unsigned_positive) {
@@ -48,42 +56,42 @@ TEST_F(InternalTest, doubleFromLiteral__int__returns_double) {
     auto result = detail::doubleFromLiteral<'1', '2', '3'>();
 
     constexpr double expectedResult = 123.;
-    ASSERT_NEAR(expectedResult, result, detail::test::floatpEpsilonFor(expectedResult));
+    ASSERT_NEAR(expectedResult, result, floatpEpsilonFor(expectedResult));
 }
 
 TEST_F(InternalTest, doubleFromLiteral__large_int__returns_double) {
     auto result = detail::doubleFromLiteral<'9', '2', '3', '4', '5', '6', '7', '8', '9', '0', '1', '2', '3', '4', '5'>();
 
     constexpr double expectedResult = 923456789012345.;
-    ASSERT_NEAR(expectedResult, result, detail::test::floatpEpsilonFor(expectedResult));
+    ASSERT_NEAR(expectedResult, result, floatpEpsilonFor(expectedResult));
 }
 
 TEST_F(InternalTest, doubleFromLiteral__zero__returns_double) {
     auto result = detail::doubleFromLiteral<'0'>();
 
     constexpr double expectedResult = 0.;
-    ASSERT_NEAR(expectedResult, result, detail::test::floatpEpsilonFor(expectedResult));
+    ASSERT_NEAR(expectedResult, result, floatpEpsilonFor(expectedResult));
 }
 
 TEST_F(InternalTest, doubleFromLiteral__double__returns_double) {
     auto result = detail::doubleFromLiteral<'1', '2', '.', '3', '4', '5', '6'>();
 
     constexpr double expectedResult = 12.3456;
-    ASSERT_NEAR(expectedResult, result, detail::test::floatpEpsilonFor(expectedResult));
+    ASSERT_NEAR(expectedResult, result, floatpEpsilonFor(expectedResult));
 }
 
 TEST_F(InternalTest, doubleFromLiteral__precise_double__returns_double) {
     auto result = detail::doubleFromLiteral<'1', '.', '2', '3', '4', '5', '6', '7', '8', '9', '0', '1', '2', '3', '4'>();
 
     constexpr double expectedResult = 1.2345678901234;
-    ASSERT_NEAR(expectedResult, result, detail::test::floatpEpsilonFor(expectedResult));
+    ASSERT_NEAR(expectedResult, result, floatpEpsilonFor(expectedResult));
 }
 
 TEST_F(InternalTest, doubleFromLiteral__double_with_exponent__returns_double) {
     auto resultS = detail::doubleFromLiteral<'1', '0', '0', '5', '.', '8', '9', '6', '7', 'e', '-', '2', '7'>();
 
     constexpr double expectedResult = 1005.8967e-27;
-    ASSERT_NEAR(expectedResult, resultS, detail::test::floatpEpsilonFor(expectedResult));
+    ASSERT_NEAR(expectedResult, resultS, floatpEpsilonFor(expectedResult));
 }
 
 TEST_F(InternalTest, doubleFromLiteral__smallest_and_largest_double_with_exponent__returns_double) {
@@ -413,12 +421,10 @@ TEST_F(V2STest, v2s__large_F__double_output) {
     auto resultN = v2s<double,MAX_F-std::numeric_limits<int16_t>::digits>(realValueMin);  // f: 53-15=38
     auto resultP = v2s<double,MAX_F-std::numeric_limits<int16_t>::digits>(realValueMax);
 
-    constexpr double expectedResultN = -9.007199254740992e15;
+    constexpr double expectedResultN = -9.007199254740992e15;  // epsilon is very close to 1.0 for this number
     constexpr double expectedResultP = +9.006924376834048e15;
-    EXPECT_NEAR(detail::test::floatpEpsilonFor(expectedResultN), 1.0, 1.0e-10);
-    EXPECT_NEAR(detail::test::floatpEpsilonFor(expectedResultP), 1.0, 1.0e-10);
-    ASSERT_NEAR(expectedResultN, resultN, detail::test::floatpEpsilonFor(expectedResultN));
-    ASSERT_NEAR(expectedResultP, resultP, detail::test::floatpEpsilonFor(expectedResultP));
+    ASSERT_NEAR(expectedResultN, resultN, 1.0);
+    ASSERT_NEAR(expectedResultP, resultP, 1.0);
 }
 
 

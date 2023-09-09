@@ -425,17 +425,6 @@ namespace detail {
         return static_cast<uint32_t>(a - 1u);
     }
 
-    /// Functions defined for testing purposes.
-    namespace test {
-        /** \returns the minimum distance between doubles (epsilon) for numbers of the magnitude
-         * of the given value.
-         * \warning Expensive when used in production code! */
-        inline double floatpEpsilonFor(double value) noexcept {
-            double epsilon = nextafter(value, std::numeric_limits<double>::infinity()) - value;
-            return epsilon;
-        }
-    }
-
     /** Concept of a Q-like type.
      * \warning Does not guarantee that T is actually of type Q. Only checks for the basic properties. */
     template< class T >
