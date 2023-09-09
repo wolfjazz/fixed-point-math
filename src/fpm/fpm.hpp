@@ -6,6 +6,7 @@
 #define FPM_FPM_HPP_
 
 #include <algorithm>
+#include <bit>
 #include <cassert>
 #include <cctype>
 #include <cmath>
@@ -198,15 +199,28 @@ constexpr TargetT v2s(ValueT value) noexcept { return v2sh<TargetT, to>(value); 
 
 
 // Internal implementations.
-namespace details {
+namespace detail {
 
-    // Some standard functions are redefined here for use in concepts, otherwise VSCode would squiggle
-    // the functions although the functions from std compile. :(
-    inline namespace {
+    // Some standard functions are redefined here for use in templates and concepts, otherwise VSCode
+    // would squiggle the functions although the functions from std compile. :(
+    inline namespace ide {
+
         /** \returns the absolute value of the given input value. */
         template< typename ValueT >
         consteval ValueT abs(ValueT const input) noexcept {
             return input >= 0 ? input : -input;
+        }
+
+        /** \returns the largest integer value not greater than the given input number, as double. */
+        consteval double floor(double number) {
+            int64_t i = static_cast<int64_t>(number);
+            return static_cast<double>(number < i ? i - 1. : i);
+        }
+
+        /** \returns the least integer value not less than the given input number, as double. */
+        consteval double ceil(double number) {
+            int64_t i = static_cast<int64_t>(number);
+            return static_cast<double>(number > i ? i + 1. : i);
         }
     }
 
@@ -283,7 +297,7 @@ namespace details {
     /** Calculates the given integer power of the given number.
      * Inspired by: https://prosepoetrycode.potterpcs.net/2015/07/a-simple-constexpr-power-function-c/ */
     consteval double dpowi(double num, int pow) {
-        if (details::abs(pow) > std::numeric_limits<double>::max_exponent10) return 0.;
+        if (detail::abs(pow) > std::numeric_limits<double>::max_exponent10) return 0.;
         if (pow == 0) return 1.;
         return (pow > 0) ? num * dpowi(num, pow-1) : dpowi(num, pow+1) / num;
     }
@@ -379,6 +393,32 @@ namespace details {
         return v2s<double, -f>( std::numeric_limits<T>::max() );
     }
 
+    /** Famous fast inverse square root algorithm (Quake III) adapted for double precision and the
+     * constant expression context. */
+    constexpr double rsqrt(double number) noexcept {
+        static_assert(std::numeric_limits<double>::is_iec559); // (enable only on IEEE 754)
+
+        // initial guess
+        double const y = std::bit_cast<double>(0x5fe6eb50c7b537a9 - (std::bit_cast<std::uint64_t>(number) >> 1));
+
+        // one iteration of Newton's method
+        return y * (1.5 - (number * 0.5 * y * y));
+    }
+
+    /** Calculates the square root of a given unsigned 32-bit integer, rounded down.
+     * Uses the integer square root binary search algorithm according to Hacker's Delight, 2nd ed. */
+    constexpr int32_t isqrt(uint32_t value) noexcept {
+        uint32_t x = value,
+                 b = (1u << (33u - std::countl_zero(x)) / 2u) - 1u,
+                 a = (b + 3u) / 2u;
+        do {
+            uint32_t m = (a + b) >> 1u;
+            if (m * m > x) { b = m - 1u; }
+            else { a = m + 1; }
+        } while (b >= a);
+        return a - 1u;
+    }
+
     /// Functions defined for testing purposes.
     namespace test {
         /** \returns the minimum distance between doubles (epsilon) for numbers of the magnitude
@@ -455,10 +495,10 @@ namespace details {
      * \note If this fails, none of the conditions listed above is fulfilled. Double-check! */
     template< typename from_t, scaling_t fFrom, typename to_t, scaling_t fTo >
     concept Scalable = (
-        ( sizeof(from_t) == sizeof(to_t) && details::abs(fTo - fFrom) <= std::numeric_limits<to_t>::digits )
+        ( sizeof(from_t) == sizeof(to_t) && detail::abs(fTo - fFrom) <= std::numeric_limits<to_t>::digits )
         || ( sizeof(from_t) != sizeof(to_t)
-            && details::abs(fTo - fFrom) <= details::abs(std::numeric_limits<to_t>::digits - std::numeric_limits<from_t>::digits) )
-        || ( std::is_same_v<from_t, to_t> && details::abs(fTo - fFrom) <= sizeof(to_t) * CHAR_BIT )
+            && detail::abs(fTo - fFrom) <= detail::abs(std::numeric_limits<to_t>::digits - std::numeric_limits<from_t>::digits) )
+        || ( std::is_same_v<from_t, to_t> && detail::abs(fTo - fFrom) <= sizeof(to_t) * CHAR_BIT )
     );
 
     /** Concept of similar Q or Sq types, i.e. they have the same base type and scaling. */
@@ -505,7 +545,7 @@ namespace details {
     concept ImplicitlyConvertible = (
         SqOrQType<From> && SqOrQType<To>
         && std::is_same_v<typename From::base_t, typename To::base_t>
-        && details::Scalable<typename From::base_t, From::f, typename To::base_t, To::f>
+        && Scalable<typename From::base_t, From::f, typename To::base_t, To::f>
         && ((QType<To> && !is_ovf_stricter_v<To::ovfBx, Ovf::noCheck>)
             || (To::realVMin <= From::realVMin && From::realVMax <= To::realVMax))
     );
@@ -516,7 +556,7 @@ namespace details {
     template< class From, class To >
     concept CastableWithoutChecks = (
         SqOrQType<From> && SqOrQType<To>
-        && details::Scalable<typename From::base_t, From::f, typename To::base_t, To::f>
+        && Scalable<typename From::base_t, From::f, typename To::base_t, To::f>
         && To::realVMin <= From::realVMin && From::realVMax <= To::realVMax
     );
 
@@ -561,31 +601,31 @@ namespace details {
     template< class SqV, class SqLo, class SqHi >
     concept Clampable = (
         SqType<SqV> && SqType<SqLo> && SqType<SqHi>
-        && details::ImplicitlyConvertible<SqLo, SqV> && details::ImplicitlyConvertible<SqHi, SqV>
+        && ImplicitlyConvertible<SqLo, SqV> && ImplicitlyConvertible<SqHi, SqV>
         && SqLo::realVMin <= SqHi::realVMin && SqLo::realVMax <= SqHi::realVMax
     );
 
     /** Concept that defines the requirements for a valid Q type. */
     template< typename BaseT, scaling_t f, double realVMin, double realVMax, Overflow ovfBx >
     concept QRequirements = (
-        details::ValidBaseType<BaseT>
-        && details::ValidScaling<BaseT, f>
-        && details::RealLimitsInRangeOfBaseType<BaseT, f, realVMin, realVMax>
+        ValidBaseType<BaseT>
+        && ValidScaling<BaseT, f>
+        && RealLimitsInRangeOfBaseType<BaseT, f, realVMin, realVMax>
     );
 
     /** Concept that defines the requirements for a valid Sq type. */
     template< typename BaseT, scaling_t f, double realVMin, double realVMax >
     concept SqRequirements = (
-        details::ValidBaseType<BaseT>
-        && details::ValidScaling<BaseT, f>
-        && details::RealLimitsInRangeOfBaseType<BaseT, f, realVMin, realVMax>
+        ValidBaseType<BaseT>
+        && ValidScaling<BaseT, f>
+        && RealLimitsInRangeOfBaseType<BaseT, f, realVMin, realVMax>
     );
 
-}  // end of details
+}  // end of detail
 
 
 /** Static assertion of the base type of the given sq (or q) type. */
-template< std::integral TExpected, /* deduced: */ details::SqOrQType QSq >
+template< std::integral TExpected, /* deduced: */ detail::SqOrQType QSq >
 constexpr void static_assert_basetype(QSq) {
     static_assert(std::is_same_v<TExpected, typename QSq::base_t>,
         "The given q or sq type does not comply with the expected base type.");
@@ -593,7 +633,7 @@ constexpr void static_assert_basetype(QSq) {
 
 
 /** Static assertion of the scaling of the given sq (or q) type. */
-template< scaling_t expectedF, /* deduced: */ details::SqOrQType QSq >
+template< scaling_t expectedF, /* deduced: */ detail::SqOrQType QSq >
 constexpr void static_assert_scaling(QSq) {
     static_assert(QSq::f == expectedF,
         "The given q or sq type does not comply with the expected scaling.");
@@ -601,7 +641,7 @@ constexpr void static_assert_scaling(QSq) {
 
 
 /** Static assertion of the real value range of the given sq (or q) type. */
-template< double expectedMin, double expectedMax, /* deduced: */ details::SqOrQType QSq >
+template< double expectedMin, double expectedMax, /* deduced: */ detail::SqOrQType QSq >
 constexpr void static_assert_range(QSq) {
     static_assert(QSq::realVMin == expectedMin && QSq::realVMax == expectedMax,
         "The given q or sq type does not comply with the expected value range.");
@@ -610,7 +650,7 @@ constexpr void static_assert_range(QSq) {
 
 /** Static assertion of the core properties of the given sq (or q) type. */
 template< std::integral TExpected, scaling_t expectedF, double expectedMin, double expectedMax,
-          /* deduced: */ details::SqOrQType QSq >
+          /* deduced: */ detail::SqOrQType QSq >
 constexpr void static_assert_properties(QSq) {
     static_assert(
         std::is_same_v<TExpected, typename QSq::base_t>

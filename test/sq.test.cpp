@@ -1733,21 +1733,21 @@ TEST_F(SQTest_Clamp, sq_clamp__some_value_smaller_than_narrower_range_with_diffe
 
 TEST_F(SQTest_Clamp, sq_clamp__some_cases_not_clampable__does_not_compile) {
     // different base types
-    ASSERT_FALSE(( fpm::details::Clampable< i16sq10<>, u16sq10<>, u16sq10<> > ));
-    ASSERT_FALSE(( fpm::details::Clampable< u16sq10<>, i16sq10<>, u16sq10<> > ));
-    ASSERT_FALSE(( fpm::details::Clampable< u16sq10<>, u16sq10<>, i16sq10<> > ));
+    ASSERT_FALSE(( fpm::detail::Clampable< i16sq10<>, u16sq10<>, u16sq10<> > ));
+    ASSERT_FALSE(( fpm::detail::Clampable< u16sq10<>, i16sq10<>, u16sq10<> > ));
+    ASSERT_FALSE(( fpm::detail::Clampable< u16sq10<>, u16sq10<>, i16sq10<> > ));
 
     // lo type is not implicitly convertible to value type (lo has lower minimum)
-    ASSERT_FALSE(( fpm::details::Clampable< i16sq8<-10., 10.>, i16sq8<-12., 10.>, i16sq8<-5., 10.> > ));
+    ASSERT_FALSE(( fpm::detail::Clampable< i16sq8<-10., 10.>, i16sq8<-12., 10.>, i16sq8<-5., 10.> > ));
 
     // hi type is not implicitly convertible to value type (hi has higher maximum)
-    ASSERT_FALSE(( fpm::details::Clampable< i16sq8<-10., 10.>, i16sq8<-5., 10.>, i16sq8<0., 15.> > ));
+    ASSERT_FALSE(( fpm::detail::Clampable< i16sq8<-10., 10.>, i16sq8<-5., 10.>, i16sq8<0., 15.> > ));
 
     // maximum of lo is larger than maximum of hi
-    ASSERT_FALSE(( fpm::details::Clampable< i16sq8<-10., 10.>, i16sq8<-5., 20.>, i16sq8<0., 15.> > ));
+    ASSERT_FALSE(( fpm::detail::Clampable< i16sq8<-10., 10.>, i16sq8<-5., 20.>, i16sq8<0., 15.> > ));
 
     // minimum of hi is smaller than minimum of lo
-    ASSERT_FALSE(( fpm::details::Clampable< i16sq8<-10., 10.>, i16sq8<-5., -2.>, i16sq8<-6., 8.> > ));
+    ASSERT_FALSE(( fpm::detail::Clampable< i16sq8<-10., 10.>, i16sq8<-5., -2.>, i16sq8<-6., 8.> > ));
 }
 
 TEST_F(SQTest_Clamp, sq_clampLower__some_value_in_same_range__same_value_same_type) {

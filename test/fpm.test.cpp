@@ -24,71 +24,71 @@ protected:
 };
 
 TEST_F(InternalTest, abs__signed_positive__returns_unsigned_positive) {
-    auto result = details::abs((int)+36);
+    auto result = detail::abs((int)+36);
 
     ASSERT_TRUE((std::is_same_v<int, decltype(result)>));
     ASSERT_EQ(+36u, result);
 }
 
 TEST_F(InternalTest, abs__signed_negative__returns_unsigned_positive) {
-    auto result = details::abs((int)-36);
+    auto result = detail::abs((int)-36);
 
     ASSERT_TRUE((std::is_same_v<int, decltype(result)>));
     ASSERT_EQ(+36u, result);
 }
 
 TEST_F(InternalTest, abs__zero__returns_zero) {
-    auto result = details::abs((int)0);
+    auto result = detail::abs((int)0);
 
     ASSERT_TRUE((std::is_same_v<int, decltype(result)>));
     ASSERT_EQ(0u, result);
 }
 
 TEST_F(InternalTest, doubleFromLiteral__int__returns_double) {
-    auto result = details::doubleFromLiteral<'1', '2', '3'>();
+    auto result = detail::doubleFromLiteral<'1', '2', '3'>();
 
     constexpr double expectedResult = 123.;
-    ASSERT_NEAR(expectedResult, result, details::test::floatpEpsilonFor(expectedResult));
+    ASSERT_NEAR(expectedResult, result, detail::test::floatpEpsilonFor(expectedResult));
 }
 
 TEST_F(InternalTest, doubleFromLiteral__large_int__returns_double) {
-    auto result = details::doubleFromLiteral<'9', '2', '3', '4', '5', '6', '7', '8', '9', '0', '1', '2', '3', '4', '5'>();
+    auto result = detail::doubleFromLiteral<'9', '2', '3', '4', '5', '6', '7', '8', '9', '0', '1', '2', '3', '4', '5'>();
 
     constexpr double expectedResult = 923456789012345.;
-    ASSERT_NEAR(expectedResult, result, details::test::floatpEpsilonFor(expectedResult));
+    ASSERT_NEAR(expectedResult, result, detail::test::floatpEpsilonFor(expectedResult));
 }
 
 TEST_F(InternalTest, doubleFromLiteral__zero__returns_double) {
-    auto result = details::doubleFromLiteral<'0'>();
+    auto result = detail::doubleFromLiteral<'0'>();
 
     constexpr double expectedResult = 0.;
-    ASSERT_NEAR(expectedResult, result, details::test::floatpEpsilonFor(expectedResult));
+    ASSERT_NEAR(expectedResult, result, detail::test::floatpEpsilonFor(expectedResult));
 }
 
 TEST_F(InternalTest, doubleFromLiteral__double__returns_double) {
-    auto result = details::doubleFromLiteral<'1', '2', '.', '3', '4', '5', '6'>();
+    auto result = detail::doubleFromLiteral<'1', '2', '.', '3', '4', '5', '6'>();
 
     constexpr double expectedResult = 12.3456;
-    ASSERT_NEAR(expectedResult, result, details::test::floatpEpsilonFor(expectedResult));
+    ASSERT_NEAR(expectedResult, result, detail::test::floatpEpsilonFor(expectedResult));
 }
 
 TEST_F(InternalTest, doubleFromLiteral__precise_double__returns_double) {
-    auto result = details::doubleFromLiteral<'1', '.', '2', '3', '4', '5', '6', '7', '8', '9', '0', '1', '2', '3', '4'>();
+    auto result = detail::doubleFromLiteral<'1', '.', '2', '3', '4', '5', '6', '7', '8', '9', '0', '1', '2', '3', '4'>();
 
     constexpr double expectedResult = 1.2345678901234;
-    ASSERT_NEAR(expectedResult, result, details::test::floatpEpsilonFor(expectedResult));
+    ASSERT_NEAR(expectedResult, result, detail::test::floatpEpsilonFor(expectedResult));
 }
 
 TEST_F(InternalTest, doubleFromLiteral__double_with_exponent__returns_double) {
-    auto resultS = details::doubleFromLiteral<'1', '0', '0', '5', '.', '8', '9', '6', '7', 'e', '-', '2', '7'>();
+    auto resultS = detail::doubleFromLiteral<'1', '0', '0', '5', '.', '8', '9', '6', '7', 'e', '-', '2', '7'>();
 
     constexpr double expectedResult = 1005.8967e-27;
-    ASSERT_NEAR(expectedResult, resultS, details::test::floatpEpsilonFor(expectedResult));
+    ASSERT_NEAR(expectedResult, resultS, detail::test::floatpEpsilonFor(expectedResult));
 }
 
 TEST_F(InternalTest, doubleFromLiteral__smallest_and_largest_double_with_exponent__returns_double) {
-    auto resultS = details::doubleFromLiteral<'2', '.', '2', '2', '5', '0', '7', 'e', '-', '3', '0', '8'>();
-    auto resultL = details::doubleFromLiteral<'1', '.', '7', '9', '7', '6', '9', 'e', '3', '0', '8'>();
+    auto resultS = detail::doubleFromLiteral<'2', '.', '2', '2', '5', '0', '7', 'e', '-', '3', '0', '8'>();
+    auto resultL = detail::doubleFromLiteral<'1', '.', '7', '9', '7', '6', '9', 'e', '3', '0', '8'>();
 
     ASSERT_NEAR(2.22507e-308, resultS, 5e-323L);
     ASSERT_NEAR(1.79769e308, resultL, 4e292L);
@@ -415,10 +415,10 @@ TEST_F(V2STest, v2s__large_F__double_output) {
 
     constexpr double expectedResultN = -9.007199254740992e15;
     constexpr double expectedResultP = +9.006924376834048e15;
-    EXPECT_NEAR(details::test::floatpEpsilonFor(expectedResultN), 1.0, 1.0e-10);
-    EXPECT_NEAR(details::test::floatpEpsilonFor(expectedResultP), 1.0, 1.0e-10);
-    ASSERT_NEAR(expectedResultN, resultN, details::test::floatpEpsilonFor(expectedResultN));
-    ASSERT_NEAR(expectedResultP, resultP, details::test::floatpEpsilonFor(expectedResultP));
+    EXPECT_NEAR(detail::test::floatpEpsilonFor(expectedResultN), 1.0, 1.0e-10);
+    EXPECT_NEAR(detail::test::floatpEpsilonFor(expectedResultP), 1.0, 1.0e-10);
+    ASSERT_NEAR(expectedResultN, resultN, detail::test::floatpEpsilonFor(expectedResultN));
+    ASSERT_NEAR(expectedResultP, resultP, detail::test::floatpEpsilonFor(expectedResultP));
 }
 
 
