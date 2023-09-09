@@ -46,6 +46,18 @@ concept RemainderDividable = requires (Sq1 sq1, Sq2 sq2) {
     sq1 % sq2;  // false if expression cannot be compiled
 };
 
+/// Checks whether Sq can be squared.
+template< class Sq >
+concept Squareable = requires (Sq sq) {
+    sqr(sq);  // false if expression cannot be compiled
+};
+
+/// Checks whether the square root of Sq can be taken.
+template< class Sq >
+concept SquareRootable = requires (Sq sq) {
+    sqrt(sq);  // false if expression cannot be compiled
+};
+
 /// Checks whether a lt comparison between Sq1 and Sq2 is possible.
 template< class Sq1, class Sq2 >
 concept LtComparable = requires (Sq1 sq1, Sq2 sq2) {
@@ -1579,6 +1591,132 @@ TEST_F(SQTest_Shift, sq_shiftR__invalid_shift__not_possible) {
     ASSERT_FALSE(( RightShiftable< i32sq14<-1024., 1023.>, std::integral_constant<int, 4> > ));
     EXPECT_TRUE(( RightShiftable< i32sq14<-1024., 1023.>, decltype(8_ic) > ));
     EXPECT_TRUE(( RightShiftable< i32sq14<-1024., 1023.>, decltype(11_ic) > ));
+}
+
+
+// ////////////////////////////////////////////////////////////////////////////////////////////// //
+// ------------------------------------ SQ Test: Square ----------------------------------------- //
+// ////////////////////////////////////////////////////////////////////////////////////////////// //
+
+class SQTest_Square : public ::testing::Test {
+protected:
+    void SetUp() override
+    {
+    }
+    void TearDown() override
+    {
+    }
+};
+
+TEST_F(SQTest_Square, sq_sqr__positive_value__squared_value) {
+    using i32sq12_t = i32sq12<-100., +60.>;
+    auto value = i32sq12_t::fromReal<23.4>;
+
+    EXPECT_TRUE(( Squareable<i32sq12_t> ));
+    auto squared = sqr(value);
+
+    using expected_t = i32sq12_t::clamp_t<0., 10000.>;
+    ASSERT_TRUE(( std::is_same_v<expected_t, decltype(squared)> ));
+    ASSERT_NEAR(23.4*23.4, squared.toReal(), 45*i32sq12_t::resolution);
+}
+
+TEST_F(SQTest_Square, sq_sqr__positive_value_smaller_type_with_positive_range__squared_value_i32) {
+    using i16sq10_t = i16sq10<6., +25.>;
+    auto value = i16sq10_t::fromReal<23.4>;
+
+    EXPECT_TRUE(( Squareable<i16sq10_t> ));
+    auto squared = sqr(value);
+
+    using expected_t = i32sq10<36., 625.>;
+    ASSERT_TRUE(( std::is_same_v<expected_t, decltype(squared)> ));
+    ASSERT_NEAR(23.4*23.4, squared.toReal(), 45*i16sq10_t::resolution);
+}
+
+TEST_F(SQTest_Square, sq_sqr__negative_value__squared_value) {
+    using i32sq12_t = i32sq12<-50., +100.>;
+    auto value = i32sq12_t::fromReal<-45.999>;
+
+    EXPECT_TRUE(( Squareable<i32sq12_t> ));
+    auto squared = sqr(value);
+
+    using expected_t = i32sq12_t::clamp_t<0., 10000.>;
+    ASSERT_TRUE(( std::is_same_v<expected_t, decltype(squared)> ));
+    ASSERT_NEAR(45.999*45.999, squared.toReal(), 90*i32sq12_t::resolution);
+}
+
+TEST_F(SQTest_Square, sq_sqr__negative_value_smaller_type_with_negative_range__squared_value_i32) {
+    using i16sq10_t = i16sq10<-25., -6.>;
+    auto value = i16sq10_t::fromReal<-18.9>;
+
+    EXPECT_TRUE(( Squareable<i16sq10_t> ));
+    auto squared = sqr(value);
+
+    using expected_t = i32sq10<36., 625.>;
+    ASSERT_TRUE(( std::is_same_v<expected_t, decltype(squared)> ));
+    ASSERT_NEAR(18.9*18.9, squared.toReal(), 38*i16sq10_t::resolution);
+}
+
+TEST_F(SQTest_Square, sq_sqr__zero__zero) {
+    using i32sq12_t = i32sq12<-50., +100.>;
+    auto value1 = i32sq12_t::fromReal<-0.>;
+    auto value2 = i32sq12_t::fromReal<+0.>;
+
+    EXPECT_TRUE(( Squareable<i32sq12_t> ));
+    auto squared1 = sqr(value1);
+    auto squared2 = sqr(value2);
+
+    using expected_t = i32sq12_t::clamp_t<0., 10000.>;
+    ASSERT_TRUE(( std::is_same_v<expected_t, decltype(squared1)> ));
+    ASSERT_TRUE(( std::is_same_v<expected_t, decltype(squared2)> ));
+    ASSERT_NEAR(0., squared1.toReal(), i32sq12_t::resolution);
+    ASSERT_NEAR(0., squared2.toReal(), i32sq12_t::resolution);
+}
+
+TEST_F(SQTest_Square, sq_sqr__various_types__squareable_or_not) {
+    ASSERT_TRUE(( Squareable< i32sq12<-50., -0.> > ));
+    ASSERT_TRUE(( Squareable< i32sq12<-0., +0.> > ));
+    ASSERT_TRUE(( Squareable< i32sq12<+0., +66.> > ));
+    ASSERT_FALSE(( Squareable< i32sq12<+0., +725.> > ));  // 725*725 exceeds 2^19
+}
+
+TEST_F(SQTest_Square, sq_sqrt__some_positive_value__root_taken) {
+    using u32sq12_t = i32sq12<0., +1000.>;
+    auto value = u32sq12_t::fromReal<900.>;
+
+    EXPECT_TRUE(( SquareRootable<u32sq12_t> ));
+    auto root = sqrt(value);
+
+    using expected_t = u32sq12_t::clamp_t<0., 32.>;
+    ASSERT_TRUE(( std::is_same_v<expected_t, decltype(root)> ));
+    ASSERT_NEAR(30., root.toReal(), u32sq12_t::resolution);
+}
+
+TEST_F(SQTest_Square, sq_sqrt__zero_value__root_zero) {
+    using i32sq12_t = i32sq12<-1000., +100.>;
+    auto value1 = i32sq12_t::fromReal<-0.>;
+    auto value2 = i32sq12_t::fromReal<+0.>;
+
+    EXPECT_TRUE(( SquareRootable<i32sq12_t> ));
+    auto root1 = sqrt(value1);
+    auto root2 = sqrt(value2);
+
+    using expected_t = i32sq12_t::clamp_t<0., 11.>;
+    ASSERT_TRUE(( std::is_same_v<expected_t, decltype(root1)> ));
+    ASSERT_TRUE(( std::is_same_v<expected_t, decltype(root2)> ));
+    ASSERT_NEAR(0., root1.toReal(), i32sq12_t::resolution);
+    ASSERT_NEAR(0., root2.toReal(), i32sq12_t::resolution);
+}
+
+TEST_F(SQTest_Square, sq_sqrt__some_negative_value__root_zero) {
+    using i32sq12_t = i32sq12<-1000., -0.>;
+    auto value = i32sq12_t::fromReal<-144.>;
+
+    EXPECT_TRUE(( SquareRootable<i32sq12_t> ));
+    auto root = sqrt(value);
+
+    using expected_t = i32sq12_t::clamp_t<0., 0.>;
+    ASSERT_TRUE(( std::is_same_v<expected_t, decltype(root)> ));
+    ASSERT_NEAR(0., root.toReal(), i32sq12_t::resolution);
 }
 
 

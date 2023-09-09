@@ -201,9 +201,9 @@ constexpr TargetT v2s(ValueT value) noexcept { return v2sh<TargetT, to>(value); 
 // Internal implementations.
 namespace detail {
 
-    // Some standard functions are redefined here for use in templates and concepts, otherwise VSCode
-    // would squiggle the functions although the functions from std compile. :(
-    inline namespace ide {
+    // Some standard functions are redefined here for compile-time use in templates and concepts,
+    // when they are not yet defined constexpr/consteval in C++20.
+    inline namespace lib {
 
         /** \returns the absolute value of the given input value. */
         template< typename ValueT >
@@ -221,6 +221,24 @@ namespace detail {
         consteval double ceil(double number) {
             int64_t i = static_cast<int64_t>(number);
             return static_cast<double>(number > i ? i + 1. : i);
+        }
+
+        /** Famous fast inverse square root algorithm (Quake III) adapted for double precision and
+         * constant expression context. */
+        constexpr double rsqrt(double number) noexcept {
+            static_assert(std::numeric_limits<double>::is_iec559); // (enable only on IEEE 754)
+
+            // initial guess with magic number (see Wikipedia for details)
+            double const y = std::bit_cast<double>(0x5fe6eb50c7b537a9 - (std::bit_cast<std::uint64_t>(number) >> 1));
+
+            // one iteration of Newton's method
+            return y * (1.5 - (number * 0.5 * y * y));
+        }
+
+        /** \returns the approximated square root of the given double. If the number is negative,
+         * 0 is returned. */
+        constexpr double sqrt(double number) {
+            return number <= 0. ? 0. : 1. / detail::rsqrt(number);
         }
     }
 
@@ -393,30 +411,18 @@ namespace detail {
         return v2s<double, -f>( std::numeric_limits<T>::max() );
     }
 
-    /** Famous fast inverse square root algorithm (Quake III) adapted for double precision and the
-     * constant expression context. */
-    constexpr double rsqrt(double number) noexcept {
-        static_assert(std::numeric_limits<double>::is_iec559); // (enable only on IEEE 754)
-
-        // initial guess
-        double const y = std::bit_cast<double>(0x5fe6eb50c7b537a9 - (std::bit_cast<std::uint64_t>(number) >> 1));
-
-        // one iteration of Newton's method
-        return y * (1.5 - (number * 0.5 * y * y));
-    }
-
-    /** Calculates the square root of a given unsigned 32-bit integer, rounded down.
-     * Uses the integer square root binary search algorithm according to Hacker's Delight, 2nd ed. */
-    constexpr int32_t isqrt(uint32_t value) noexcept {
-        uint32_t x = value,
-                 b = (1u << (33u - std::countl_zero(x)) / 2u) - 1u,
+    /** Calculates the square root of a given unsigned 64-bit integer, rounded down.
+     * Uses a integer square root binary search algorithm based on Hacker's Delight, 2nd ed. */
+    constexpr uint32_t isqrt(uint64_t value) noexcept {
+        uint64_t x = value,
+                 b = (1u << (65u - std::countl_zero(x)) / 2u) - 1u,
                  a = (b + 3u) / 2u;
         do {
-            uint32_t m = (a + b) >> 1u;
-            if (m * m > x) { b = m - 1u; }
-            else { a = m + 1; }
-        } while (b >= a);
-        return a - 1u;
+            uint64_t m = (a + b) >> 1u;     // start between a and b, near center
+            if (m * m > x) { b = m - 1u; }  // if m*m is larger than x, increase b
+            else { a = m + 1; }             // else increase a
+        } while (b >= a);                   // continue until a > b, then root is found
+        return static_cast<uint32_t>(a - 1u);
     }
 
     /// Functions defined for testing purposes.

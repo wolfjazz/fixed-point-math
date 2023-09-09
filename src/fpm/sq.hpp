@@ -420,6 +420,52 @@ public:
         return SqR( lhs.value >> v );
     }
 
+    /// \returns the squared value, wrapped into a new Sq type with at least 32 bits base type and
+    /// squared limits. The base type of the resulting value is the common type of int32 and the
+    /// base type of the given value.
+    /// \note The error propagation is similar to that of the multiplication operator: When a number
+    /// x is multiplied with itself n times, the maximum real error is of order O( (n+1)*x^n * 2^(-f) ).
+    /// For the square function (n=1) this gives 2x * 2^(-f) at most.
+    template< /* deduced: */
+        typename BaseTR = std::common_type_t<int32_t, base_t>,
+        double realVMinR = (std::is_signed_v<base_t> && vMin < 0 && vMax > 0)
+            ? 0.0  // use 0 as new minimum if signed input type has a range of negative and positive values
+            : std::min(realVMin*realVMin, realVMax*realVMax),
+        double realVMaxR = std::max(realVMin*realVMin, realVMax*realVMax) >
+    requires detail::RealLimitsInRangeOfBaseType<BaseTR, f, realVMinR, realVMaxR>
+    friend constexpr
+    auto sqr(Sq const &value) noexcept {
+        using SqR = Sq<BaseTR, f, realVMinR, realVMaxR>;
+        using interm_v_t = interm_t<BaseTR>;
+
+        // x^2 <=> [ (x*2^f)*(x*2^f) / 2^f ] = x*x*2^f
+        auto valueIntm = static_cast<interm_v_t>(value.value);
+        return SqR( static_cast<BaseTR>( valueIntm*valueIntm / v2s<interm_v_t, f>(1) ) );
+    }
+
+    /// \returns the approximated square root of the given value, wrapped into a new Sq type
+    /// with the square roots of the limits. Returns 0 if the given value is negative.
+    /// \warning This uses an approximation and does not work well for very small and very large
+    /// numbers. If you are dealing with such numbers, consider using a factor to scale the numbers
+    /// to a magnitude that works well for this function.
+    template< /* deduced: */
+        double realVMinR = detail::floor( detail::sqrt(realVMin) ),  // round limits to be more tolerant for approximation
+        double realVMaxR = detail::ceil( detail::sqrt(realVMax) ) >
+    requires ( sizeof(base_t) <= sizeof(uint32_t)
+               && detail::RealLimitsInRangeOfBaseType<base_t, f, realVMinR, realVMaxR> )
+    friend constexpr
+    auto sqrt(Sq const &value) noexcept {
+        using SqR = typename Sq::clamp_t<realVMinR, realVMaxR>;
+        using interm_v_t = interm_t<base_t>;
+
+        // negative value has imaginary root, real part is 0
+        base_t y = value.value <= 0
+            ? 0
+            // take root of corrected value; result can be cast to base_t without truncation
+            : static_cast<base_t>( detail::isqrt( static_cast<interm_v_t>(value.value) * v2s<interm_v_t, f>(1) ) );
+        return SqR( static_cast<base_t>(y) );
+    }
+
     /// Reveals the integer value stored in memory.
     constexpr base_t reveal() const noexcept {
         return value;
