@@ -434,7 +434,7 @@ public:
         double realVMaxR = std::max(realVMin*realVMin, realVMax*realVMax) >
     requires detail::RealLimitsInRangeOfBaseType<BaseTR, f, realVMinR, realVMaxR>
     friend constexpr
-    auto sqr(Sq const &value) noexcept {
+    auto square(Sq const &value) noexcept {
         using SqR = Sq<BaseTR, f, realVMinR, realVMaxR>;
         using interm_v_t = interm_t<BaseTR>;
 
@@ -443,11 +443,9 @@ public:
         return SqR( static_cast<BaseTR>( valueIntm*valueIntm / v2s<interm_v_t, f>(1) ) );
     }
 
-    /// \returns the approximated square root of the given value, wrapped into a new Sq type
-    /// with the square roots of the limits. Returns 0 if the given value is negative.
-    /// \warning This uses an approximation and does not work well for very small and very large
-    /// numbers. If you are dealing with such numbers, consider using a factor to scale the numbers
-    /// to a magnitude that works well for this function.
+    /// \returns the computed square root of the given value, wrapped into a new Sq type with the
+    /// square roots of the limits. Returns 0 if the given value is negative.
+    /// \note A binary search algorithm is used to calculate the square root in logarithmic time.
     template< /* deduced: */
         double realVMinR = detail::floor( detail::sqrt(realVMin) ),  // round limits to be more tolerant for approximation
         double realVMaxR = detail::ceil( detail::sqrt(realVMax) ) >

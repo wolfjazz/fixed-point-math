@@ -37,11 +37,11 @@ In the end, one just wants to perform calculations within a predefined value ran
 - abs, clamp, clampLower, clampUpper, min, max (constexpr impl. for both compile-time and runtime)
 - some sophisticated operators like pow, sqr, sqrt -> integral powers and roots
   - pow: &ensp; x<sup>y</sup> = [ (x\*2<sup>f</sup>)<sup>y</sup> \* 2<sup>f - f\*y</sup> ]<sub>f</sub> &emsp; x: real, y: int, f: int &emsp; <-- std::pow requires double!
-    - sqr: &ensp; x<sup>2</sup> = [ (x\*2<sup>f</sup>)\*(x\*2<sup>f</sup>) / 2<sup>f</sup> ]<sub>f</sub> &emsp; <-- this works!
-    - cub: &ensp; x<sup>3</sup> = [ (x\*2<sup>f</sup>)\*(x\*2<sup>f</sup>)/2<sup>f</sup>\*(x\*2<sup>f</sup>)/2<sup>f</sup> ]<sub>f</sub> &emsp; <-- this works!
+    - square: &ensp; x<sup>2</sup> = [ (x\*2<sup>f</sup>)\*(x\*2<sup>f</sup>) / 2<sup>f</sup> ]<sub>f</sub> &emsp; <-- this works!
+    - cube: &ensp; x<sup>3</sup> = [ (x\*2<sup>f</sup>)\*(x\*2<sup>f</sup>)/2<sup>f</sup>\*(x\*2<sup>f</sup>)/2<sup>f</sup> ]<sub>f</sub> &emsp; <-- this works!
   - root: &ensp; x<sup>1/y</sup> = [ (x\*2<sup>f</sup>)<sup>1/y</sup> \* 2<sup>f - f/y</sup> ]<sub>f</sub> &emsp; <-- no generic root function in std library!
-    - sqrt: &ensp; x<sup>1/2</sup> = [ (x\*2<sup>f</sup>\*2<sup>f</sup>)<sup>1/2</sup> ]<sub>f</sub> &emsp; <-- std::sqrt requires double! use some approximation?
-    - cbrt: &ensp; x<sup>1/3</sup> = [ (x\*2<sup>f</sup>\*2<sup>f</sup>\*2<sup>f</sup>)<sup>1/3</sup> ]<sub>f</sub> &emsp; <-- std::cbrt requires double! use some approximation?
+    - sqrt: &ensp; x<sup>1/2</sup> = [ (x\*2<sup>f</sup>\*2<sup>f</sup>)<sup>1/2</sup> ]<sub>f</sub> &emsp; <-- std::sqrt requires double! binary search calculation is used instead
+    - cbrt: &ensp; x<sup>1/3</sup> = [ (x\*2<sup>f</sup>\*2<sup>f</sup>\*2<sup>f</sup>)<sup>1/3</sup> ]<sub>f</sub> &emsp; <-- std::cbrt requires double! hardware algorithm is used instead
 
 ### Further Ideas
 
