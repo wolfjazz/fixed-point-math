@@ -464,6 +464,30 @@ public:
         return SqR( static_cast<base_t>(y) );
     }
 
+    /// \returns the cubed value, wrapped into a new Sq type with at least 32 bits base type and
+    /// cubed limits. The base type of the resulting value is the common type of int32 and the
+    /// base type of the given value.
+    /// \note The error propagation is similar to that of the multiplication operator: When a number
+    /// x is multiplied with itself n times, the maximum real error is of order O( (n+1)*x^n * 2^(-f) ).
+    /// For the cube function (n=2) this gives 3x^2 * 2^(-f) at most.
+    template< /* deduced: */
+        typename BaseTR = std::common_type_t<int32_t, base_t>,
+        double l1 = realVMin*realVMin*realVMin, double l2 = realVMin*realVMin*realVMax,
+        double l3 = realVMin*realVMax*realVMax, double l4 = realVMax*realVMax*realVMax,
+        double realVMinR = std::min(std::min(std::min(l1, l2), l3), l4),
+        double realVMaxR = std::max(std::max(std::max(l1, l2), l3), l4) >
+    requires detail::RealLimitsInRangeOfBaseType<BaseTR, f, realVMinR, realVMaxR>
+    friend constexpr
+    auto cube(Sq const &value) noexcept {
+        using SqR = Sq<BaseTR, f, realVMinR, realVMaxR>;
+        using interm_v_t = interm_t<BaseTR>;
+
+        // x^3 <=> [ (x*2^f)*(x*2^f) / 2^f * (x*2^f) / 2^f ] = [ square(x)*(x*2^f) / 2^f ] = x*x*x*2^f
+        auto valueIntm = static_cast<interm_v_t>(value.value);
+        auto valueSqr = static_cast<interm_v_t>(square(value).value);
+        return SqR( static_cast<BaseTR>( valueSqr*valueIntm / v2s<interm_v_t, f>(1) ) );
+    }
+
     /// Reveals the integer value stored in memory.
     constexpr base_t reveal() const noexcept {
         return value;

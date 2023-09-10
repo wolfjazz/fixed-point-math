@@ -58,6 +58,18 @@ concept SquareRootable = requires (Sq sq) {
     sqrt(sq);  // false if expression cannot be compiled
 };
 
+/// Checks whether Sq can be cubed.
+template< class Sq >
+concept Cubeable = requires (Sq sq) {
+    cube(sq);  // false if expression cannot be compiled
+};
+
+/// Checks whether the cube root of Sq can be taken.
+template< class Sq >
+concept CubeRootable = requires (Sq sq) {
+    cbrt(sq);  // false if expression cannot be compiled
+};
+
 /// Checks whether a lt comparison between Sq1 and Sq2 is possible.
 template< class Sq1, class Sq2 >
 concept LtComparable = requires (Sq1 sq1, Sq2 sq2) {
@@ -1608,7 +1620,7 @@ protected:
     }
 };
 
-TEST_F(SQTest_Square, sq_sqr__positive_value__squared_value) {
+TEST_F(SQTest_Square, sq_square__positive_value__squared_value) {
     using i32sq12_t = i32sq12<-100., +60.>;
     auto value = i32sq12_t::fromReal<23.4>;
 
@@ -1620,7 +1632,7 @@ TEST_F(SQTest_Square, sq_sqr__positive_value__squared_value) {
     ASSERT_NEAR(23.4*23.4, squared.toReal(), 45*i32sq12_t::resolution);
 }
 
-TEST_F(SQTest_Square, sq_sqr__positive_value_smaller_type_with_positive_range__squared_value_i32) {
+TEST_F(SQTest_Square, sq_square__positive_value_smaller_type_with_positive_range__squared_value_i32) {
     using i16sq10_t = i16sq10<6., +25.>;
     auto value = i16sq10_t::fromReal<23.4>;
 
@@ -1632,7 +1644,7 @@ TEST_F(SQTest_Square, sq_sqr__positive_value_smaller_type_with_positive_range__s
     ASSERT_NEAR(23.4*23.4, squared.toReal(), 45*i16sq10_t::resolution);
 }
 
-TEST_F(SQTest_Square, sq_sqr__negative_value__squared_value) {
+TEST_F(SQTest_Square, sq_square__negative_value__squared_value) {
     using i32sq12_t = i32sq12<-50., +100.>;
     auto value = i32sq12_t::fromReal<-45.999>;
 
@@ -1644,7 +1656,7 @@ TEST_F(SQTest_Square, sq_sqr__negative_value__squared_value) {
     ASSERT_NEAR(45.999*45.999, squared.toReal(), 90*i32sq12_t::resolution);
 }
 
-TEST_F(SQTest_Square, sq_sqr__negative_value_smaller_type_with_negative_range__squared_value_i32) {
+TEST_F(SQTest_Square, sq_square__negative_value_smaller_type_with_negative_range__squared_value_i32) {
     using i16sq10_t = i16sq10<-25., -6.>;
     auto value = i16sq10_t::fromReal<-18.9>;
 
@@ -1656,7 +1668,7 @@ TEST_F(SQTest_Square, sq_sqr__negative_value_smaller_type_with_negative_range__s
     ASSERT_NEAR(18.9*18.9, squared.toReal(), 38*i16sq10_t::resolution);
 }
 
-TEST_F(SQTest_Square, sq_sqr__zero__zero) {
+TEST_F(SQTest_Square, sq_square__value_zero__value_squared_is_zero) {
     using i32sq12_t = i32sq12<-50., +100.>;
     auto value1 = i32sq12_t::fromReal<-0.>;
     auto value2 = i32sq12_t::fromReal<+0.>;
@@ -1672,7 +1684,7 @@ TEST_F(SQTest_Square, sq_sqr__zero__zero) {
     ASSERT_NEAR(0., squared2.toReal(), i32sq12_t::resolution);
 }
 
-TEST_F(SQTest_Square, sq_sqr__various_types__squareable_or_not) {
+TEST_F(SQTest_Square, sq_square__various_types__squareable_or_not) {
     ASSERT_TRUE(( Squareable< i32sq12<-50., -0.> > ));
     ASSERT_TRUE(( Squareable< i32sq12<-0., +0.> > ));
     ASSERT_TRUE(( Squareable< i32sq12<+0., +66.> > ));
@@ -1729,6 +1741,73 @@ TEST_F(SQTest_Square, sq_sqrt__maximum_u32_value__root_taken) {
     using expected_t = u32sq12_t::clamp_t<0., 1026.>;
     ASSERT_TRUE(( std::is_same_v<expected_t, decltype(root)> ));
     ASSERT_NEAR(1024., root.toReal(), u32sq12_t::resolution);
+}
+
+
+// ////////////////////////////////////////////////////////////////////////////////////////////// //
+// ------------------------------------ SQ Test: Cube ------------------------------------------- //
+// ////////////////////////////////////////////////////////////////////////////////////////////// //
+
+class SQTest_Cube : public ::testing::Test {
+protected:
+    void SetUp() override
+    {
+    }
+    void TearDown() override
+    {
+    }
+};
+
+TEST_F(SQTest_Cube, sq_cube__positive_value__value_cubed) {
+    using u32sq12_t = u32sq12<0., 80.>;
+    auto value = u32sq12_t::fromReal<55.999>;
+
+    EXPECT_TRUE(( Cubeable<u32sq12_t> ));
+    auto cubed = cube(value);
+
+    using expected_t = u32sq12_t::clamp_t<0., 512000.>;
+    ASSERT_TRUE(( std::is_same_v<expected_t, decltype(cubed)> ));
+    ASSERT_NEAR(175606.5922, cubed.toReal(), 3*56*56*u32sq12_t::resolution);
+}
+
+TEST_F(SQTest_Cube, sq_cube__positive_value_smaller_type__value_cubed_i32) {
+    using u16sq4_t = u16sq4<0., 500.>;
+    auto value = u16sq4_t::fromReal<144.999>;
+
+    EXPECT_TRUE(( Cubeable<u16sq4_t> ));
+    auto cubed = cube(value);
+
+    using expected_t = i32sq4<0., 1.25e8>;
+    ASSERT_TRUE(( std::is_same_v<expected_t, decltype(cubed)> ));
+    ASSERT_NEAR(3048561.925, cubed.toReal(), 3*145*145*u16sq4_t::resolution);
+}
+
+TEST_F(SQTest_Cube, sq_cube__zero_value__value_cubed_is_zero) {
+    using i32sq12_t = i32sq12<-40., 40.>;
+    auto value1 = i32sq12_t::fromReal<-0.>;
+    auto value2 = i32sq12_t::fromReal<+0.>;
+
+    EXPECT_TRUE(( Cubeable<i32sq12_t> ));
+    auto cubed1 = cube(value1);
+    auto cubed2 = cube(value2);
+
+    using expected_t = i32sq12_t::clamp_t<-64000., 64000.>;
+    ASSERT_TRUE(( std::is_same_v<expected_t, decltype(cubed1)> ));
+    ASSERT_TRUE(( std::is_same_v<expected_t, decltype(cubed2)> ));
+    ASSERT_NEAR(0., cubed1.toReal(), i32sq12_t::resolution);
+    ASSERT_NEAR(0., cubed2.toReal(), i32sq12_t::resolution);
+}
+
+TEST_F(SQTest_Cube, sq_cube__negative_value__value_cubed) {
+    using i32sq12_t = i32sq12<-40., 40.>;
+    auto value = i32sq12_t::fromReal<-35.999>;
+
+    EXPECT_TRUE(( Cubeable<i32sq12_t> ));
+    auto cubed = cube(value);
+
+    using expected_t = i32sq12_t::clamp_t<-64000., 64000.>;
+    ASSERT_TRUE(( std::is_same_v<expected_t, decltype(cubed)> ));
+    ASSERT_NEAR(-46652.11211, cubed.toReal(), 3*36*36*i32sq12_t::resolution);
 }
 
 
