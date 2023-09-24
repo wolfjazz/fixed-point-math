@@ -33,7 +33,8 @@ In the end, one just wants to perform calculations within a predefined value ran
 - conversion to different base types only via explicit casts (static_q_cast, safe_q_cast, force_q_cast)
 - simple, easy-to-debug, on-point formulas without any obscuring scaling corrections
 - implementation of the most-common mathematical operators that make sense (+, -, \*, /, %, ==, !=, <, >, <=, >=)
-- at the moment, shift operations are only possible using std::integral_constant to shift a value; the integral constant can be constructed via literal: `x << 2_ic`
+- multiplication and division with integral constants; a std::integral_constant can be constructed via literal `_ic`, e.g.: &emsp; `2_ic * x / 3_ic`
+- at the moment, shift operations are only possible using std::integral_constant to shift a value, e.g. `x << 2_ic`
 - abs, clamp, clampLower, clampUpper, min, max (constexpr impl. for both compile-time and runtime)
 - some sophisticated operators like pow, sqr, sqrt -> integral powers and roots
   - pow: &ensp; x<sup>y</sup> = [ (x\*2<sup>f</sup>)<sup>y</sup> \* 2<sup>f - f\*y</sup> ]<sub>f</sub> &emsp; x: real, y: int, f: int &emsp; <-- std::pow requires double!
@@ -72,9 +73,9 @@ using u16q<...> = fpm::q::Q<uint16_t, ...>;
 
 // user-defined types
 // note: overflow behaviors are examples here; best practice is to use the default, forbidden, and
-//       to change the overflow behavior explicitly when needed/desired (so that a dev has control when
-//       the compiler should add overflow checks; code does not compile if a check is needed -> this
-//       way a dev can add a check explicitly, or fix the bug if the check should not be needed)
+// to change the overflow behavior explicitly when needed/desired (so that a dev has control when
+// the compiler should add overflow checks; code does not compile if a check is needed
+// -> this way a dev can add a check explicitly, or fix the bug if the check should not be needed)
 using u32q16<...> = u32q<16, ..., fpm::Overflow::clamp>;  // res. 2^-16; overflow: clamping
 using i32q16<...> = i32q<16, ..., fpm::Overflow::assert>;  // res. 2^-16; overflow: assertion
 // res. 2^-20; overflow at runtime forbidden -> code does not compile if check would be needed
@@ -85,19 +86,22 @@ using i16q2<...> = i16q<2, ..., fpm::Overflow::clamp>;  // res. 2^-2; overflow: 
 /* declaration and initialization */
 u32q16<> a0::fromReal<99.9>;  // direct initialization; default value range is full possible range
 auto a = u32q16<>::fromReal<45678.123>;  // construction
-auto b = u32q16<45.0, 98.2>::fromReal<66.>;  // construction; value range 45.0-98.2 (2949120-6435635);
+auto b = u32q16<45.0, 98.2>::fromReal<66.>;  // constr.; value range 45.0-98.2 (2949120-6435635);
 // value range specified via scaled integer is not useful because if the value of n is changed
 // all ranges need to be adapted when scaled values are used; this is not needed for real values
 // and lets be honest - this is not intuitive either.
 //auto c = u32q16<1966080, 3932160>::fromReal<45.1>;
 
-// copy: construct from another Q value with same base-type; value range and overflow behavior can be changed this way;
-// note that copy will perform a range check at runtime when the lhs range is smaller than the rhs range
+// copy: construct from another Q value with same base-type; value range and overflow behavior can
+// be changed this way; note that copy will perform a range check at runtime when the lhs range is
+// smaller than the rhs range
 auto d1 = u32q16<>::fromQ<Overflow::assert>(b);
-auto d2 = u32q16<40000.0, 50000.0>::fromQ(a);  // limitation of value range; will perform range check at runtime
+auto d2 = u32q16<40000.0, 50000.0>::fromQ(a);  // limitation of value range; will perform range
+                                               // check at runtime
 // upscale-copy: mem-value increased by 2^4 and checked at runtime; value range implicitly reduced
 auto e = u32q20<>::fromQ(a);
-auto e2 = u32q20<>::fromQ( u32q16<>::fromReal<1.1> );  // construct temporary q16 and upscale-move to q20 lvalue
+auto e2 = u32q20<>::fromQ( u32q16<>::fromReal<1.1> );  // construct temporary q16 and upscale-move
+                                                       // to q20 lvalue
 // downscale-copy: mem-value decreased at runtime without checks; value range implicitly extended
 auto f = u32q16<>::fromQ(e);
 
@@ -115,13 +119,15 @@ f = a;
 
 // whether or not runtime checks are performed, depends on the type of the cast:
 auto cast1 = static_cast<i16q2<>>(b);  // Performs checks if needed (decided at compile-time).
-auto cast1b = static_q_cast<i16q2<>, Overflow::clamp>(b);  // Same as static_cast but with overflow override.
-auto cast2 = safe_q_cast<i16q2<>, Overflow::assert>(a);  // Safe cast will always perform checks. Overflow:noCheck is not permitted.
+auto cast1b = static_q_cast<i16q2<>, Overflow::clamp>(b);  // Same as static_cast but with overflow
+                                                           // override.
+auto cast2 = safe_q_cast<i16q2<>, Overflow::assert>(a);  // Safe cast will always perform checks.
+                                                         // Overflow:noCheck is not permitted.
 // Forced cast doesn't perform any scaling or overflow checks! Value is simply reused.
 // Can overflow! (E.g. useful if an overflow is required as part of an algorithm.)
 auto cast3 = force_q_cast<i16q2<40., 100.>>(b);
 
-// copy constructors can be used to cast when the base type is the same but the precision is different
+// copy constructors can be used to cast when the base type is the same but the precision different
 
 
 /* operations */
@@ -130,9 +136,9 @@ auto cast3 = force_q_cast<i16q2<40., 100.>>(b);
 // value range by explicitly converting the value.
 
 
-/* static Q-type for static formulas that have to be used to guarantee at compile time that a calculation
- * works for a range of input values. Runtime checks are only needed when a Q value is transformed
- * into an Sq value (and vice versa) when the value range gets smaller.
+/* static Q-type for static formulas that have to be used to guarantee at compile time that a
+ * calculation works for a range of input values. Runtime checks are only needed when a Q value is
+ * transformed into an Sq value (and vice versa) when the value range gets smaller.
  * Sq-only formulas are guaranteed to be safe at runtime, because for each operator the value range
  * is modified and checked against overflow at compile-time. Runtime checks are not included as long
  * as only Sq values are used in the formula. This guarantees that the formula compiles into an
@@ -183,7 +189,8 @@ auto pos = pos_t::fromReal<1000.>;
 //speed_t::Sq<> v0 = speed.toSq<>();  // conversion Q -> Sq
 //accel_t::Sq<> a = accel.toSq<>();
 //
-// explicit change of value range: Sq value for pos0 with a smaller value range; performs overflow checks!
+// explicit change of value range: Sq value for pos0 with a smaller value range; performs overflow
+// checks!
 auto s0 = pos.toSq< -5e3, 5e3, Overflow::clamp >();
 //
 // also given: current time [s]
@@ -192,38 +199,44 @@ auto time = u16sq8<0., 10.>::fromReal<4.>;
 // calculation; for a range of input values; expect an Sq value within a given range (can and should
 // be calculated with the real decimal range values given when the types are defined; for example,
 // 10*10*10/2 + 100*10 + 10000 = 11500 is the upper limit of the output range);
-// no checks are performed; only the given operations and the implicit precision and scaling corrections
+// no checks are performed; there are only operations, implicit precision and scaling corrections
 // one would need to perform manually when doing these calculations with scaled integers;
 // -> output value is always of Sq type! Can be converted explicitly to a Q value eventually.
 // s = 1/2*a*t^2 + v0*t + s0
-pos_t::Sq<-6500., 6500.> s = accel*time*time/2 + speed*time + s0;
+pos_t::Sq<-6500., 6500.> s = accel*time*time / 2_ic + speed*time + s0;
 //
 // alternative: explicit conversion in situ:
-pos_t::Sq<-6500., 6500.> s = accel*time*time/2 + speed*time + pos.toSq<-5e3, 5e3, Overflow::clamp>();
+pos_t::Sq<-6500., 6500.> s = accel*time*time / 2_ic + speed*time + pos.toSq<-5e3, 5e3, Overflow::clamp>();
 //                                                            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 //
-// another calculation step; note that a new variable needs to be defined because s cannot be changed
+// next calculation step; note that a new variable needs to be defined because s cannot be changed
 // since it is of Sq type.
-pos_t::Sq<-6500., 7000.> s2 = s + pos_t::Sq<0., 500.>::fromReal<250.>;  // add some constant value from a range
+pos_t::Sq<-6500., 7000.> s2 = s + pos_t::Sq<0., 500.>::fromReal<250.>; 
+//    add some constant value from a range ^^^^^^^^^^^^^^^^^^^^^^^^^^
 //
 // now update position in Q scaling;
-// performs no check when value of s is assigned to pos this way because of smaller value range of s2
+// performs no check when value of s is assigned to pos because of smaller value range of s2
 // => calculations via Sq, storage at runtime via Q;
-// explicit conversion Sq -> Q (via named constructor of Q); implicit conversion is not possible here
+// explicit conversion Sq -> Q (via named constr. of Q); implicit conversion is not possible here
 // because value range of Sq type is larger than that of Q type
 pos = pos_t::fromSq< ovf_override >(s2);
 
-// some thoughts about implicit conversion of numbers in formulas:
-// - numbers are converted implicitly at compile-time to the (resulting) type on the lhs, or to the
-//   type on the rhs if a formula starts with a number; this is ambiguous to some extend, because the
-//   user might wonder whether the underlying integer or the real value is modified - it is the latter
-// - NOT SUPPORTED YET; as of 2023, C++ does not have constexpr function parameters
-// -> numbers are converted explicitly via literal operator
-pos_t::Sq<> s3 = s + 1_i32q16;  // converts 1 to i32q16<1.,1.>::fromReal<1.>
-pos_t::Sq<> s4 = s * 4.2_i32q16;
+// explicit conversion of constant numbers in formulas via literals
+// -> numbers are converted explicitly via literal operator to either sq type, or integral constant;
+//    the latter is only supported by multiplications/divisions (because for these operators both
+//    the real value and the scaled value are scaled by the same factor)
+pos_t::Sq<> s3 = 2_ic * s / 3_ic;  // 2 and 3 are converted to integral constants via literal _ic
+pos_t::Sq<> s4 = s * 4.2_i32q16;   // converts 4.2 to i32q16<4.2,4.2>::fromReal<4.2>
 pos_t::Sq<> s5 = s / 3.14159_i32q16;
 
-/* literals */
+// >> some thoughts about implicit conversion of numbers in formulas:
+// - ideally, numbers are converted implicitly at compile-time to the (resulting) type on the lhs,
+//   or to the type on the rhs if a formula starts with a number; this is ambiguous to some extend,
+//   because the user might wonder whether the underlying integer or the real value is modified
+//   for each operator (by design it should be the latter)
+// - NOT SUPPORTED YET; as of 2023, C++ does not have constexpr function parameters
+
+/* user-defined literals */
 // Literals open up lots of opportunities. For example, the user could define a literal operator
 // for the pos_t from above:
 template< char ...chars >
@@ -261,7 +274,7 @@ u32q16<> z = sz;  // implicit conversion of Sq result back to Q-value (same valu
 
 // clamp value
 posClamped = fpm::q::clamp(position, -100_mm, 100_mm);  // this
-posClamped2 = fpm::q::clamp<-100., 100.>(position);  // and this; this re-limits type and clamps value
+posClamped2 = fpm::q::clamp<-100., 100.>(position);  // this re-limits type and clamps value
 // note: ADL is used when clamp() is unqualified: clamp(position, min, max)
 
 // ...
