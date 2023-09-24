@@ -14,7 +14,8 @@
             "cwd": "${workspaceFolder}",
             "environment": [
                 { "name": "PATH", "value": "${env:PATH}:${command:cmake.getLaunchTargetDirectory}" },
-                { "name": "GTEST_SHUFFLE ", "value": "1" }
+                { "name": "GTEST_SHUFFLE ", "value": "1" },
+                { "name": "GTEST_BREAK_ON_FAILURE", "value": "1" },
             ],
             "externalConsole": false,
             "MIMode": "gdb",

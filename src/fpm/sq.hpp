@@ -434,39 +434,40 @@ public:
         double realVMaxR = std::max(realVMin*realVMin, realVMax*realVMax) >
     requires detail::RealLimitsInRangeOfBaseType<BaseTR, f, realVMinR, realVMaxR>
     friend constexpr
-    auto square(Sq const &value) noexcept {
+    auto square(Sq const &number) noexcept {
         using SqR = Sq<BaseTR, f, realVMinR, realVMaxR>;
         using interm_v_t = interm_t<BaseTR>;
 
         // x^2 <=> [ (x*2^f)*(x*2^f) / 2^f ] = x*x*2^f
-        auto valueIntm = static_cast<interm_v_t>(value.value);
-        return SqR( static_cast<BaseTR>( valueIntm*valueIntm / v2s<interm_v_t, f>(1) ) );
+        auto numberIntm = static_cast<interm_v_t>(number.value);
+        return SqR( static_cast<BaseTR>( numberIntm*numberIntm / v2s<interm_v_t, f>(1) ) );
     }
 
-    /// \returns the computed square root of the given value, wrapped into a new Sq type with the
-    /// square roots of the limits. Returns 0 if the given value is negative.
+    /// \returns the computed square root of the given number, wrapped into a new Sq type with the
+    /// square roots of the limits. Returns 0 if the given number is negative.
     /// \note A binary search algorithm is used to calculate the square root in logarithmic time.
     template< /* deduced: */
-        double realVMinR = detail::floor( detail::sqrt(realVMin) ),  // round limits to be more tolerant for approximation
+        double realVMinR = detail::floor( detail::sqrt(realVMin) ),  // round limits to be more tolerant towards approximation
         double realVMaxR = detail::ceil( detail::sqrt(realVMax) ) >
     requires ( sizeof(base_t) <= sizeof(uint32_t)
                && detail::RealLimitsInRangeOfBaseType<base_t, f, realVMinR, realVMaxR> )
     friend constexpr
-    auto sqrt(Sq const &value) noexcept {
+    auto sqrt(Sq const &number) noexcept {
         using SqR = typename Sq::clamp_t<realVMinR, realVMaxR>;
         using interm_v_t = interm_t<base_t>;
 
         // negative value has imaginary root, real part is 0
-        base_t y = value.value <= 0
+        base_t y = number.value <= 0
             ? 0
-            // take root of corrected value; result can be cast to base_t without truncation
-            : static_cast<base_t>( detail::isqrt( static_cast<interm_v_t>(value.value) * v2s<interm_v_t, f>(1) ) );
-        return SqR( static_cast<base_t>(y) );
+            // take root of corrected number; result can be cast to base_t without truncation
+            // sqrt(x) <=> [ ((x*2^f) * 2^f)^1/2 ] = x^1/2 * 2^f
+            : static_cast<base_t>( detail::isqrt( static_cast<interm_v_t>(number.value) * v2s<interm_v_t, f>(1) ) );
+        return SqR( y );
     }
 
-    /// \returns the cubed value, wrapped into a new Sq type with at least 32 bits base type and
+    /// \returns the cubed number, wrapped into a new Sq type with at least 32 bits base type and
     /// cubed limits. The base type of the resulting value is the common type of int32 and the
-    /// base type of the given value.
+    /// base type of the given number.
     /// \note The error propagation is similar to that of the multiplication operator: When a number
     /// x is multiplied with itself n times, the maximum real error is of order O( (n+1)*x^n * 2^(-f) ).
     /// For the cube function (n=2) this gives 3x^2 * 2^(-f) at most.
@@ -478,14 +479,37 @@ public:
         double realVMaxR = std::max(std::max(std::max(l1, l2), l3), l4) >
     requires detail::RealLimitsInRangeOfBaseType<BaseTR, f, realVMinR, realVMaxR>
     friend constexpr
-    auto cube(Sq const &value) noexcept {
+    auto cube(Sq const &number) noexcept {
         using SqR = Sq<BaseTR, f, realVMinR, realVMaxR>;
         using interm_v_t = interm_t<BaseTR>;
 
         // x^3 <=> [ (x*2^f)*(x*2^f) / 2^f * (x*2^f) / 2^f ] = [ square(x)*(x*2^f) / 2^f ] = x*x*x*2^f
-        auto valueIntm = static_cast<interm_v_t>(value.value);
-        auto valueSqr = static_cast<interm_v_t>(square(value).value);
-        return SqR( static_cast<BaseTR>( valueSqr*valueIntm / v2s<interm_v_t, f>(1) ) );
+        auto numberIntm = static_cast<interm_v_t>(number.value);
+        auto valueSqr = static_cast<interm_v_t>(square(number).value);
+        return SqR( static_cast<BaseTR>( valueSqr*numberIntm / v2s<interm_v_t, f>(1) ) );
+    }
+
+    /// \returns the computed cube root of the given number, wrapped into a new Sq type with the
+    /// cube roots of the limits. Returns 0 if the given number is negative.
+    /// \note A hardware algorithm is used to calculate the cube root of the number, the cube root
+    /// of the limits is approximated via binary search.
+    template< /* deduced: */
+        double realVMinR = (realVMin < 0. ? 0. : detail::floor( detail::cbrt(realVMin) )),  // round limits to be more tolerant towards approximation
+        double realVMaxR = (realVMax < 0. ? 0. : detail::ceil( detail::cbrt(realVMax) )) >
+    requires ( sizeof(base_t) <= sizeof(int32_t)
+               && f <= 16  // limit scaling to prevent overflow
+               && detail::RealLimitsInRangeOfBaseType<base_t, f, realVMinR, realVMaxR> )
+    friend constexpr
+    auto cbrt(Sq const &number) noexcept {
+        using SqR = typename Sq::clamp_t<realVMinR, realVMaxR>;
+        using interm_v_t = interm_t<base_t>;
+
+        // negative number is out of scope for hardware algorithm
+        base_t y = number.value < 0
+            ? 0
+            // cbrt(x) <=> [ ((x*2^f) * 2^f * 2^f)^1/3 ] = x^1/3 * 2^f
+            : static_cast<base_t>( detail::icbrt( static_cast<interm_v_t>(number.value) * v2s<interm_v_t, f>(1) * v2s<interm_v_t, f>(1) ) );
+        return SqR( y );
     }
 
     /// Reveals the integer value stored in memory.

@@ -24,5 +24,6 @@ add_executable(${This} ${Sources} ${Headers})
 target_link_libraries(${This} PUBLIC ${CMAKE_THREAD_LIBS_INIT}
     gtest_main
 )
+target_link_options(${This} PUBLIC LINKER:-Map=${This}.map)
 
 target_include_directories(${This} PUBLIC ../src ../googletest/googletest/include)

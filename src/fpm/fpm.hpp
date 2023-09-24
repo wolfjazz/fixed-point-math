@@ -201,6 +201,13 @@ constexpr TargetT v2s(ValueT value) noexcept { return v2sh<TargetT, to>(value); 
 // Internal implementations.
 namespace detail {
 
+    /** \returns +1 if the given value is positive, -1 if it is negative and 0 if the value is 0. */
+    template <typename T>
+    constexpr int signum(T const x) {
+        if constexpr (std::is_signed_v<T>) { return (T(0) < x) - (x < T(0)); }
+        else { return T(0) < x; }
+    }
+
     // Some standard functions are redefined here for compile-time use in templates and concepts,
     // when they are not yet defined constexpr/consteval in C++20.
     inline namespace lib {
@@ -239,6 +246,28 @@ namespace detail {
          * 0 is returned. */
         constexpr double sqrt(double number) {
             return number <= 0. ? 0. : 1. / detail::rsqrt(number);
+        }
+
+        /** \returns the approximated cube root of the given number. If the number is positive,
+         * the cube root is positive, if the number is negative, the cube root is negative. */
+        constexpr double cbrt(double number) {
+            // Algorithm according to https://www.geeksforgeeks.org/find-cubic-root-of-a-number/
+            // set start and end for binary search
+            double start = 0., end = number, mid = 0.;
+            for (size_t i = 200u; i > 0u; --i) {
+                double mid = (start + end) / 2.0L;
+                double mid3 = mid*mid*mid;
+                double error = (number > mid3) ? number - mid3 : mid3 - number;
+
+                // if error is less than precision then mid is our answer
+                if (error < 1e-6L) { return mid; }
+
+                // if mid*mid*mid is greater than number update end
+                if ((number < 0. && mid3 < number) || (number >= 0. && mid3 > number)) { end = mid; }
+                // if mid*mid*mid is less than number update start
+                else { start = mid; }
+            }
+            return mid;
         }
     }
 
@@ -303,13 +332,6 @@ namespace detail {
             }
         }
         else { /* Overflow::allowed, Overflow::noCheck: no checks performed */ }
-    }
-
-    /** \returns +1 if the given value is positive, -1 if it is negative and 0 if the value is 0. */
-    template <typename T>
-    constexpr int signum(T const x) {
-        if constexpr (std::is_signed_v<T>) { return (T(0) < x) - (x < T(0)); }
-        else { return T(0) < x; }
     }
 
     /** Calculates the given integer power of the given number.
@@ -413,16 +435,33 @@ namespace detail {
 
     /** Calculates the square root of a given unsigned 64-bit integer, rounded down.
      * Uses a integer square root binary search algorithm based on Hacker's Delight, 2nd ed. */
-    constexpr uint32_t isqrt(uint64_t value) noexcept {
+    constexpr uint32_t isqrt(uint64_t const value) noexcept {
         uint64_t x = value,
                  b = (1u << (65u - std::countl_zero(x)) / 2u) - 1u,
                  a = (b + 3u) / 2u;
         do {
-            uint64_t m = (a + b) >> 1u;     // start between a and b, near center
-            if (m * m > x) { b = m - 1u; }  // if m*m is larger than x, increase b
-            else { a = m + 1; }             // else increase a
-        } while (b >= a);                   // continue until a > b, then root is found
+            uint64_t m = (a + b) >> 1u;   // start between a and b, near center
+            if (m*m > x) { b = m - 1u; }  // if m*m is larger than x, increase b
+            else { a = m + 1; }           // else increase a
+        } while (b >= a);                 // continue until a > b, then root is found
         return static_cast<uint32_t>(a - 1u);
+    }
+
+    /** Calculates the cube root of a given unsigned 64-bit integer, rounded down.
+     * Uses a hardware algorithm based on Hacker's Delight, 2nd ed.
+     * and https://gist.github.com/anonymous/729557. */
+    constexpr uint32_t icbrt(uint64_t const value) noexcept {
+        uint64_t x = value;
+        uint32_t y = 0u;
+        for (int_fast32_t s = 63; s >= 0; s -= 3) {  // 22 iterations
+            y += y;
+            uint64_t b = 3u*y*((uint64_t)y + 1u) + 1u;
+            if ((x >> s) >= b) {
+                x -= b << s;
+                ++y;
+            }
+        }
+        return y;
     }
 
     /** Concept of a Q-like type.
