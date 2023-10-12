@@ -58,6 +58,12 @@ concept SquareRootable = requires (Sq sq) {
     sqrt(sq);  // false if expression cannot be compiled
 };
 
+/// Checks whether the reciprocal square root of Sq can be computed.
+template< class Sq >
+concept RSquareRootable = requires (Sq sq) {
+    rsqrt(sq);  // false if expression cannot be compiled
+};
+
 /// Checks whether Sq can be cubed.
 template< class Sq >
 concept Cubeable = requires (Sq sq) {
@@ -1710,37 +1716,66 @@ TEST_F(SQTest_Square, sq_sqrt__maximum_u32_value__root_taken) {
     EXPECT_TRUE(( SquareRootable<u32sq12_t> ));
     auto root = sqrt(value);
 
-    using expected_t = u32sq12_t::clamp_t<0., 1026.>;
+    using expected_t = u32sq12_t::clamp_t<0., 1025.>;
     ASSERT_TRUE(( std::is_same_v<expected_t, decltype(root)> ));
     ASSERT_NEAR(1024., root.toReal(), u32sq12_t::resolution);
 }
 
 TEST_F(SQTest_Square, sq_sqrt__zero_value__root_zero) {
-    using i32sq12_t = i32sq12<-1000., +100.>;
-    auto value1 = i32sq12_t::fromReal<-0.>;
-    auto value2 = i32sq12_t::fromReal<+0.>;
-
-    EXPECT_TRUE(( SquareRootable<i32sq12_t> ));
-    auto root1 = sqrt(value1);
-    auto root2 = sqrt(value2);
-
-    using expected_t = i32sq12_t::clamp_t<0., 11.>;
-    ASSERT_TRUE(( std::is_same_v<expected_t, decltype(root1)> ));
-    ASSERT_TRUE(( std::is_same_v<expected_t, decltype(root2)> ));
-    ASSERT_NEAR(0., root1.toReal(), i32sq12_t::resolution);
-    ASSERT_NEAR(0., root2.toReal(), i32sq12_t::resolution);
-}
-
-TEST_F(SQTest_Square, sq_sqrt__some_negative_value__root_zero) {
-    using i32sq12_t = i32sq12<-1000., -0.>;
-    auto value = i32sq12_t::fromReal<-144.>;
+    using i32sq12_t = i32sq12<0., +100.>;
+    auto value = i32sq12_t::fromReal<+0.>;
 
     EXPECT_TRUE(( SquareRootable<i32sq12_t> ));
     auto root = sqrt(value);
 
-    using expected_t = i32sq12_t::clamp_t<0., 0.>;
+    using expected_t = i32sq12_t::clamp_t<0., 11.>;
     ASSERT_TRUE(( std::is_same_v<expected_t, decltype(root)> ));
     ASSERT_NEAR(0., root.toReal(), i32sq12_t::resolution);
+}
+
+TEST_F(SQTest_Square, sq_sqrt__various_types__not_rootable) {
+    ASSERT_FALSE(( SquareRootable< i32sq12<-1000., -0.> > ));
+}
+
+TEST_F(SQTest_Square, sq_rsqrt__some_positive_value__reciprocal_root_taken) {
+    using i32sq20_t = i32sq20<10., 1500.>;
+    auto value = i32sq20_t::fromReal<25.0485>;
+
+    EXPECT_TRUE(( RSquareRootable<i32sq20_t> ));
+    auto rRoot = rsqrt(value);
+
+    using expected_t = i32sq20_t::clamp_t<0., 1.>;
+    ASSERT_TRUE(( std::is_same_v<expected_t, decltype(rRoot)> ));
+    ASSERT_NEAR(0.199806282, rRoot.toReal(), i32sq20_t::resolution);
+}
+
+TEST_F(SQTest_Square, sq_rsqrt__minimum_value__maximum_value_returned) {
+    using i32sq29_t = i32sq29< i32sq29<>::resolution, 1. >;
+    auto value = i32sq29_t::fromScaled<1>;
+
+    EXPECT_TRUE(( RSquareRootable<i32sq29_t> ));
+    auto rRoot = rsqrt(value);
+
+    using expected_t = i32sq29_t::clamp_t<0., i32sq29<>::realVMax>;
+    ASSERT_TRUE(( std::is_same_v<expected_t, decltype(rRoot)> ));
+    ASSERT_NEAR(i32sq29<>::realVMax, rRoot.toReal(), i32sq29_t::resolution);
+}
+
+TEST_F(SQTest_Square, sq_rsqrt__minimum_value2__reciprocal_root_returned) {
+    using i32sq20_t = i32sq20< i32sq20<>::resolution, 1000. >;
+    auto value = i32sq20_t::fromScaled<1>;
+
+    EXPECT_TRUE(( RSquareRootable<i32sq20_t> ));
+    auto rRoot = rsqrt(value);
+
+    using expected_t = i32sq20_t::clamp_t<0., 1024.>;
+    ASSERT_TRUE(( std::is_same_v<expected_t, decltype(rRoot)> ));
+    ASSERT_NEAR(1024., rRoot.toReal(), i32sq20_t::resolution);
+}
+
+TEST_F(SQTest_Square, sq_rsqrt__various_types__not_rootable) {
+    ASSERT_FALSE(( RSquareRootable< i32sq20<-1000., -0.> > ));
+    ASSERT_FALSE(( RSquareRootable< i32sq20<-1000., +1000.> > ));
 }
 
 
@@ -1843,43 +1878,32 @@ TEST_F(SQTest_Cube, sq_cbrt__positive_value__cube_root_taken) {
 }
 
 TEST_F(SQTest_Cube, sq_cbrt__maximum_u32_value__cube_root_taken) {
-    using u32sq8_t = u32sq8<>;
-    auto value = u32sq8_t::fromScaled< std::numeric_limits<uint32_t>::max() >;
+    using u32sq16_t = u32sq16<>;
+    auto value = u32sq16_t::fromScaled< std::numeric_limits<uint32_t>::max() >;
 
-    EXPECT_TRUE(( CubeRootable<u32sq8_t> ));
+    EXPECT_TRUE(( CubeRootable<u32sq16_t> ));
     auto root = cbrt(value);
 
-    using expected_t = u32sq8_t::clamp_t<0., 256.>;
+    using expected_t = u32sq16_t::clamp_t<0., 41.>;
     ASSERT_TRUE(( std::is_same_v<expected_t, decltype(root)> ));
-    ASSERT_NEAR(256., root.toReal(), u32sq8_t::resolution);
+    ASSERT_NEAR(40.31747359, root.toReal(), u32sq16_t::resolution);
 }
 
 TEST_F(SQTest_Cube, sq_cbrt__zero_value__cube_root_is_zero) {
-    using i32sq12_t = i32sq12<-400., 400.>;
-    auto value1 = i32sq12_t::fromReal<-0.>;
-    auto value2 = i32sq12_t::fromReal<+0.>;
+    using i32sq12_t = i32sq12<0., 400.>;
+    auto value = i32sq12_t::fromReal<+0.>;
 
     EXPECT_TRUE(( CubeRootable<i32sq12_t> ));
-    auto root1 = cbrt(value1);
-    auto root2 = cbrt(value2);
-
-    using expected_t = i32sq12_t::clamp_t<0., 8.>;
-    ASSERT_TRUE(( std::is_same_v<expected_t, decltype(root1)> ));
-    ASSERT_TRUE(( std::is_same_v<expected_t, decltype(root2)> ));
-    ASSERT_NEAR(0., root1.toReal(), i32sq12_t::resolution);
-    ASSERT_NEAR(0., root2.toReal(), i32sq12_t::resolution);
-}
-
-TEST_F(SQTest_Cube, sq_cbrt__negative_value__cube_root_is_zero) {
-    using i32sq8_t = i32sq8<-40000., -0.>;
-    auto value = i32sq8_t::fromReal<-31799.999>;
-
-    EXPECT_TRUE(( CubeRootable<i32sq8_t> ));
     auto root = cbrt(value);
 
-    using expected_t = i32sq8_t::clamp_t<0., 0.>;
+    using expected_t = i32sq12_t::clamp_t<0., 8.>;
     ASSERT_TRUE(( std::is_same_v<expected_t, decltype(root)> ));
-    ASSERT_NEAR(0., root.toReal(), i32sq8_t::resolution);
+    ASSERT_NEAR(0., root.toReal(), i32sq12_t::resolution);
+}
+
+TEST_F(SQTest_Cube, sq_cbrt__various_types__not_rootable) {
+    ASSERT_FALSE(( CubeRootable< i32sq12<-1000., -0.> > ));
+    ASSERT_FALSE(( CubeRootable< i32sq12<-1000., +1000.> > ));
 }
 
 

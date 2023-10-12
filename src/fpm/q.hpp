@@ -483,6 +483,16 @@ template< /* deduced: */ QType Q1, QType Q2 > constexpr bool operator !=(Q1 cons
 template< /* deduced: */ QType Q, std::integral T, T v > constexpr bool operator <<(Q const &q, std::integral_constant<T, v> const b) noexcept { return +q << b; }
 template< /* deduced: */ QType Q, std::integral T, T v > constexpr bool operator >>(Q const &q, std::integral_constant<T, v> const b) noexcept { return +q >> b; }
 
+// Square(-Root) functions
+template< /* deduced: */ QType Q > constexpr auto square(Q const &q) noexcept { return sq::square( +q ); }
+template< /* deduced: */ QType Q > constexpr auto sqrt(Q const &q) noexcept { return sq::sqrt( +q ); }
+template< /* deduced: */ QType Q > constexpr auto rsqrt(Q const &q) noexcept { return sq::rsqrt( +q ); }
+
+// Cube(-Root) functions
+template< /* deduced: */ QType Q > constexpr auto cube(Q const &q) noexcept { return sq::cube( +q ); }
+template< /* deduced: */ QType Q > constexpr auto cbrt(Q const &q) noexcept { return sq::cbrt( +q ); }
+//template< /* deduced: */ QType Q > constexpr auto rcbrt(Q const &q) noexcept { return sq::rcbrt( +q ); }
+
 // Clamp
 template< /* deduced: */ QType Q1, QType Q2, QType Q3 > constexpr auto clamp(Q1 const &value, Q2 const &lo, Q3 const &hi) { return sq::clamp( +value, +lo, +hi ); }
 template< /* deduced: */ SqType Sq1, QType Q2, QType Q3 > constexpr auto clamp(Sq1 const &value, Q2 const &lo, Q3 const &hi) { return sq::clamp( value, +lo, +hi ); }

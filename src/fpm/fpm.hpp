@@ -221,25 +221,33 @@ namespace detail {
         /** \returns the largest integer value not greater than the given input number, as double. */
         consteval double floor(double number) {
             int64_t i = static_cast<int64_t>(number);
-            return static_cast<double>(number < i ? i - 1. : i);
+            return static_cast<double>(number < i ? i - 1 : i);
         }
 
         /** \returns the least integer value not less than the given input number, as double. */
         consteval double ceil(double number) {
             int64_t i = static_cast<int64_t>(number);
-            return static_cast<double>(number > i ? i + 1. : i);
+            return static_cast<double>(number > i ? i + 1 : i);
         }
 
-        /** Famous fast inverse square root algorithm (Quake III) adapted for double precision and
+        /** \returns the given number, clamped to the given range. */
+        template< double min, double max >
+        consteval double clamp(double number) {
+            return (number < min ? min : number > max ? max : number);
+        }
+
+        /** Famous fast reciprocal square root algorithm (Quake III) adapted for double precision and
          * constant expression context. */
         constexpr double rsqrt(double number) noexcept {
             static_assert(std::numeric_limits<double>::is_iec559); // (enable only on IEEE 754)
 
             // initial guess with magic number (see Wikipedia for details)
-            double const y = std::bit_cast<double>(0x5fe6eb50c7b537a9 - (std::bit_cast<std::uint64_t>(number) >> 1));
+            double y = std::bit_cast<double>(0x5fe6eb50c7b537a9 - (std::bit_cast<std::uint64_t>(number) >> 1));
 
-            // one iteration of Newton's method
-            return y * (1.5 - (number * 0.5 * y * y));
+            // two iterations of Newton's method proved to be sufficient
+            y = y * (1.5 - (number * 0.5 * y * y));
+            y = y * (1.5 - (number * 0.5 * y * y));
+            return y;
         }
 
         /** \returns the approximated square root of the given double. If the number is negative,
