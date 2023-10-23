@@ -473,6 +473,7 @@ private:
     template< SqType SqT, typename BaseTR, double realVMinR, double realVMaxR >
     requires ( sizeof(BaseTR) <= sizeof(uint32_t)
                 && SqT::realVMin >= 0.
+                && SqT::f <= 30
                 && detail::RealLimitsInRangeOfBaseType<BaseTR, SqT::f, realVMinR, realVMaxR> )
     friend constexpr
     auto sqrt(SqT const &x) noexcept;
@@ -480,6 +481,7 @@ private:
     template< SqType SqT, typename BaseTR, double thMax, double realVMinR, double realVMaxR >
     requires ( sizeof(BaseTR) <= sizeof(int32_t)
                && SqT::realVMin > 0.
+               && SqT::f <= 30
                && detail::RealLimitsInRangeOfBaseType<BaseTR, SqT::f, realVMinR, realVMaxR> )
     friend constexpr
     auto rsqrt(SqT const &x) noexcept;
@@ -609,6 +611,7 @@ template< /* deduced: */ SqType SqT,
     double realVMaxR = detail::ceil( detail::sqrt(SqT::realVMax) ) >
 requires ( sizeof(BaseTR) <= sizeof(uint32_t)
            && SqT::realVMin >= 0.
+           && SqT::f <= 30  //< ceil of upper q31 limit would round up to 2.0 which is out of value range
            && detail::RealLimitsInRangeOfBaseType<BaseTR, SqT::f, realVMinR, realVMaxR> )
 constexpr
 auto sqrt(SqT const &x) noexcept {
@@ -638,6 +641,7 @@ template< /* deduced: */ SqType SqT,
     double realVMaxR = std::min( thMax, detail::ceil( detail::rsqrt(SqT::realVMin) ) ) >
 requires ( sizeof(BaseTR) <= sizeof(int32_t)
            && SqT::realVMin > 0.
+           && SqT::f <= 30  //< ceil of upper q31 limit would round up to 2.0 which is out of value range
            && detail::RealLimitsInRangeOfBaseType<BaseTR, SqT::f, realVMinR, realVMaxR> )
 constexpr
 auto rsqrt(SqT const &x) noexcept {

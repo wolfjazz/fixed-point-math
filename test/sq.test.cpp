@@ -1749,6 +1749,18 @@ TEST_F(SQTest_Square, sq_rsqrt__some_positive_value__reciprocal_root_taken) {
     ASSERT_NEAR(0.199806282, rRoot.toReal(), i32sq20_t::resolution);
 }
 
+TEST_F(SQTest_Square, sq_rsqrt__maximum_positive_value__reciprocal_root_taken) {
+    using u32sq30_t = u32sq30< 1.0, u32sq30<>::realVMax >;
+    auto value = u32sq30_t::fromScaled<std::numeric_limits<u32sq30_t::base_t>::max()>;
+
+    EXPECT_TRUE(( RSquareRootable<u32sq30_t> ));
+    auto rRoot = rsqrt(value);
+
+    using expected_t = u32sq30_t::clamp_t<0., 1.>;
+    ASSERT_TRUE(( std::is_same_v<expected_t, decltype(rRoot)> ));
+    ASSERT_NEAR(0.5, rRoot.toReal(), u32sq30_t::resolution);
+}
+
 TEST_F(SQTest_Square, sq_rsqrt__minimum_value__maximum_value_returned) {
     using i32sq29_t = i32sq29< i32sq29<>::resolution, 1. >;
     auto value = i32sq29_t::fromScaled<1>;
