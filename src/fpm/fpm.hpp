@@ -60,7 +60,7 @@ static constexpr bool is_ovf_stricter_v = is_ovf_stricter<a, b>::value;
 
 
 /// Scaling factor type.
-using scaling_t = int8_t;
+using scaling_t = int;
 
 /// Intermediate type used for compile-time and runtime calculations with (s)q values.
 template< std::integral BaseT >
