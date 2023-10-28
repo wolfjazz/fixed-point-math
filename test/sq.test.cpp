@@ -49,31 +49,31 @@ concept RemainderDividable = requires (Sq1 sq1, Sq2 sq2) {
 /// Checks whether Sq can be squared.
 template< class Sq >
 concept Squareable = requires (Sq sq) {
-    square(sq);  // false if expression cannot be compiled
+    squareImpl(sq);  // false if expression cannot be compiled
 };
 
 /// Checks whether the square root of Sq can be taken.
 template< class Sq >
 concept SquareRootable = requires (Sq sq) {
-    sqrt(sq);  // false if expression cannot be compiled
+    sqrtImpl(sq);  // false if expression cannot be compiled
 };
 
 /// Checks whether the reciprocal square root of Sq can be computed.
 template< class Sq >
 concept RSquareRootable = requires (Sq sq) {
-    rsqrt(sq);  // false if expression cannot be compiled
+    rsqrtImpl(sq);  // false if expression cannot be compiled
 };
 
 /// Checks whether Sq can be cubed.
 template< class Sq >
 concept Cubeable = requires (Sq sq) {
-    cube(sq);  // false if expression cannot be compiled
+    cubeImpl(sq);  // false if expression cannot be compiled
 };
 
 /// Checks whether the cube root of Sq can be taken.
 template< class Sq >
 concept CubeRootable = requires (Sq sq) {
-    cbrt(sq);  // false if expression cannot be compiled
+    cbrtImpl(sq);  // false if expression cannot be compiled
 };
 
 /// Checks whether a lt comparison between Sq1 and Sq2 is possible.
