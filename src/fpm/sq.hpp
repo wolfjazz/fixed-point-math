@@ -406,6 +406,7 @@ private:
     friend constexpr
     auto abs(SqT const &sqValue) noexcept;
 
+    /// \copydoc fpm::sq::square
     template< /* deduced: */ typename BaseTR = std::common_type_t<int32_t, base_t>,
         double realVMinR = (std::is_signed_v<base_t> && vMin < 0 && vMax > 0)
             ? 0.0  // use 0 as new minimum if signed input type has a range of negative and positive values
@@ -422,6 +423,7 @@ private:
         return SqR( static_cast<BaseTR>( xIntm*xIntm / v2s<interm_v_t, SqR::f>(1) ) );
     }
 
+    /// \copydoc fpm::sq::sqrt
     template< /* deduced: */
         double realVMinR = detail::floor( detail::sqrt(realVMin) ),  // round limits to be more tolerant towards approximation
         double realVMaxR = detail::ceil( detail::sqrt(realVMax) ) >
@@ -636,7 +638,7 @@ template< /* deduced: */ SqType SqV, SqType SqLo, SqType SqHi >
 requires detail::Clampable<SqV, SqLo, SqHi>
 constexpr
 auto clamp(SqV const &value, SqLo const &lo, SqHi const &hi) noexcept {
-    using SqR = typename SqV::clamp_t<SqLo::realVMin, SqHi::realVMax>;
+    using SqR = typename SqV::template clamp_t<SqLo::realVMin, SqHi::realVMax>;
     // lo and hi are scaled via constructor from similar type if used; value's value just can be taken as is
     return (value < lo) ? SqR(lo) : (hi < value) ? SqR(hi) : SqR(value.value);
 }
@@ -647,7 +649,7 @@ template< /* deduced: */ SqType SqV, SqType SqLo >
 requires detail::ImplicitlyConvertible<SqLo, SqV>
 constexpr
 auto clampLower(SqV const &value, SqLo const &lo) noexcept {
-    using SqR = typename SqV::clamp_t<SqLo::realVMin, SqV::realVMax>;
+    using SqR = typename SqV::template clamp_t<SqLo::realVMin, SqV::realVMax>;
     // lo is scaled via constructor from similar type if used; value's value just can be taken as is
     return (value < lo) ? SqR(lo) : SqR(value.value);
 }
@@ -658,7 +660,7 @@ template< /* deduced: */ SqType SqV, SqType SqHi >
 requires detail::ImplicitlyConvertible<SqHi, SqV>
 constexpr
 auto clampUpper(SqV const &value, SqHi const &hi) noexcept {
-    using SqR = typename SqV::clamp_t<SqV::realVMin, SqHi::realVMax>;
+    using SqR = typename SqV::template clamp_t<SqV::realVMin, SqHi::realVMax>;
     // hi is scaled via constructor from similar type if used; value's value just can be taken as is
     return (hi < value) ? SqR(hi) : SqR(value.value);
 }
@@ -671,7 +673,7 @@ template< double realLo, double realHi, /* deduced: */ SqType SqV >
 requires detail::RealLimitsInRangeOfBaseType<typename SqV::base_t, SqV::f, realLo, realHi>
 constexpr
 auto clamp(SqV const &value) noexcept {
-    using SqR = typename SqV::clamp_t<realLo, realHi>;
+    using SqR = typename SqV::template clamp_t<realLo, realHi>;
     constexpr auto sqLo = SqR::template fromReal<realLo>;
     constexpr auto sqHi = SqR::template fromReal<realHi>;
     return (value < sqLo) ? sqLo : (sqHi < value) ? sqHi : SqR(value.value);
@@ -684,7 +686,7 @@ template< double realLo, /* deduced: */ SqType SqV >
 requires detail::RealLimitsInRangeOfBaseType<typename SqV::base_t, SqV::f, realLo, SqV::realVMax>
 constexpr
 auto clampLower(SqV const &value) noexcept {
-    using SqR = typename SqV::clamp_t<realLo, SqV::realVMax>;
+    using SqR = typename SqV::template clamp_t<realLo, SqV::realVMax>;
     constexpr auto sqLo = SqR::template fromReal<realLo>;
     return (value < sqLo) ? sqLo : SqR(value.value);
 }
@@ -696,7 +698,7 @@ template< double realHi, /* deduced: */ SqType SqV >
 requires detail::RealLimitsInRangeOfBaseType<typename SqV::base_t, SqV::f, SqV::realVMin, realHi>
 constexpr
 auto clampUpper(SqV const &value) noexcept {
-    using SqR = typename SqV::clamp_t<SqV::realVMin, realHi>;
+    using SqR = typename SqV::template clamp_t<SqV::realVMin, realHi>;
     constexpr auto sqHi = SqR::template fromReal<realHi>;
     return (sqHi < value) ? sqHi : SqR(value.value);
 }
@@ -710,7 +712,7 @@ requires ( detail::Similar<Sq1, Sq2>
            && detail::RealLimitsInRangeOfBaseType<typename Sq1::base_t, Sq1::f, realVMinMin, realVMaxMin> )
 constexpr
 auto min(Sq1 const &first, Sq2 const &second) noexcept {
-    using SqR = typename Sq1::clamp_t<realVMinMin, realVMaxMin>;
+    using SqR = typename Sq1::template clamp_t<realVMinMin, realVMaxMin>;
     return (first.value > second.value) ? SqR(second.value) : SqR(first.value);
 }
 
@@ -723,7 +725,7 @@ requires ( detail::Similar<Sq1, Sq2>
            && detail::RealLimitsInRangeOfBaseType<typename Sq1::base_t, Sq1::f, realVMinMax, realVMaxMax> )
 constexpr
 auto max(Sq1 const &first, Sq2 const &second) noexcept {
-    using SqR = typename Sq1::clamp_t<realVMinMax, realVMaxMax>;
+    using SqR = typename Sq1::template clamp_t<realVMinMax, realVMaxMax>;
     return (first.value < second.value) ? SqR(second.value) : SqR(first.value);
 }
 
@@ -736,7 +738,7 @@ consteval auto sqFromLiteral() {
 }
 
 /**\}*/
-}  // end of fpm::sq
+}
 
 
 namespace std {
