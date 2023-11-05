@@ -41,8 +41,9 @@ void playground() {
 
     // limit results
     position = position % 50_mm;
-    velocity = clamp(velocity, -100_mm_p_s, -10_mm_p_s);
-    //velocity = clamp<-100., -10.>(velocity);  // and this; this re-limits type and clamps value
+    velocity = clamp(velocity, -100_mm_p_s, -10_mm_p_s);  // runtime limits
+    velocity = clamp<-100., -10.>(velocity);  // same as above line but with compile-time limits
+    //velocity = clamp<-100_mm_p_s, -10_mm_p_s>(velocity);  // TODO: compile-time limits with units
 
     std::cout << "pos size:" << sizeof(position) << ", spd size:" << sizeof(velocity) << std::endl;
     std::cout << "pos: " << position.toReal() << ", vel: " << velocity.toReal() << std::endl;
