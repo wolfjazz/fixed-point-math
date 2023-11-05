@@ -276,8 +276,8 @@ u32q16<> z = sz;  // implicit conversion of Sq result back to Q-value (same valu
 // similar to addition
 
 // clamp value
-posClamped = fpm::q::clamp(position, -100_mm, 100_mm);  // this
-posClamped2 = fpm::q::clamp<-100., 100.>(position);  // this re-limits type and clamps value
+posClamped = clamp(position, -100_mm, 100_mm);  // this
+posClamped2 = clamp<-100., 100.>(position);  // this re-limits type and clamps value
 // note: ADL is used when clamp() is unqualified: clamp(position, min, max)
 
 // ...

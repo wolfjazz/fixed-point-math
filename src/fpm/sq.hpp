@@ -129,6 +129,24 @@ public:
         return SqC(cValue);
     }
 
+    /// Explicit static cast to another Sq type with a different base type.
+    /// Uses static_cast internally. Exists for consistency reasons.
+    template< SqType SqC >
+    requires detail::CastableWithoutChecks<Sq, SqC>
+    friend constexpr
+    SqC static_sq_cast(Sq from) noexcept {
+        return static_cast<SqC>(from);
+    }
+
+    /// Explicit safe cast to another Sq type with a different base type.
+    /// Uses static_cast internally. Exists for consistency reasons.
+    template< SqType SqC >
+    requires detail::CastableWithoutChecks<Sq, SqC>
+    friend constexpr
+    SqC safe_sq_cast(Sq from) noexcept {
+        return static_cast<SqC>(from);
+    }
+
     /// Unary plus operator. Integral promotion does not make any sense, so this just creates a copy.
     /// \returns a copy of the value with the same type.
     constexpr
@@ -295,42 +313,82 @@ public:
     }
 
     /// Primary operator to compare for equality. The inequality operator (!=) is synthesized from
-    /// this operator. The input values are scaled to the lower resolution of the two input types
+    /// this operator. The input values are scaled to the higher resolution of the two input types
     /// before being compared.
     /// \note Comparison is possible if both types have the same signedness, or if the size of the
     /// lhs type is larger than the size of the rhs type if the signedness is different.
     /// The common type is used for the comparison in these cases.
-    /// \warning If two values ​​are compared that are closer together than the higher resolution, the
-    ///          result may be true instead of false.
+    /// \warning If two real values ​​are compared that are closer together than the higher resolution,
+    ///          the result may be true instead of false.
     template< /* deduced: */ SqType SqRhs,
         typename BaseTR = std::common_type_t<base_t, typename SqRhs::base_t>,
-        scaling_t fMin = std::min(f, SqRhs::f),
         scaling_t fMax = std::max(f, SqRhs::f) >
     requires detail::Comparable<base_t, typename SqRhs::base_t>
     constexpr
     bool operator ==(SqRhs const &rhs) const noexcept {
-        // two values are considered equal if the values, scaled to the lower resolution, are equivalent
-        return s2s<BaseTR, f, fMin>(value) == s2s<BaseTR, SqRhs::f, fMin>(rhs.value);
+        // two values are considered equal if the values, scaled to the higher resolution, are equivalent
+        return s2s<BaseTR, f, fMax>(value) == s2s<BaseTR, SqRhs::f, fMax>(rhs.value);
     }
 
     /// Convenient three-way ordering operator. The secondary relational operators <, <=, > and >=
-    /// are synthesized from this operator. The input values are scaled to the greater resolution
-    /// before being compared.
-    /// \note Comparison is possible if both types have the same signedness, or if the size of the
+    /// are synthesized from this operator. The input values are scaled to the higher resolution
+    /// before being ordered.
+    /// \note Ordering is possible if both types have the same signedness, or if the size of the
     /// lhs type is larger than the size of the rhs type if the signedness is different.
-    /// The common type is used for the comparison in these cases.
-    /// \warning If two values ​​are compared that are closer together than the resolution, the result
-    ///          may be false instead of true (i.e. the values may be considered equal).
+    /// The common type is used for the ordering in these cases.
+    /// \warning If two real values ​​are ordered that are closer together than the resolution, the
+    ///          result may be false instead of true (i.e. the values may be considered equal).
     template< /* deduced: */ SqType SqRhs,
         typename BaseTR = std::common_type_t<base_t, typename SqRhs::base_t>,
-        scaling_t fMin = std::min(f, SqRhs::f),
         scaling_t fMax = std::max(f, SqRhs::f) >
     requires detail::Comparable<base_t, typename SqRhs::base_t>
     constexpr
     std::strong_ordering operator <=>(SqRhs const &rhs) const noexcept {
-        // the two values are compared with the higher resolution
+        // the two values are ordered with the higher resolution
         return s2s<BaseTR, f, fMax>(value) <=> s2s<BaseTR, SqRhs::f, fMax>(rhs.value);
     }
+
+    /// Takes the absolute value of the given Sq value.
+    /// \note The absolute value of a signed type can be taken if the corresponding INT_MIN value is
+    /// not in the value range of the Sq type.
+    /// \returns the absolute value, wrapped into a new unsigned Sq type with a modified range.
+    friend constexpr auto abs(Sq const &of) noexcept { return absImpl(of); }
+
+    /// \returns the squared value of the given number x, wrapped into a new Sq type with at least
+    /// 32 bits base type and squared limits. The base type of the resulting value is the common type
+    /// of int32 and the base type of the given number.
+    /// \note The error propagation is similar to that of the multiplication operator: When a number
+    /// x is multiplied with itself n times, the maximum real error is (n+1)*x^n * 2^(-f).
+    /// For the square function (n=1) this gives 2x * 2^(-f) at most.
+    friend constexpr auto square(Sq const &x) noexcept { return squareImpl(x); }
+
+    /// \returns the computed square root of the given number x, wrapped into a new Sq type with the
+    /// square roots of the limits.
+    /// \note A binary search algorithm is used to calculate the square root in logarithmic time.
+    friend constexpr auto sqrt(Sq const &x) noexcept { return sqrtImpl(x); }
+
+    /// \returns the computed reciprocal square root of the given number x, wrapped into a new Sq type
+    /// with the reciprocal square root of the limits. The maximum limit of the resulting type does not
+    /// exceed the value range of its base type.
+    /// \warning This uses a division. May be expensive!
+    /// \note The maximum real error evaluates to 2^(-f) * ( 1/2*(1/x)^(3/2) - O( 2^(-f)*(1/x)^(5/2) ) ).
+    /// Unless x is very small ( x < 1 / 2^((2f+2)/3) ), it is usually enough to estimate the real
+    /// error with the resolution of the given number.
+    friend constexpr auto rsqrt(Sq const &x) noexcept { return rsqrtImpl(x); }
+
+    /// \returns the cube of the given number x, wrapped into a new Sq type with at least 32 bits
+    /// base type and cubed limits. The base type of the resulting value is the common type of int32
+    /// and the base type of the given number.
+    /// \note The error propagation is similar to that of the multiplication operator: When a number
+    /// x is multiplied with itself n times, the maximum real error is (n+1)*x^n * 2^(-f).
+    /// For the cube function (n=2) this gives 3x^2 * 2^(-f) at most.
+    friend constexpr auto cube(Sq const &x) noexcept { return cubeImpl(x); }
+
+    /// \returns the computed cube root of the given number x, wrapped into a new Sq type with the
+    /// cube roots of the limits.
+    /// \note A hardware algorithm is used to calculate the cube root of the number, the cube root
+    /// of the limits is approximated via binary search.
+    friend constexpr auto cbrt(Sq const &x) noexcept { return cbrtImpl(x); }
 
     /// Left-Shifts lhs by the number of bits given by the rhs integral constant.
     /// \note Shifting is possible if the shifted limits cannot exceed the base type's value range.
@@ -359,6 +417,78 @@ public:
     auto operator >>(Sq const &lhs, std::integral_constant<T, v> const) noexcept {
         using SqR = typename Sq::clamp_t<realVMinR, realVMaxR>;
         return SqR( lhs.value >> v );
+    }
+
+    /// If v compares less than lo, lo is returned; otherwise if hi compares less than v, hi is
+    /// returned; otherwise v is returned.
+    /// \returns clamped v, wrapped into a new Sq type with the lower limit of SqLo and the upper
+    /// limit of SqHi.
+    template< /* deduced: */ SqType SqLo, SqType SqHi >
+    requires detail::Clampable<Sq, SqLo, SqHi>
+    friend constexpr
+    auto clamp(Sq const &v, SqLo const &lo, SqHi const &hi) noexcept {
+        using SqR = typename Sq::template clamp_t<SqLo::realVMin, SqHi::realVMax>;
+        // lo and hi are scaled via constructor from similar type if used; v's value just can be taken as is
+        return (v < lo) ? SqR(lo) : (hi < v) ? SqR(hi) : SqR(v.value);
+    }
+
+    /// If v compares less than lo, lo is returned; otherwise v is returned.
+    /// \returns clamped v, wrapped into a new Sq type with the lower limit of SqLo.
+    template< /* deduced: */ SqType SqLo >
+    requires detail::ImplicitlyConvertible<SqLo, Sq>
+    friend constexpr
+    auto clampLower(Sq const &v, SqLo const &lo) noexcept {
+        using SqR = typename Sq::template clamp_t<SqLo::realVMin, realVMax>;
+        // lo is scaled via constructor from similar type if used; v's value just can be taken as is
+        return (v < lo) ? SqR(lo) : SqR(v.value);
+    }
+
+    /// If hi compares less than v, hi is returned; otherwise v is returned.
+    /// \returns clamped v, wrapped into a new Sq type with the upper limit of SqHi.
+    template< /* deduced: */ SqType SqHi >
+    requires detail::ImplicitlyConvertible<SqHi, Sq>
+    friend constexpr
+    auto clampUpper(Sq const &v, SqHi const &hi) noexcept {
+        using SqR = typename Sq::template clamp_t<realVMin, SqHi::realVMax>;
+        // hi is scaled via constructor from similar type if used; v's value just can be taken as is
+        return (hi < v) ? SqR(hi) : SqR(v.value);
+    }
+
+    /// Version of clamp() for limits known at compile-time: if v compares less than lo, lo is returned;
+    /// otherwise if hi compares less than v, hi is returned; otherwise v is returned.
+    /// \returns clamped v, wrapped into a new Sq type with the value range from the template parameters.
+    template< double realLo, double realHi >
+    requires detail::RealLimitsInRangeOfBaseType<base_t, f, realLo, realHi>
+    friend constexpr
+    auto clamp(Sq const &v) noexcept {
+        using SqR = typename Sq::template clamp_t<realLo, realHi>;
+        constexpr auto sqLo = SqR::template fromReal<realLo>;
+        constexpr auto sqHi = SqR::template fromReal<realHi>;
+        return (v < sqLo) ? sqLo : (sqHi < v) ? sqHi : SqR(v.value);
+    }
+
+    /// Version of clampLower() for lower limit known at compile-time: if v compares less than lo,
+    /// lo is returned; otherwise v is returned.
+    /// \returns clamped v, wrapped into a new Sq type with the template parameter as lower limit.
+    template< double realLo >
+    requires detail::RealLimitsInRangeOfBaseType<base_t, f, realLo, realVMax>
+    friend constexpr
+    auto clampLower(Sq const &v) noexcept {
+        using SqR = typename Sq::template clamp_t<realLo, realVMax>;
+        constexpr auto sqLo = SqR::template fromReal<realLo>;
+        return (v < sqLo) ? sqLo : SqR(v.value);
+    }
+
+    /// Version of clampUpper() for upper limit known at compile-time: if hi compares less than v,
+    /// hi is returned; otherwise v is returned.
+    /// \returns clamped v, wrapped into a new Sq type with the template parameter as upper limit.
+    template< double realHi >
+    requires detail::RealLimitsInRangeOfBaseType<base_t, f, realVMin, realHi>
+    friend constexpr
+    auto clampUpper(Sq const &v) noexcept {
+        using SqR = typename Sq::template clamp_t<realVMin, realHi>;
+        constexpr auto sqHi = SqR::template fromReal<realHi>;
+        return (sqHi < v) ? sqHi : SqR(v.value);
     }
 
     /// Reveals the integer value stored in memory.
@@ -401,12 +531,18 @@ private:
     // friend some methods so that they can access private members of a Sq type to construct new
     // variants of it
 
-    template< SqType SqT, std::integral BaseTR, double realVMinR, double realVMaxR >
-    requires detail::Absolutizable<typename SqT::base_t, SqT::vMin>
+    template< /* deduced: */
+        std::integral BaseTR = std::make_unsigned_t<base_t>,
+        double realVMinR = (std::is_signed_v<base_t> && vMin < 0 && vMax > 0)
+            ? 0.0  // use 0 as new minimum if signed input type has a range of negative and positive values
+            : std::min(detail::abs(realVMin), detail::abs(realVMax)),
+        double realVMaxR = std::max(detail::abs(realVMin), detail::abs(realVMax)) >
+    requires detail::Absolutizable<base_t, vMin>
     friend constexpr
-    auto abs(SqT const &sqValue) noexcept;
+    auto absImpl(Sq const &of) noexcept {
+        return Sq<BaseTR, f, realVMinR, realVMaxR>( std::abs(of.value) );
+    }
 
-    /// \copydoc fpm::sq::square
     template< /* deduced: */ typename BaseTR = std::common_type_t<int32_t, base_t>,
         double realVMinR = (std::is_signed_v<base_t> && vMin < 0 && vMax > 0)
             ? 0.0  // use 0 as new minimum if signed input type has a range of negative and positive values
@@ -423,7 +559,6 @@ private:
         return SqR( static_cast<BaseTR>( xIntm*xIntm / v2s<interm_v_t, SqR::f>(1) ) );
     }
 
-    /// \copydoc fpm::sq::sqrt
     template< /* deduced: */
         double realVMinR = detail::floor( detail::sqrt(realVMin) ),  // round limits to be more tolerant towards approximation
         double realVMaxR = detail::ceil( detail::sqrt(realVMax) ) >
@@ -445,7 +580,6 @@ private:
         return SqR( y );
     }
 
-    /// \copydoc fpm::sq::rsqrt
     template< /* deduced: */ double thMax = detail::highestRealVMax<base_t, f>(),
         double realVMinR = detail::floor( detail::rsqrt(realVMax) ),
         double realVMaxR = std::min( thMax, detail::ceil( detail::rsqrt(realVMin) ) ) >
@@ -467,7 +601,6 @@ private:
         return SqR( y );
     }
 
-    /// \copydoc fpm::sq::cube
     template< /* deduced: */ typename BaseTR = std::common_type_t<int32_t, base_t>,
         double l1 = realVMin*realVMin*realVMin,
         double l2 = realVMin*realVMin*realVMax,
@@ -487,7 +620,6 @@ private:
         return SqR( static_cast<BaseTR>( xSqr*xIntm / v2s<interm_v_t, SqR::f>(1) ) );
     }
 
-    /// \copydoc fpm::sq::cbrt
     template< /* deduced: */
         double realVMinR = (realVMin < 0. ? 0. : detail::floor( detail::cbrt(realVMin) )),  // round limits to be more tolerant towards approximation
         double realVMaxR = (realVMax < 0. ? 0. : detail::ceil( detail::cbrt(realVMax) )) >
@@ -509,36 +641,6 @@ private:
         return SqR( y );
     }
 
-    template< SqType SqV, SqType SqLo, SqType SqHi >
-    requires detail::Clampable<SqV, SqLo, SqHi>
-    friend constexpr
-    auto clamp(SqV const &value, SqLo const &lo, SqHi const &hi) noexcept;
-
-    template< SqType SqV, SqType SqLo >
-    requires detail::ImplicitlyConvertible<SqLo, SqV>
-    friend constexpr
-    auto clampLower(SqV const &value, SqLo const &lo) noexcept;
-
-    template< SqType SqV, SqType SqHi >
-    requires detail::ImplicitlyConvertible<SqHi, SqV>
-    friend constexpr
-    auto clampUpper(SqV const &value, SqHi const &hi) noexcept;
-
-    template< double realLo, double realHi, SqType SqV >
-    requires detail::RealLimitsInRangeOfBaseType<typename SqV::base_t, SqV::f, realLo, realHi>
-    friend constexpr
-    auto clamp(SqV const &value) noexcept;
-
-    template< double realLo, SqType SqV >
-    requires detail::RealLimitsInRangeOfBaseType<typename SqV::base_t, SqV::f, realLo, SqV::realVMax>
-    friend constexpr
-    auto clampLower(SqV const &value) noexcept;
-
-    template< double realHi, SqType SqV >
-    requires detail::RealLimitsInRangeOfBaseType<typename SqV::base_t, SqV::f, SqV::realVMin, realHi>
-    friend constexpr
-    auto clampUpper(SqV const &value) noexcept;
-
     template< SqType Sq1, SqType Sq2, double realVMinMin, double realVMaxMin >
     requires ( detail::Similar<Sq1, Sq2>
                && detail::RealLimitsInRangeOfBaseType<typename Sq1::base_t, Sq1::f, realVMinMin, realVMaxMin> )
@@ -554,154 +656,6 @@ private:
     /// scaled integer value that represents a fixed-point value; stored in memory
     base_t const value;
 };
-
-/// Explicit static cast to another Sq type with a different base type.
-/// Uses static_cast internally. Exists for consistency reasons.
-template< SqType SqC, /* deduced: */ SqType SqFrom >
-requires detail::CastableWithoutChecks<SqFrom, SqC>
-constexpr
-SqC static_sq_cast(SqFrom from) noexcept {
-    return static_cast<SqC>(from);
-}
-
-/// Explicit safe cast to another Sq type with a different base type.
-/// Uses static_cast internally. Exists for consistency reasons.
-template< SqType SqC, /* deduced: */ SqType SqFrom >
-requires detail::CastableWithoutChecks<SqFrom, SqC>
-constexpr
-SqC safe_sq_cast(SqFrom from) noexcept {
-    return static_cast<SqC>(from);
-}
-
-/// Takes the absolute value of the given Sq value.
-/// \note The absolute value of a signed type can be taken if the corresponding INT_MIN value is
-/// not in the value range of the Sq type.
-/// \returns the absolute value, wrapped into a new unsigned Sq type with a modified range.
-template< /* deduced: */ SqType SqT,
-    std::integral BaseTR = std::make_unsigned_t<typename SqT::base_t>,
-    double realVMinR = (std::is_signed_v<typename SqT::base_t> && SqT::vMin < 0 && SqT::vMax > 0)
-        ? 0.0  // use 0 as new minimum if signed input type has a range of negative and positive values
-        : std::min(detail::abs((double)SqT::realVMin), detail::abs((double)SqT::realVMax)),
-    double realVMaxR = std::max(detail::abs((double)SqT::realVMin), detail::abs((double)SqT::realVMax)) >
-requires detail::Absolutizable<typename SqT::base_t, SqT::vMin>
-constexpr
-auto abs(SqT const &of) noexcept {
-    return Sq<BaseTR, SqT::f, realVMinR, realVMaxR>( std::abs(of.value) );
-}
-
-/// \returns the squared value of the given number x, wrapped into a new Sq type with at least
-/// 32 bits base type and squared limits. The base type of the resulting value is the common type
-/// of int32 and the base type of the given number.
-/// \note The error propagation is similar to that of the multiplication operator: When a number
-/// x is multiplied with itself n times, the maximum real error is (n+1)*x^n * 2^(-f).
-/// For the square function (n=1) this gives 2x * 2^(-f) at most.
-template< /* deduced: */ SqType SqT >
-constexpr auto square(SqT const &x) noexcept { return squareImpl(x); }
-
-/// \returns the computed square root of the given number x, wrapped into a new Sq type with the
-/// square roots of the limits.
-/// \note A binary search algorithm is used to calculate the square root in logarithmic time.
-template< /* deduced: */ SqType SqT >
-constexpr auto sqrt(SqT const &x) noexcept { return sqrtImpl(x); }
-
-/// \returns the computed reciprocal square root of the given number x, wrapped into a new Sq type
-/// with the reciprocal square root of the limits. The maximum limit of the resulting type does not
-/// exceed the value range of its base type.
-/// \warning This uses a division. May be expensive!
-/// \note The maximum real error evaluates to 2^(-f) * ( 1/2*(1/x)^(3/2) - O( 2^(-f)*(1/x)^(5/2) ) ).
-/// Unless x is very small ( x < 1 / 2^((2f+2)/3) ), it is usually enough to estimate the real
-/// error with the resolution of the given number.
-template< /* deduced: */ SqType SqT >
-constexpr auto rsqrt(SqT const &x) noexcept { return rsqrtImpl(x); }
-
-/// \returns the cube of the given number x, wrapped into a new Sq type with at least 32 bits
-/// base type and cubed limits. The base type of the resulting value is the common type of int32
-/// and the base type of the given number.
-/// \note The error propagation is similar to that of the multiplication operator: When a number
-/// x is multiplied with itself n times, the maximum real error is (n+1)*x^n * 2^(-f).
-/// For the cube function (n=2) this gives 3x^2 * 2^(-f) at most.
-template< /* deduced: */ SqType SqT >
-constexpr auto cube(SqT const &x) noexcept { return cubeImpl(x); }
-
-/// \returns the computed cube root of the given number x, wrapped into a new Sq type with the
-/// cube roots of the limits.
-/// \note A hardware algorithm is used to calculate the cube root of the number, the cube root
-/// of the limits is approximated via binary search.
-template< /* deduced: */ SqType SqT >
-constexpr auto cbrt(SqT const &x) noexcept { return cbrtImpl(x); }
-
-/// If value compares less than lo, lo is returned; otherwise if hi compares less than value, hi is
-/// returned; otherwise value is returned.
-/// \returns the clamped value, wrapped into a new Sq type with the lower limit of SqLo and the upper
-/// limit of SqHi.
-template< /* deduced: */ SqType SqV, SqType SqLo, SqType SqHi >
-requires detail::Clampable<SqV, SqLo, SqHi>
-constexpr
-auto clamp(SqV const &value, SqLo const &lo, SqHi const &hi) noexcept {
-    using SqR = typename SqV::template clamp_t<SqLo::realVMin, SqHi::realVMax>;
-    // lo and hi are scaled via constructor from similar type if used; value's value just can be taken as is
-    return (value < lo) ? SqR(lo) : (hi < value) ? SqR(hi) : SqR(value.value);
-}
-
-/// If value compares less than lo, lo is returned; otherwise value is returned.
-/// \returns the clamped value, wrapped into a new Sq type with the lower limit of SqLo.
-template< /* deduced: */ SqType SqV, SqType SqLo >
-requires detail::ImplicitlyConvertible<SqLo, SqV>
-constexpr
-auto clampLower(SqV const &value, SqLo const &lo) noexcept {
-    using SqR = typename SqV::template clamp_t<SqLo::realVMin, SqV::realVMax>;
-    // lo is scaled via constructor from similar type if used; value's value just can be taken as is
-    return (value < lo) ? SqR(lo) : SqR(value.value);
-}
-
-/// If hi compares less than value, hi is returned; otherwise value is returned.
-/// \returns the clamped value, wrapped into a new Sq type with the upper limit of SqHi.
-template< /* deduced: */ SqType SqV, SqType SqHi >
-requires detail::ImplicitlyConvertible<SqHi, SqV>
-constexpr
-auto clampUpper(SqV const &value, SqHi const &hi) noexcept {
-    using SqR = typename SqV::template clamp_t<SqV::realVMin, SqHi::realVMax>;
-    // hi is scaled via constructor from similar type if used; value's value just can be taken as is
-    return (hi < value) ? SqR(hi) : SqR(value.value);
-}
-
-/// Version of clamp() for limits known at compile-time: if value compares less than lo, lo is returned;
-/// otherwise if hi compares less than value, hi is returned; otherwise value is returned.
-/// \returns the clamped value, wrapped into a new Sq type with the value range from the template
-/// parameters.
-template< double realLo, double realHi, /* deduced: */ SqType SqV >
-requires detail::RealLimitsInRangeOfBaseType<typename SqV::base_t, SqV::f, realLo, realHi>
-constexpr
-auto clamp(SqV const &value) noexcept {
-    using SqR = typename SqV::template clamp_t<realLo, realHi>;
-    constexpr auto sqLo = SqR::template fromReal<realLo>;
-    constexpr auto sqHi = SqR::template fromReal<realHi>;
-    return (value < sqLo) ? sqLo : (sqHi < value) ? sqHi : SqR(value.value);
-}
-
-/// Version of clampLower() for lower limit known at compile-time: if value compares less than lo,
-/// lo is returned; otherwise value is returned.
-/// \returns the clamped value, wrapped into a new Sq type with the template parameter as lower limit.
-template< double realLo, /* deduced: */ SqType SqV >
-requires detail::RealLimitsInRangeOfBaseType<typename SqV::base_t, SqV::f, realLo, SqV::realVMax>
-constexpr
-auto clampLower(SqV const &value) noexcept {
-    using SqR = typename SqV::template clamp_t<realLo, SqV::realVMax>;
-    constexpr auto sqLo = SqR::template fromReal<realLo>;
-    return (value < sqLo) ? sqLo : SqR(value.value);
-}
-
-/// Version of clampUpper() for upper limit known at compile-time: if hi compares less than value,
-/// hi is returned; otherwise value is returned.
-/// \returns the clamped value, wrapped into a new Sq type with the template parameter as upper limit.
-template< double realHi, /* deduced: */ SqType SqV >
-requires detail::RealLimitsInRangeOfBaseType<typename SqV::base_t, SqV::f, SqV::realVMin, realHi>
-constexpr
-auto clampUpper(SqV const &value) noexcept {
-    using SqR = typename SqV::template clamp_t<SqV::realVMin, realHi>;
-    constexpr auto sqHi = SqR::template fromReal<realHi>;
-    return (sqHi < value) ? sqHi : SqR(value.value);
-}
 
 /// \returns the minimum value of the two given values, wrapped into a new Sq type with the minimum
 /// of the limits. If both values are equivalent, the first value is returned.
@@ -739,7 +693,6 @@ consteval auto sqFromLiteral() {
 
 /**\}*/
 }
-
 
 namespace std {
 

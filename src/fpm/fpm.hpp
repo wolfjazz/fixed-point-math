@@ -564,7 +564,6 @@ namespace detail {
         RealValueScaledFitsBaseType<BaseT, f, realVMin>
         && RealValueScaledFitsBaseType<BaseT, f, realVMax>
         && realVMin <= realVMax
-        && (std::is_signed_v<BaseT> || realVMin >= 0.)
     );
 
     /** Concept of a base type that can overflow when allowed. Typically used in the context of casting.

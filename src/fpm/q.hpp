@@ -345,79 +345,77 @@ private:
     requires detail::QRequirements<BaseTQ, fQ, realVMinQ, realVMaxQ, ovfQ>
     friend class Q;
 
+    /// Explicit (static-) cast to another Q type with a potentially different base type.
+    /// Allows to override the default overflow behavior.
+    template< QType QC, Overflow ovfBxOverride = QC::ovfBx,
+        // include overflow check if value range of source type is not fully within range of target
+        // type, or if different overflow properties could result in overflow if not checked
+        // note: real limits are compared because scaled integers with different base types and Q's
+        //       cannot be compared so easily
+        bool ovfCheckNeeded = (realVMin < QC::realVMin || QC::realVMax < realVMax
+                            || is_ovf_stricter_v<ovfBxOverride, ovfBx>
+                            || is_ovf_stricter_v<QC::ovfBx, ovfBxOverride>) >
+    requires ( (detail::BaseTypeCanOverflowWhenAllowed<typename QC::base_t, ovfBxOverride>
+                || detail::Scalable<base_t, f, typename QC::base_t, QC::f>)
+            && detail::RuntimeOverflowCheckAllowedWhenNeeded<ovfBxOverride, ovfCheckNeeded> )
+    friend constexpr
+    QC static_q_cast(Q from) noexcept {
+        using interm_f_t = interm_t<base_t>;
+        using interm_c_t = interm_t<typename QC::base_t>;
+
+        // static_cast can be reused if overflow is not overwritten
+        if constexpr (ovfBxOverride == QC::ovfBx) {
+            return static_cast<QC>(from);
+        }
+        // if overflow override is specified, compile overflow checks
+        else {
+            // scale source value and cast it to the intermediate type with the sign of the target type
+            auto cValue = s2s<interm_c_t, f, QC::f>(from.value);
+
+            // perform overflow check if needed
+            if constexpr (ovfCheckNeeded) {
+                detail::checkOverflow<ovfBxOverride, interm_c_t, interm_f_t>(cValue, QC::vMin, QC::vMax);
+            }
+
+            // create target value; disable overflow check to avoid that value is checked again
+            return QC::template construct<Overflow::noCheck>( static_cast<QC::base_t>(cValue) );
+        }
+    }
+
+    /// Explicit, safe cast of a Q type to another Q type with a potentially different base type.
+    /// This will always perform overflow checks, even if not necessarily needed.
+    /// \note Overflow::allowed is not possible - use static_cast instead.
+    template< QType QC, Overflow ovfBxOverride = QC::ovfBx >
+    requires ( detail::Scalable<base_t, f, typename QC::base_t, QC::f>
+            && ovfBxOverride != Overflow::noCheck
+            && detail::RuntimeOverflowCheckAllowedWhenNeeded<ovfBxOverride, true> )
+    friend constexpr
+    QC safe_q_cast(Q from) noexcept {
+        using interm_f_t = interm_t<base_t>;
+        using interm_c_t = interm_t<typename QC::base_t>;
+
+        // scale source value and cast it to the intermediate type with the sign of the target type
+        auto cValue = s2s<interm_c_t, f, QC::f>(from.value);
+
+        // always perform overflow checks
+        detail::checkOverflow<ovfBxOverride, interm_c_t, interm_f_t>(cValue, QC::vMin, QC::vMax);
+
+        // finally, create target value; disable overflow check to avoid that value is checked again
+        return QC::template construct<Overflow::noCheck>( static_cast<QC::base_t>(cValue) );
+    }
+
+    /// Explicit, force cast of a Q type to a different Q type.
+    /// This will simply reinterpret the value of the source Q type as a value of the target Q type
+    /// without performing any scaling or overflow checks at all (overflow attributes are all ignored).
+    template< QType QC >
+    friend constexpr
+    QC force_q_cast(Q from) noexcept {
+        return QC::template construct<Overflow::noCheck>( static_cast<QC::base_t>(from.value) );
+    }
+
     /// scaled integer value that represents a fixed-point value; stored in memory
     base_t value;
 };
-
-/// Explicit (static-) cast to another Q type with a potentially different base type.
-/// Allows to override the default overflow behavior.
-template< QType QC, Overflow ovfBxOverride = QC::ovfBx,
-    /* deduced: */
-    QType QFrom,
-    // include overflow check if value range of source type is not fully within range of target
-    // type, or if different overflow properties could result in overflow if not checked
-    // note: real limits are compared because scaled integers with different base types and Q's
-    //       cannot be compared so easily
-    bool ovfCheckNeeded = (QFrom::realVMin < QC::realVMin || QC::realVMax < QFrom::realVMax
-                           || is_ovf_stricter_v<ovfBxOverride, QFrom::ovfBx>
-                           || is_ovf_stricter_v<QC::ovfBx, ovfBxOverride>) >
-requires ( (detail::BaseTypeCanOverflowWhenAllowed<typename QC::base_t, ovfBxOverride>
-            || detail::Scalable<typename QFrom::base_t, QFrom::f, typename QC::base_t, QC::f>)
-           && detail::RuntimeOverflowCheckAllowedWhenNeeded<ovfBxOverride, ovfCheckNeeded> )
-constexpr
-QC static_q_cast(QFrom from) noexcept {
-    using interm_f_t = interm_t<typename QFrom::base_t>;
-    using interm_c_t = interm_t<typename QC::base_t>;
-
-    // static_cast can be reused if overflow is not overwritten
-    if constexpr (ovfBxOverride == QC::ovfBx) {
-        return static_cast<QC>(from);
-    }
-    // if overflow override is specified, compile overflow checks
-    else {
-        // scale source value and cast it to the intermediate type with the sign of the target type
-        auto cValue = s2s<interm_c_t, QFrom::f, QC::f>(from.reveal());
-
-        // perform overflow check if needed
-        if constexpr (ovfCheckNeeded) {
-            detail::checkOverflow<ovfBxOverride, interm_c_t, interm_f_t>(cValue, QC::vMin, QC::vMax);
-        }
-
-        // create target value; disable overflow check to avoid that value is checked again
-        return QC::template construct<Overflow::noCheck>( static_cast<QC::base_t>(cValue) );
-    }
-}
-
-/// Explicit, safe cast of a Q type to another Q type with a potentially different base type.
-/// This will always perform overflow checks, even if not necessarily needed.
-/// \note Overflow::allowed is not possible - use static_cast instead.
-template< QType QC, Overflow ovfBxOverride = QC::ovfBx, /* deduced: */ QType QFrom >
-requires ( detail::Scalable<typename QFrom::base_t, QFrom::f, typename QC::base_t, QC::f>
-           && ovfBxOverride != Overflow::noCheck
-           && detail::RuntimeOverflowCheckAllowedWhenNeeded<ovfBxOverride, true> )
-constexpr
-QC safe_q_cast(QFrom from) noexcept {
-    using interm_f_t = interm_t<typename QFrom::base_t>;
-    using interm_c_t = interm_t<typename QC::base_t>;
-
-    // scale source value and cast it to the intermediate type with the sign of the target type
-    auto cValue = s2s<interm_c_t, QFrom::f, QC::f>(from.reveal());
-
-    // always perform overflow checks
-    detail::checkOverflow<ovfBxOverride, interm_c_t, interm_f_t>(cValue, QC::vMin, QC::vMax);
-
-    // finally, create target value; disable overflow check to avoid that value is checked again
-    return QC::template construct<Overflow::noCheck>( static_cast<QC::base_t>(cValue) );
-}
-
-/// Explicit, force cast of a Q type to a different Q type.
-/// This will simply reinterpret the value of the source Q type as a value of the target Q type
-/// without performing any scaling or overflow checks at all (overflow attributes are all ignored).
-template< QType QC, /* deduced: */ QType QFrom >
-constexpr
-QC force_q_cast(QFrom from) noexcept {
-    return QC::template construct<Overflow::noCheck>( static_cast<QC::base_t>(from.reveal()) );
-}
 
 /// Helper operations for mixed Sq and Q types. Converts Q to Sq and performs the operations on Sq.
 /// \note The result is always some value of Sq type! If implicit conversion does not work, one of
@@ -425,101 +423,88 @@ QC force_q_cast(QFrom from) noexcept {
 ///\{
 
 // Unary operations
-template< /* deduced: */ QType Q > constexpr auto operator +(Q const &q) noexcept { return q.toSq(); }
-template< /* deduced: */ QType Q > constexpr auto operator -(Q const &q) noexcept { return -q.toSq(); }
-template< /* deduced: */ QType Q > constexpr auto abs(Q const &q) noexcept { return sq::abs( +q ); }
+constexpr auto operator +(QType auto const &q) noexcept { return q.toSq(); }
+constexpr auto operator -(QType auto const &q) noexcept { return -q.toSq(); }
+constexpr auto abs(QType auto const &q) noexcept { return abs( +q ); }
 
 // Addition operator
-template< /* deduced: */ QType Q, SqType Sq > constexpr auto operator +(Q const q, Sq const &sq) noexcept { return +q + sq; }
-template< /* deduced: */ QType Q, SqType Sq > constexpr auto operator +(Sq const sq, Q const &q) noexcept { return sq + +q; }
-template< /* deduced: */ QType Q1, QType Q2 > constexpr auto operator +(Q1 const q1, Q2 const &q2) noexcept { return +q1 + +q2; }
+constexpr auto operator +(QType auto const q, SqType auto const &sq) noexcept { return +q + sq; }
+constexpr auto operator +(SqType auto const sq, QType auto const &q) noexcept { return sq + +q; }
+constexpr auto operator +(QType auto const q1, QType auto const &q2) noexcept { return +q1 + +q2; }
 
 // Subtraction operator
-template< /* deduced: */ QType Q, SqType Sq > constexpr auto operator -(Q const q, Sq const &sq) noexcept { return +q - sq; }
-template< /* deduced: */ QType Q, SqType Sq > constexpr auto operator -(Sq const sq, Q const &q) noexcept { return sq - +q; }
-template< /* deduced: */ QType Q1, QType Q2 > constexpr auto operator -(Q1 const q1, Q2 const &q2) noexcept { return +q1 - +q2; }
+constexpr auto operator -(QType auto const q, SqType auto const &sq) noexcept { return +q - sq; }
+constexpr auto operator -(SqType auto const sq, QType auto const &q) noexcept { return sq - +q; }
+constexpr auto operator -(QType auto const q1, QType auto const &q2) noexcept { return +q1 - +q2; }
 
 // Multiplication operator
-template< /* deduced: */ QType Q, SqType Sq > constexpr auto operator *(Q const q, Sq const &sq) noexcept { return +q * sq; }
-template< /* deduced: */ QType Q, SqType Sq > constexpr auto operator *(Sq const sq, Q const &q) noexcept { return sq * +q; }
-template< /* deduced: */ QType Q1, QType Q2 > constexpr auto operator *(Q1 const q1, Q2 const &q2) noexcept { return +q1 * +q2; }
+constexpr auto operator *(QType auto const q, SqType auto const &sq) noexcept { return +q * sq; }
+constexpr auto operator *(SqType auto const sq, QType auto const &q) noexcept { return sq * +q; }
+constexpr auto operator *(QType auto const q1, QType auto const &q2) noexcept { return +q1 * +q2; }
 
 // Division operator
-template< /* deduced: */ QType Q, SqType Sq > constexpr auto operator /(Q const q, Sq const &sq) noexcept { return +q / sq; }
-template< /* deduced: */ QType Q, SqType Sq > constexpr auto operator /(Sq const sq, Q const &q) noexcept { return sq / +q; }
-template< /* deduced: */ QType Q1, QType Q2 > constexpr auto operator /(Q1 const q1, Q2 const &q2) noexcept { return +q1 / +q2; }
+constexpr auto operator /(QType auto const q, SqType auto const &sq) noexcept { return +q / sq; }
+constexpr auto operator /(SqType auto const sq, QType auto const &q) noexcept { return sq / +q; }
+constexpr auto operator /(QType auto const q1, QType auto const &q2) noexcept { return +q1 / +q2; }
 
 // Modulus operator
-template< /* deduced: */ QType Q, SqType Sq > constexpr auto operator %(Q const q, Sq const &sq) noexcept { return +q % sq; }
-template< /* deduced: */ QType Q, SqType Sq > constexpr auto operator %(Sq const sq, Q const &q) noexcept { return sq % +q; }
-template< /* deduced: */ QType Q1, QType Q2 > constexpr auto operator %(Q1 const q1, Q2 const &q2) noexcept { return +q1 % +q2; }
+constexpr auto operator %(QType auto const q, SqType auto const &sq) noexcept { return +q % sq; }
+constexpr auto operator %(SqType auto const sq, QType auto const &q) noexcept { return sq % +q; }
+constexpr auto operator %(QType auto const q1, QType auto const &q2) noexcept { return +q1 % +q2; }
 
 // Comparison operators
-template< /* deduced: */ QType Q, SqType Sq > constexpr bool operator <(Q const &q, Sq const &sq) noexcept { return +q < sq; }
-template< /* deduced: */ QType Q, SqType Sq > constexpr bool operator <(Sq const &sq, Q const &q) noexcept { return sq < +q; }
-template< /* deduced: */ QType Q1, QType Q2 > constexpr bool operator <(Q1 const &q1, Q2 const &q2) noexcept { return +q1 < +q2; }
+constexpr bool operator ==(QType auto const &q, SqType auto const &sq) noexcept { return +q == sq; }
+constexpr bool operator ==(SqType auto const &sq, QType auto const &q) noexcept { return sq == +q; }
+constexpr bool operator ==(QType auto const &q1, QType auto const &q2) noexcept { return +q1 == +q2; }
 
-template< /* deduced: */ QType Q, SqType Sq > constexpr bool operator <=(Q const &q, Sq const &sq) noexcept { return +q <= sq; }
-template< /* deduced: */ QType Q, SqType Sq > constexpr bool operator <=(Sq const &sq, Q const &q) noexcept { return sq <= +q; }
-template< /* deduced: */ QType Q1, QType Q2 > constexpr bool operator <=(Q1 const &q1, Q2 const &q2) noexcept { return +q1 <= +q2; }
-
-template< /* deduced: */ QType Q, SqType Sq > constexpr bool operator >(Q const &q, Sq const &sq) noexcept { return +q > sq; }
-template< /* deduced: */ QType Q, SqType Sq > constexpr bool operator >(Sq const &sq, Q const &q) noexcept { return sq > +q; }
-template< /* deduced: */ QType Q1, QType Q2 > constexpr bool operator >(Q1 const &q1, Q2 const &q2) noexcept { return +q1 > +q2; }
-
-template< /* deduced: */ QType Q, SqType Sq > constexpr bool operator >=(Q const &q, Sq const &sq) noexcept { return +q >= sq; }
-template< /* deduced: */ QType Q, SqType Sq > constexpr bool operator >=(Sq const &sq, Q const &q) noexcept { return sq >= +q; }
-template< /* deduced: */ QType Q1, QType Q2 > constexpr bool operator >=(Q1 const &q1, Q2 const &q2) noexcept { return +q1 >= +q2; }
-
-template< /* deduced: */ QType Q, SqType Sq > constexpr bool operator ==(Q const &q, Sq const &sq) noexcept { return +q == sq; }
-template< /* deduced: */ QType Q, SqType Sq > constexpr bool operator ==(Sq const &sq, Q const &q) noexcept { return sq == +q; }
-template< /* deduced: */ QType Q1, QType Q2 > constexpr bool operator ==(Q1 const &q1, Q2 const &q2) noexcept { return +q1 == +q2; }
-
-template< /* deduced: */ QType Q, SqType Sq > constexpr bool operator !=(Q const &q, Sq const &sq) noexcept { return +q != sq; }
-template< /* deduced: */ QType Q, SqType Sq > constexpr bool operator !=(Sq const &sq, Q const &q) noexcept { return sq != +q; }
-template< /* deduced: */ QType Q1, QType Q2 > constexpr bool operator !=(Q1 const &q1, Q2 const &q2) noexcept { return +q1 != +q2; }
+// Ordering operators
+constexpr std::strong_ordering operator <=>(QType auto const &q, SqType auto const &sq) noexcept { return +q <=> sq; }
+constexpr std::strong_ordering operator <=>(SqType auto const &sq, QType auto const &q) noexcept { return sq <=> +q; }
+constexpr std::strong_ordering operator <=>(QType auto const &q1, QType auto const &q2) noexcept { return +q1 <=> +q2; }
 
 // Shift operators
-template< /* deduced: */ QType Q, std::integral T, T v > constexpr bool operator <<(Q const &q, std::integral_constant<T, v> const b) noexcept { return +q << b; }
-template< /* deduced: */ QType Q, std::integral T, T v > constexpr bool operator >>(Q const &q, std::integral_constant<T, v> const b) noexcept { return +q >> b; }
+template< /* deduced: */ std::integral T, T v >
+constexpr bool operator <<(QType auto const &q, std::integral_constant<T, v> const b) noexcept { return +q << b; }
+template< /* deduced: */ std::integral T, T v >
+constexpr bool operator >>(QType auto const &q, std::integral_constant<T, v> const b) noexcept { return +q >> b; }
 
 // Square(-Root) functions
-template< /* deduced: */ QType Q > constexpr auto square(Q const &q) noexcept { return sq::square( +q ); }
-template< /* deduced: */ QType Q > constexpr auto sqrt(Q const &q) noexcept { return sq::sqrt( +q ); }
-template< /* deduced: */ QType Q > constexpr auto rsqrt(Q const &q) noexcept { return sq::rsqrt( +q ); }
+constexpr auto square(QType auto const &q) noexcept { return square( +q ); }
+constexpr auto sqrt(QType auto const &q) noexcept { return sqrt( +q ); }
+constexpr auto rsqrt(QType auto const &q) noexcept { return rsqrt( +q ); }
 
 // Cube(-Root) functions
-template< /* deduced: */ QType Q > constexpr auto cube(Q const &q) noexcept { return sq::cube( +q ); }
-template< /* deduced: */ QType Q > constexpr auto cbrt(Q const &q) noexcept { return sq::cbrt( +q ); }
-//template< /* deduced: */ QType Q > constexpr auto rcbrt(Q const &q) noexcept { return sq::rcbrt( +q ); }
+constexpr auto cube(QType auto const &q) noexcept { return cube( +q ); }
+constexpr auto cbrt(QType auto const &q) noexcept { return cbrt( +q ); }
+//constexpr auto rcbrt(QType auto const &q) noexcept { return rcbrt( +q ); }
 
 // Clamp
-template< /* deduced: */ QType Q1, QType Q2, QType Q3 > constexpr auto clamp(Q1 const &value, Q2 const &lo, Q3 const &hi) { return sq::clamp( +value, +lo, +hi ); }
-template< /* deduced: */ SqType Sq1, QType Q2, QType Q3 > constexpr auto clamp(Sq1 const &value, Q2 const &lo, Q3 const &hi) { return sq::clamp( value, +lo, +hi ); }
-template< /* deduced: */ QType Q1, SqType Sq2, QType Q3 > constexpr auto clamp(Q1 const &value, Sq2 const &lo, Q3 const &hi) { return sq::clamp( +value, lo, +hi ); }
-template< /* deduced: */ QType Q1, QType Q2, SqType Sq3 > constexpr auto clamp(Q1 const &value, Q2 const &lo, Sq3 const &hi) { return sq::clamp( +value, +lo, hi ); }
-template< /* deduced: */ SqType Sq1, SqType Sq2, QType Q3 > constexpr auto clamp(Sq1 const &value, Sq2 const &lo, Q3 const &hi) { return sq::clamp( value, lo, +hi ); }
-template< /* deduced: */ SqType Sq1, QType Q2, SqType Sq3 > constexpr auto clamp(Sq1 const &value, Q2 const &lo, Sq3 const &hi) { return sq::clamp( value, +lo, hi ); }
-template< /* deduced: */ QType Q1, SqType Sq2, SqType Sq3 > constexpr auto clamp(Q1 const &value, Sq2 const &lo, Sq3 const &hi) { return sq::clamp( +value, lo, hi ); }
-template< /* deduced: */ QType Q1, QType Q2 > constexpr auto clampLower(Q1 const &value, Q2 const &lo) { return sq::clampLower( +value, +lo ); }
-template< /* deduced: */ SqType Sq1, QType Q2 > constexpr auto clampLower(Sq1 const &value, Q2 const &lo) { return sq::clampLower( value, +lo ); }
-template< /* deduced: */ QType Q1, SqType Sq2 > constexpr auto clampLower(Q1 const &value, Sq2 const &lo) { return sq::clampLower( +value, lo ); }
-template< /* deduced: */ QType Q1, QType Q2 > constexpr auto clampUpper(Q1 const &value, Q2 const &hi) { return sq::clampUpper( +value, +hi ); }
-template< /* deduced: */ SqType Sq1, QType Q2 > constexpr auto clampUpper(Sq1 const &value, Q2 const &hi) { return sq::clampUpper( value, +hi ); }
-template< /* deduced: */ QType Q1, SqType Sq2 > constexpr auto clampUpper(Q1 const &value, Sq2 const &hi) { return sq::clampUpper( +value, hi ); }
-template< double realLo, double realHi, /* deduced: */ QType Q1 > constexpr auto clamp(Q1 const &value) { return sq::clamp<realLo, realHi>( +value ); }
-template< double realLo, /* deduced: */ QType Q1 > constexpr auto clampLower(Q1 const &value) { return sq::clampLower<realLo>( +value ); }
-template< double realHi, /* deduced: */ QType Q1 > constexpr auto clampUpper(Q1 const &value) { return sq::clampUpper<realHi>( +value ); }
+constexpr auto clamp(QType auto const &value, QType auto const &lo, QType auto const &hi) { return clamp( +value, +lo, +hi ); }
+constexpr auto clamp(SqType auto const &value, QType auto const &lo, QType auto const &hi) { return clamp( value, +lo, +hi ); }
+constexpr auto clamp(QType auto const &value, SqType auto const &lo, QType auto const &hi) { return clamp( +value, lo, +hi ); }
+constexpr auto clamp(QType auto const &value, QType auto const &lo, SqType auto const &hi) { return clamp( +value, +lo, hi ); }
+constexpr auto clamp(SqType auto const &value, SqType auto const &lo, QType auto const &hi) { return clamp( value, lo, +hi ); }
+constexpr auto clamp(SqType auto const &value, QType auto const &lo, SqType auto const &hi) { return clamp( value, +lo, hi ); }
+constexpr auto clamp(QType auto const &value, SqType auto const &lo, SqType auto const &hi) { return clamp( +value, lo, hi ); }
+constexpr auto clampLower(QType auto const &value, QType auto const &lo) { return clampLower( +value, +lo ); }
+constexpr auto clampLower(SqType auto const &value, QType auto const &lo) { return clampLower( value, +lo ); }
+constexpr auto clampLower(QType auto const &value, SqType auto const &lo) { return clampLower( +value, lo ); }
+constexpr auto clampUpper(QType auto const &value, QType auto const &hi) { return clampUpper( +value, +hi ); }
+constexpr auto clampUpper(SqType auto const &value, QType auto const &hi) { return clampUpper( value, +hi ); }
+constexpr auto clampUpper(QType auto const &value, SqType auto const &hi) { return clampUpper( +value, hi ); }
+template< double realLo, double realHi > constexpr auto clamp(QType auto const &value) { return clamp<realLo, realHi>( +value ); }
+template< double realLo > constexpr auto clampLower(QType auto const &value) { return clampLower<realLo>( +value ); }
+template< double realHi > constexpr auto clampUpper(QType auto const &value) { return clampUpper<realHi>( +value ); }
 
 // Min
-template< /* deduced: */ QType Q, SqType Sq > constexpr auto min(Q const &q, Sq const &sq) noexcept { return sq::min(+q, sq); }
-template< /* deduced: */ QType Q, SqType Sq > constexpr auto min(Sq const &sq, Q const &q) noexcept { return sq::min(sq, +q); }
-template< /* deduced: */ QType Q1, QType Q2 > constexpr auto min(Q1 const &q1, Q2 const &q2) noexcept { return sq::min(+q1, +q2); }
+constexpr auto min(QType auto const &q, SqType auto const &sq) noexcept { return min(+q, sq); }
+constexpr auto min(SqType auto const &sq, QType auto const &q) noexcept { return min(sq, +q); }
+constexpr auto min(QType auto const &q1, QType auto const &q2) noexcept { return min(+q1, +q2); }
 
 // Max
-template< /* deduced: */ QType Q, SqType Sq > constexpr auto max(Q const &q, Sq const &sq) noexcept { return sq::max(+q, sq); }
-template< /* deduced: */ QType Q, SqType Sq > constexpr auto max(Sq const &sq, Q const &q) noexcept { return sq::max(sq, +q); }
-template< /* deduced: */ QType Q1, QType Q2 > constexpr auto max(Q1 const &q1, Q2 const &q2) noexcept { return sq::max(+q1, +q2); }
+constexpr auto max(QType auto const &q, SqType auto const &sq) noexcept { return max(+q, sq); }
+constexpr auto max(SqType auto const &sq, QType auto const &q) noexcept { return max(sq, +q); }
+constexpr auto max(QType auto const &q1, QType auto const &q2) noexcept { return max(+q1, +q2); }
 
 ///\}
 
