@@ -242,6 +242,39 @@ public:
         return SqR( result );
     }
 
+    /// Multiplies the lhs Sq value with the rhs integral constant.
+    /// \returns the product, wrapped in a new Sq type with the common base type and a value range
+    /// scaled by the same integral constant.
+    template< /* deduced: */ std::integral T, T ic,
+        double realVMinR = std::min(realVMin * ic, realVMax * ic),
+        double realVMaxR = std::max(realVMin * ic, realVMax * ic),
+        std::integral BaseTR = detail::common_q_base_t<base_t, T, f, realVMinR, realVMaxR> >
+    requires detail::RealLimitsInRangeOfBaseType<BaseTR, f, realVMinR, realVMaxR>
+    friend constexpr
+    // Note: Passing lhs by value helps optimize chained a*b*c.
+    auto operator *(Sq const lhs, std::integral_constant<T, ic>) noexcept {
+        using SqR = Sq<BaseTR, f, realVMinR, realVMaxR>;
+
+        // multiply lhs value with the integral constant
+        return SqR( static_cast<BaseTR>(lhs.value) * static_cast<BaseTR>(ic) );
+    }
+
+    /// Multiplies the lhs integral constant with the rhs Sq value.
+    /// \returns the product, wrapped in a new Sq type with the common base type and a value range
+    /// scaled by the same integral constant.
+    template< /* deduced: */ std::integral T, T ic,
+        double realVMinR = std::min(realVMin * ic, realVMax * ic),
+        double realVMaxR = std::max(realVMin * ic, realVMax * ic),
+        std::integral BaseTR = detail::common_q_base_t<base_t, T, f, realVMinR, realVMaxR> >
+    requires detail::RealLimitsInRangeOfBaseType<BaseTR, f, realVMinR, realVMaxR>
+    friend constexpr
+    auto operator *(std::integral_constant<T, ic>, Sq const &rhs) noexcept {
+        using SqR = Sq<BaseTR, f, realVMinR, realVMaxR>;
+
+        // multiply rhs value with the integral constant
+        return SqR( static_cast<BaseTR>(ic) * static_cast<BaseTR>(rhs.value) );
+    }
+
     /// Divides the lhs value by the rhs value.
     /// \returns the quotient, wrapped into a new Sq type with the larger scaling (higher precision)
     /// and the value ranges divided. For the base type of the result a common type is determined that

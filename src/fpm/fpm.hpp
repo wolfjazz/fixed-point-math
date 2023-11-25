@@ -391,13 +391,6 @@ namespace detail {
         return value;
     }
 
-    /// Converts a given character array into a integral_constant expression.
-    template< char ...charArray >
-    consteval auto operator ""_ic() {
-        constexpr unsigned int value = intFromLiteral<charArray...>();
-        return std::integral_constant<unsigned int, value>{};
-    }
-
     /** Determines the smallest type that can hold the the given real minimum and maximum values for
      * the given scaling f. The size of the resulting type will not be smaller than the smallest of
      * the input types. If one of the given base types is signed, the result will be signed too,
@@ -698,6 +691,21 @@ constexpr void static_assert_properties(QSq) {
         && QSq::f == expectedF
         && QSq::realVMin == expectedMin && QSq::realVMax == expectedMax,
         "The given q or sq type does not comply with the expected properties.");
+}
+
+
+/** Converts a given character array into an integral constant. */
+template< char ...charArray >
+consteval auto operator ""_ic() {
+    constexpr unsigned int value = detail::intFromLiteral<charArray...>();
+    return std::integral_constant<unsigned int, value>{};
+}
+
+/** Negation operator for an integral constant. */
+template< /* deduced: */ std::integral T, T ic >
+consteval auto operator -(std::integral_constant<T, ic>) {
+    using RT = std::conditional_t< std::is_signed_v<T>, std::make_unsigned_t<T>, std::make_signed_t<T> >;
+    return std::integral_constant< RT, static_cast<RT>(-ic) >{};
 }
 
 

@@ -225,9 +225,10 @@ pos_t::Sq<-6500., 7000.> s2 = s + pos_t::Sq<0., 500.>::fromReal<250.>;
 pos = pos_t::fromSq< ovf_override >(s2);
 
 // explicit conversion of constant numbers in formulas via literals
-// -> numbers are converted explicitly via literal operator to either sq type, or integral constant;
-//    the latter is only supported by multiplications/divisions (because for these operators both
-//    the real value and the scaled value are scaled by the same factor)
+// -> numbers are converted explicitly via literal operator to either q type, or integral constant;
+//    the latter is only supported in multiplications/divisions (because for these operators both
+//    the real value and the scaled value are scaled by the same factor and the operation is
+//    therefore intuitive)
 pos_t::Sq<> s3 = 2_ic * s / 3_ic;  // 2 and 3 are converted to integral constants via literal _ic
 pos_t::Sq<> s4 = s * 4.2_i32q16;   // converts 4.2 to i32q16<4.2,4.2>::fromReal<4.2>
 pos_t::Sq<> s5 = s / 3.14159_i32q16;

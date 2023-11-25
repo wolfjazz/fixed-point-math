@@ -29,7 +29,7 @@ void accel(pos_t &position, speed_t &velocity, accel_t const acceleration, mtime
 
 
 void playground() {
-    pos_t position = -10.2_mm;
+    pos_t position = -10.2_mm * 2_ic;
     speed_t velocity = 0_mm_p_s;
 
     fpm::static_assert_basetype<int32_t>(velocity);
@@ -40,7 +40,7 @@ void playground() {
     accel(position, velocity, max(-100_mm_p_s2, -120_mm_p_s2), 1_s, min(1e-3_s, 1e-2_s));
 
     // limit results
-    position = position % 50_mm;
+    position = position % 100_mm;
     velocity = clamp(velocity, -100_mm_p_s, -10_mm_p_s);  // runtime limits
     velocity = clamp<-100., -10.>(velocity);  // same as above line but with compile-time limits
     //velocity = clamp<-100_mm_p_s, -10_mm_p_s>(velocity);  // TODO: compile-time limits with units

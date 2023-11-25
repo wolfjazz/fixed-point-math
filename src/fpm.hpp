@@ -17,7 +17,8 @@
 namespace fpm::types {
     using namespace fpm::q::types;
     using namespace fpm::sq::types;
-    using fpm::detail::operator ""_ic;
+    using fpm::operator ""_ic;
+    using fpm::operator-;
 }
 
 #endif

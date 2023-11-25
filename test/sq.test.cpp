@@ -821,6 +821,42 @@ TEST_F(SQTest_Multiplication, sq_multiplicate__two_values_same_type_and_int_q_co
     ASSERT_NEAR(-287.43, f.toReal(), 100*i32sq16_t::resolution);
 }
 
+TEST_F(SQTest_Multiplication, sq_multiplicate__sq_values_with_positive_ic__values_multiplied) {
+    using i32sq16_t = i32sq16<-8., 8.>;
+    auto a = i32sq16_t::fromReal<  5.5 >;
+    auto b = i32sq16_t::fromReal< -2.6 >;
+
+    auto d = a * b * 20_ic;
+    auto e = a * 20_ic * b;
+    auto f = 20_ic * a * b;
+
+    using expected_result_t = i32sq16_t::clamp_t<-1280., +1280.>;
+    ASSERT_TRUE((std::is_same_v<expected_result_t, decltype(d)>));
+    ASSERT_TRUE((std::is_same_v<expected_result_t, decltype(e)>));
+    ASSERT_TRUE((std::is_same_v<expected_result_t, decltype(f)>));
+    ASSERT_NEAR(-286., d.toReal(), 100*i32sq16_t::resolution);
+    ASSERT_NEAR(-286., e.toReal(), 100*i32sq16_t::resolution);
+    ASSERT_NEAR(-286., f.toReal(), 100*i32sq16_t::resolution);
+}
+
+TEST_F(SQTest_Multiplication, sq_multiplicate__sq_values_with_negative_ic__values_multiplied) {
+    using i32sq16_t = i32sq16<-8., 8.>;
+    auto a = i32sq16_t::fromReal<  5.5 >;
+    auto b = i32sq16_t::fromReal< -2.6 >;
+
+    auto d = a * b * -20_ic;
+    auto e = a * -20_ic * b;
+    auto f = -20_ic * a * b;
+
+    using expected_result_t = i32sq16_t::clamp_t<-1280., +1280.>;
+    ASSERT_TRUE((std::is_same_v<expected_result_t, decltype(d)>));
+    ASSERT_TRUE((std::is_same_v<expected_result_t, decltype(e)>));
+    ASSERT_TRUE((std::is_same_v<expected_result_t, decltype(f)>));
+    ASSERT_NEAR(286., d.toReal(), 100*i32sq16_t::resolution);
+    ASSERT_NEAR(286., e.toReal(), 100*i32sq16_t::resolution);
+    ASSERT_NEAR(286., f.toReal(), 100*i32sq16_t::resolution);
+}
+
 
 // ////////////////////////////////////////////////////////////////////////////////////////////// //
 // ------------------------------------ SQ Test: Division --------------------------------------- //

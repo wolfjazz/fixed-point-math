@@ -348,16 +348,17 @@ private:
     /// Explicit (static-) cast to another Q type with a potentially different base type.
     /// Allows to override the default overflow behavior.
     template< QType QC, Overflow ovfBxOverride = QC::ovfBx,
+        /* deduced: */
         // include overflow check if value range of source type is not fully within range of target
         // type, or if different overflow properties could result in overflow if not checked
         // note: real limits are compared because scaled integers with different base types and Q's
         //       cannot be compared so easily
         bool ovfCheckNeeded = (realVMin < QC::realVMin || QC::realVMax < realVMax
-                            || is_ovf_stricter_v<ovfBxOverride, ovfBx>
-                            || is_ovf_stricter_v<QC::ovfBx, ovfBxOverride>) >
+                               || is_ovf_stricter_v<ovfBxOverride, ovfBx>
+                               || is_ovf_stricter_v<QC::ovfBx, ovfBxOverride>) >
     requires ( (detail::BaseTypeCanOverflowWhenAllowed<typename QC::base_t, ovfBxOverride>
                 || detail::Scalable<base_t, f, typename QC::base_t, QC::f>)
-            && detail::RuntimeOverflowCheckAllowedWhenNeeded<ovfBxOverride, ovfCheckNeeded> )
+               && detail::RuntimeOverflowCheckAllowedWhenNeeded<ovfBxOverride, ovfCheckNeeded> )
     friend constexpr
     QC static_q_cast(Q from) noexcept {
         using interm_f_t = interm_t<base_t>;
@@ -387,8 +388,8 @@ private:
     /// \note Overflow::allowed is not possible - use static_cast instead.
     template< QType QC, Overflow ovfBxOverride = QC::ovfBx >
     requires ( detail::Scalable<base_t, f, typename QC::base_t, QC::f>
-            && ovfBxOverride != Overflow::noCheck
-            && detail::RuntimeOverflowCheckAllowedWhenNeeded<ovfBxOverride, true> )
+               && ovfBxOverride != Overflow::noCheck
+               && detail::RuntimeOverflowCheckAllowedWhenNeeded<ovfBxOverride, true> )
     friend constexpr
     QC safe_q_cast(Q from) noexcept {
         using interm_f_t = interm_t<base_t>;
@@ -441,6 +442,10 @@ constexpr auto operator -(QType auto const q1, QType auto const &q2) noexcept { 
 constexpr auto operator *(QType auto const q, SqType auto const &sq) noexcept { return +q * sq; }
 constexpr auto operator *(SqType auto const sq, QType auto const &q) noexcept { return sq * +q; }
 constexpr auto operator *(QType auto const q1, QType auto const &q2) noexcept { return +q1 * +q2; }
+template< /* deduced: */ std::integral T, T v >
+constexpr auto operator *(QType auto const q, std::integral_constant<T, v> const ic) noexcept { return +q * ic; }
+template< /* deduced: */ std::integral T, T v >
+constexpr auto operator *(std::integral_constant<T, v> const ic, QType auto const &q) noexcept { return ic * +q; }
 
 // Division operator
 constexpr auto operator /(QType auto const q, SqType auto const &sq) noexcept { return +q / sq; }
@@ -464,9 +469,9 @@ constexpr std::strong_ordering operator <=>(QType auto const &q1, QType auto con
 
 // Shift operators
 template< /* deduced: */ std::integral T, T v >
-constexpr bool operator <<(QType auto const &q, std::integral_constant<T, v> const b) noexcept { return +q << b; }
+constexpr bool operator <<(QType auto const &q, std::integral_constant<T, v> const ic) noexcept { return +q << ic; }
 template< /* deduced: */ std::integral T, T v >
-constexpr bool operator >>(QType auto const &q, std::integral_constant<T, v> const b) noexcept { return +q >> b; }
+constexpr bool operator >>(QType auto const &q, std::integral_constant<T, v> const ic) noexcept { return +q >> ic; }
 
 // Square(-Root) functions
 constexpr auto square(QType auto const &q) noexcept { return square( +q ); }
