@@ -821,7 +821,7 @@ TEST_F(SQTest_Multiplication, sq_multiplicate__two_values_same_type_and_int_q_co
     ASSERT_NEAR(-287.43, f.toReal(), 100*i32sq16_t::resolution);
 }
 
-TEST_F(SQTest_Multiplication, sq_multiplicate__sq_values_with_positive_ic__values_multiplied) {
+TEST_F(SQTest_Multiplication, sq_multiplicate__sq_values_with_positive_integral_constant__values_multiplied) {
     using i32sq16_t = i32sq16<-8., 8.>;
     auto a = i32sq16_t::fromReal<  5.5 >;
     auto b = i32sq16_t::fromReal< -2.6 >;
@@ -839,7 +839,7 @@ TEST_F(SQTest_Multiplication, sq_multiplicate__sq_values_with_positive_ic__value
     ASSERT_NEAR(-286., f.toReal(), 100*i32sq16_t::resolution);
 }
 
-TEST_F(SQTest_Multiplication, sq_multiplicate__sq_values_with_negative_ic__values_multiplied) {
+TEST_F(SQTest_Multiplication, sq_multiplicate__sq_values_with_negative_integral_constant__values_multiplied) {
     using i32sq16_t = i32sq16<-8., 8.>;
     auto a = i32sq16_t::fromReal<  5.5 >;
     auto b = i32sq16_t::fromReal< -2.6 >;
@@ -941,6 +941,44 @@ TEST_F(SQTest_Division, sq_divide__two_values_similar_type_and_int_q_constant__v
 TEST_F(SQTest_Division, sq_divide__divisor_has_forbidden_range__does_not_compile) {
     ASSERT_FALSE(( Dividable< u32sq20<0., 200.>, i32sq16<-2., 20.> > ));
     ASSERT_FALSE(( Dividable< u32sq20<0., 200.>, u16sq6<0.5, 10.> > ));
+}
+
+TEST_F(SQTest_Division, sq_divide__two_values_similar_type_and_positive_integral_constant__values_divided) {
+    using i32sq16_t = i32sq16<10., 80.>;
+    auto a = i32sq16_t::fromReal< 55.5 >;
+    auto b = i32sq16_t::fromReal< 11.1 >;
+
+    auto d = a / b / 10_ic;
+    auto e = a / 10_ic / b;
+    auto f = 10_ic / a / b;
+
+    using expected_result_de_t = i32sq16_t::clamp_t<0.0125, 0.8>;
+    using expected_result_f_t = i32sq16_t::clamp_t<0.0015625, 0.1>;
+    ASSERT_TRUE((std::is_same_v<expected_result_de_t, decltype(d)>));
+    ASSERT_TRUE((std::is_same_v<expected_result_de_t, decltype(e)>));
+    ASSERT_TRUE((std::is_same_v<expected_result_f_t, decltype(f)>));
+    ASSERT_NEAR(0.5, d.toReal(), 3*2*i32sq16_t::resolution);
+    ASSERT_NEAR(0.5, e.toReal(), 3*2*i32sq16_t::resolution);
+    ASSERT_NEAR(0.016232449, f.toReal(), 3*2*i32sq16_t::resolution);
+}
+
+TEST_F(SQTest_Division, sq_divide__two_values_similar_type_and_negative_integral_constant__values_divided) {
+    using i32sq16_t = i32sq16<10., 80.>;
+    auto a = i32sq16_t::fromReal< 55.5 >;
+    auto b = i32sq16_t::fromReal< 11.1 >;
+
+    auto d = a / b / -10_ic;
+    auto e = a / -10_ic / b;
+    auto f = -10_ic / a / b;
+
+    using expected_result_de_t = i32sq16_t::clamp_t<-0.8, -0.0125>;
+    using expected_result_f_t = i32sq16_t::clamp_t<-0.1, -0.0015625>;
+    ASSERT_TRUE((std::is_same_v<expected_result_de_t, decltype(d)>));
+    ASSERT_TRUE((std::is_same_v<expected_result_de_t, decltype(e)>));
+    ASSERT_TRUE((std::is_same_v<expected_result_f_t, decltype(f)>));
+    ASSERT_NEAR(-0.5, d.toReal(), 3*2*i32sq16_t::resolution);
+    ASSERT_NEAR(-0.5, e.toReal(), 3*2*i32sq16_t::resolution);
+    ASSERT_NEAR(-0.016232449, f.toReal(), 3*2*i32sq16_t::resolution);
 }
 
 

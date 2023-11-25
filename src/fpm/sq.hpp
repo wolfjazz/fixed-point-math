@@ -312,6 +312,49 @@ public:
         return SqR( result );
     }
 
+    /// Divides the lhs Sq value by the rhs integral constant.
+    /// \returns the quotient, wrapped in a new Sq type with the common base type and a value range
+    /// divided by the same integral constant.
+    /// \warning Arithmetic underflow can happen if the result is smaller than the target resolution.
+    /// \warning To ensure that compile-time overflow checks are not required, the rhs constant must
+    ///          not be 0.
+    template< /* deduced: */ std::integral T, T ic,
+        double realVMinR = std::min(realVMin / ic, realVMax / ic),
+        double realVMaxR = std::max(realVMin / ic, realVMax / ic),
+        std::integral BaseTR = detail::common_q_base_t<base_t, T, f, realVMinR, realVMaxR> >
+    requires ( detail::RealLimitsInRangeOfBaseType<BaseTR, f, realVMinR, realVMaxR>
+               && ic != 0 )
+    friend constexpr
+    // Note: Passing lhs by value helps optimize chained a*b*c.
+    auto operator /(Sq const lhs, std::integral_constant<T, ic>) noexcept {
+        using SqR = Sq<BaseTR, f, realVMinR, realVMaxR>;
+
+        // divide lhs value by the integral constant
+        return SqR( static_cast<BaseTR>(lhs.value) / static_cast<BaseTR>(ic) );
+    }
+
+    /// Divides the lhs integral constant by the rhs Sq value.
+    /// \returns the quotient, wrapped in a new Sq type with the common base type and a value range
+    /// divided in the same way.
+    /// \warning Arithmetic underflow can happen if the result is smaller than the target resolution.
+    /// \warning To ensure that compile-time overflow checks are not required, the rhs type must not
+    ///          have values between -1 and +1 in its value range.
+    template< /* deduced: */ std::integral T, T ic,
+        double realVMinR = std::min(ic / realVMin, ic / realVMax),
+        double realVMaxR = std::max(ic / realVMin, ic / realVMax),
+        std::integral BaseTR = detail::common_q_base_t<base_t, T, f, realVMinR, realVMaxR> >
+    requires ( detail::CanBeUsedAsDivisor<Sq>
+               && v2s<interm_t<BaseTR>, 2*f>(ic) <= std::numeric_limits<interm_t<BaseTR>>::max()
+               && detail::RealLimitsInRangeOfBaseType<BaseTR, f, realVMinR, realVMaxR> )
+    friend constexpr
+    auto operator /(std::integral_constant<T, ic>, Sq const &rhs) noexcept {
+        using SqR = Sq<BaseTR, f, realVMinR, realVMaxR>;
+        using interm_v_t = interm_t<BaseTR>;
+
+        // ic * 2^(2f) / (v*2^f) = ic/v * 2^f
+        return SqR( static_cast<BaseTR>( v2s<interm_v_t, 2*f>(ic) / static_cast<interm_v_t>(rhs.value) ) );
+    }
+
     /// Divides the lhs value by the rhs value and returns the remainder of the division.
     /// The remainder of the division operation x/y calculated by this function is exactly the value
     /// x - n*y, where n is x/y with its fractional part truncated. The returned value has the same

@@ -423,22 +423,22 @@ private:
 /// Q's explicit conversion methods can be used to convert a value of Sq type to a value of Q type.
 ///\{
 
-// Unary operations
+// Unary
 constexpr auto operator +(QType auto const &q) noexcept { return q.toSq(); }
 constexpr auto operator -(QType auto const &q) noexcept { return -q.toSq(); }
 constexpr auto abs(QType auto const &q) noexcept { return abs( +q ); }
 
-// Addition operator
+// Addition
 constexpr auto operator +(QType auto const q, SqType auto const &sq) noexcept { return +q + sq; }
 constexpr auto operator +(SqType auto const sq, QType auto const &q) noexcept { return sq + +q; }
 constexpr auto operator +(QType auto const q1, QType auto const &q2) noexcept { return +q1 + +q2; }
 
-// Subtraction operator
+// Subtraction
 constexpr auto operator -(QType auto const q, SqType auto const &sq) noexcept { return +q - sq; }
 constexpr auto operator -(SqType auto const sq, QType auto const &q) noexcept { return sq - +q; }
 constexpr auto operator -(QType auto const q1, QType auto const &q2) noexcept { return +q1 - +q2; }
 
-// Multiplication operator
+// Multiplication
 constexpr auto operator *(QType auto const q, SqType auto const &sq) noexcept { return +q * sq; }
 constexpr auto operator *(SqType auto const sq, QType auto const &q) noexcept { return sq * +q; }
 constexpr auto operator *(QType auto const q1, QType auto const &q2) noexcept { return +q1 * +q2; }
@@ -447,38 +447,42 @@ constexpr auto operator *(QType auto const q, std::integral_constant<T, v> const
 template< /* deduced: */ std::integral T, T v >
 constexpr auto operator *(std::integral_constant<T, v> const ic, QType auto const &q) noexcept { return ic * +q; }
 
-// Division operator
+// Division
 constexpr auto operator /(QType auto const q, SqType auto const &sq) noexcept { return +q / sq; }
 constexpr auto operator /(SqType auto const sq, QType auto const &q) noexcept { return sq / +q; }
 constexpr auto operator /(QType auto const q1, QType auto const &q2) noexcept { return +q1 / +q2; }
+template< /* deduced: */ std::integral T, T v >
+constexpr auto operator /(QType auto const q, std::integral_constant<T, v> const ic) noexcept { return +q / ic; }
+template< /* deduced: */ std::integral T, T v >
+constexpr auto operator /(std::integral_constant<T, v> const ic, QType auto const &q) noexcept { return ic / +q; }
 
-// Modulus operator
+// Modulus
 constexpr auto operator %(QType auto const q, SqType auto const &sq) noexcept { return +q % sq; }
 constexpr auto operator %(SqType auto const sq, QType auto const &q) noexcept { return sq % +q; }
 constexpr auto operator %(QType auto const q1, QType auto const &q2) noexcept { return +q1 % +q2; }
 
-// Comparison operators
+// Comparison
 constexpr bool operator ==(QType auto const &q, SqType auto const &sq) noexcept { return +q == sq; }
 constexpr bool operator ==(SqType auto const &sq, QType auto const &q) noexcept { return sq == +q; }
 constexpr bool operator ==(QType auto const &q1, QType auto const &q2) noexcept { return +q1 == +q2; }
 
-// Ordering operators
+// Ordering
 constexpr std::strong_ordering operator <=>(QType auto const &q, SqType auto const &sq) noexcept { return +q <=> sq; }
 constexpr std::strong_ordering operator <=>(SqType auto const &sq, QType auto const &q) noexcept { return sq <=> +q; }
 constexpr std::strong_ordering operator <=>(QType auto const &q1, QType auto const &q2) noexcept { return +q1 <=> +q2; }
 
-// Shift operators
+// Shift
 template< /* deduced: */ std::integral T, T v >
 constexpr bool operator <<(QType auto const &q, std::integral_constant<T, v> const ic) noexcept { return +q << ic; }
 template< /* deduced: */ std::integral T, T v >
 constexpr bool operator >>(QType auto const &q, std::integral_constant<T, v> const ic) noexcept { return +q >> ic; }
 
-// Square(-Root) functions
+// Square(-Root)
 constexpr auto square(QType auto const &q) noexcept { return square( +q ); }
 constexpr auto sqrt(QType auto const &q) noexcept { return sqrt( +q ); }
 constexpr auto rsqrt(QType auto const &q) noexcept { return rsqrt( +q ); }
 
-// Cube(-Root) functions
+// Cube(-Root)
 constexpr auto cube(QType auto const &q) noexcept { return cube( +q ); }
 constexpr auto cbrt(QType auto const &q) noexcept { return cbrt( +q ); }
 //constexpr auto rcbrt(QType auto const &q) noexcept { return rcbrt( +q ); }
