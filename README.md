@@ -45,11 +45,11 @@ In the end, one just wants to perform calculations within a predefined value ran
     - cbrt: &ensp; x<sup>1/3</sup> <=> [ (x\*2<sup>f</sup>\*2<sup>f</sup>\*2<sup>f</sup>)<sup>1/3</sup> ]<sub>f</sub> &emsp; <-- std::cbrt requires double! hardware algorithm is used instead
   - reciprocal root: &ensp; 1 / x<sup>1/y</sup> <=> [ 2<sup>2f</sup> / (x\*2<sup>f</sup>\*2<sup>f(y-1)</sup>)<sup>1/y</sup> ]<sub>f</sub>
     - reciprocal sqrt: 1 / x<sup>1/2</sup> <=> [ 2<sup>2f</sup> / (x\*2<sup>f</sup>\*2<sup>f</sup>)<sup>1/2</sup> ]<sub>f</sub>
-    - reciprocal cbrt: 1 / x<sup>1/3</sup> <=> [ 2<sup>2f</sup> / (x\*2<sup>f</sup>\*2<sup>2f</sup>)<sup>1/3</sup> ]<sub>f</sub>
+- functions to static-assert Sq value range and other properties at compile-time (e.g. after a complicated calculation)
 
 ### Further Ideas
 
-- Function to static-assert Sq value range at compile-time (e.g. after a complicated calculation)
+- reciprocal cbrt: 1 / x<sup>1/3</sup> <=> [ 2<sup>2f</sup> / (x\*2<sup>f</sup>\*2<sup>2f</sup>)<sup>1/3</sup> ]<sub>f</sub>
 
 ## This Library
 
