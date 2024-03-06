@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.25)
 
 set(This FixedPointMath)
 set(ThisShortLib FpmQ)
-set(ThisShort FpmQPg)
+set(Playground Pg)
 project(${This} VERSION 0.1.0 LANGUAGES C CXX)
 
 set(CMAKE_C_STANDARD 17)
@@ -27,7 +27,11 @@ set(Headers
 )
 
 set(Sources
-    src/fpm.cpp
+    test/playground.cpp
+)
+
+set(Include
+    src
 )
 
 # GCC options
@@ -40,10 +44,11 @@ add_library(${ThisShortLib} STATIC ${Headers})
 set_target_properties(${ThisShortLib} PROPERTIES LINKER_LANGUAGE CXX)
 target_compile_options(${ThisShortLib} PRIVATE -g -Og)  # optimize for debug
 
-add_executable(${ThisShort} ${Headers} ${Sources})
-set_target_properties(${ThisShort} PROPERTIES LINKER_LANGUAGE CXX)
-target_link_options(${ThisShort} PUBLIC LINKER:-Map=${ThisShort}.map)
-target_compile_options(${ThisShort} PRIVATE -Os)  # optimize for size
+add_executable(${Playground} ${Headers} ${Sources})
+set_target_properties(${Playground} PROPERTIES LINKER_LANGUAGE CXX)
+target_include_directories(${Playground} PRIVATE ${Include})
+target_link_options(${Playground} PUBLIC LINKER:-Map=${Playground}.map)
+target_compile_options(${Playground} PRIVATE -Os)  # optimize for size
 
 set(CPACK_PROJECT_NAME ${PROJECT_NAME})
 set(CPACK_PROJECT_VERSION ${PROJECT_VERSION})

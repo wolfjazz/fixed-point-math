@@ -659,33 +659,32 @@ namespace detail {
 
 
 /** Static assertion of the base type of the given sq (or q) type. */
-template< std::integral TExpected, /* deduced: */ detail::SqOrQType QSq >
-constexpr void static_assert_basetype(QSq) {
+template< std::integral TExpected, detail::SqOrQType QSq >
+constexpr void static_assert_basetype() {
     static_assert(std::is_same_v<TExpected, typename QSq::base_t>,
         "The given q or sq type does not comply with the expected base type.");
 }
 
 
 /** Static assertion of the scaling of the given sq (or q) type. */
-template< scaling_t expectedF, /* deduced: */ detail::SqOrQType QSq >
-constexpr void static_assert_scaling(QSq) {
+template< scaling_t expectedF, detail::SqOrQType QSq >
+constexpr void static_assert_scaling() {
     static_assert(QSq::f == expectedF,
         "The given q or sq type does not comply with the expected scaling.");
 }
 
 
 /** Static assertion of the real value range of the given sq (or q) type. */
-template< double expectedMin, double expectedMax, /* deduced: */ detail::SqOrQType QSq >
-constexpr void static_assert_range(QSq) {
+template< double expectedMin, double expectedMax, detail::SqOrQType QSq >
+constexpr void static_assert_range() {
     static_assert(QSq::realVMin == expectedMin && QSq::realVMax == expectedMax,
         "The given q or sq type does not comply with the expected value range.");
 }
 
 
 /** Static assertion of the core properties of the given sq (or q) type. */
-template< std::integral TExpected, scaling_t expectedF, double expectedMin, double expectedMax,
-          /* deduced: */ detail::SqOrQType QSq >
-constexpr void static_assert_properties(QSq) {
+template< std::integral TExpected, scaling_t expectedF, double expectedMin, double expectedMax, detail::SqOrQType QSq >
+constexpr void static_assert_properties() {
     static_assert(
         std::is_same_v<TExpected, typename QSq::base_t>
         && QSq::f == expectedF

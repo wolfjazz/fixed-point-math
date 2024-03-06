@@ -51,6 +51,11 @@ In the end, one just wants to perform calculations within a predefined value ran
 
 - reciprocal cbrt: 1 / x<sup>1/3</sup> <=> [ 2<sup>2f</sup> / (x\*2<sup>f</sup>\*2<sup>2f</sup>)<sup>1/3</sup> ]<sub>f</sub>
 
+### What this is NOT
+
+- Q and Sq types are not larger than the underlying integral type, however, the operations are not
+  thread-safe and can therefore not be shared between threads
+
 ## This Library
 
 Provides different fixed-point types which fulfill the expectations from above (more or less).

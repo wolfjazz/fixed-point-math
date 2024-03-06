@@ -424,7 +424,7 @@ private:
 ///\{
 
 // Unary
-constexpr auto operator +(QType auto const &q) noexcept { return q.toSq(); }
+constexpr auto operator +(QType auto const &q) noexcept { return q.toSq(); }  // note: conversion to similar Sq type
 constexpr auto operator -(QType auto const &q) noexcept { return -q.toSq(); }
 constexpr auto abs(QType auto const &q) noexcept { return abs( +q ); }
 
@@ -524,6 +524,9 @@ consteval auto qFromLiteral() {
     constexpr double value = detail::doubleFromLiteral<charArray...>();
     return Q::template clamp_t<value, value>::template fromReal<value>;
 }
+/// Associates a Q type with a literal.
+#define FPM_Q_BIND_LITERAL(_q, _literal) \
+    template< char ...chars > consteval auto operator "" ## _ ## _literal () { return fpm::q::qFromLiteral<_q, chars...>(); }
 
 /**\}*/
 }  // end of fpm::q
