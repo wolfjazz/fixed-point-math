@@ -449,6 +449,9 @@ public:
     constexpr TargetT toReal() const noexcept {
         return v2s<TargetT, -f>(value);
     }
+    /// Implicit conversion of a Sq value back into its double representation. Allows using a
+    /// value+unit literal where a double is expected. Compile-time only!
+    consteval operator double() const noexcept { return toReal<double>(); }
 
 private:
     // delete undesired special members
@@ -825,13 +828,13 @@ auto max(Sq1 const &first, Sq2 const &second) noexcept {
 /// Converts a literal number into the corresponding best-fit sq type.
 /// Best-fit means that the literal number represents both limits and the value.
 template< SqType Sq, char ...charArray >
-consteval auto sqFromLiteral() {
+consteval auto fromLiteral() {
     constexpr double value = detail::doubleFromLiteral<charArray...>();
     return Sq::template clamp_t<value, value>::template fromReal<value>;
 }
 /// Associates an Sq type with a literal.
 #define FPM_SQ_BIND_LITERAL(_sq, _literal) \
-    template< char ...chars > consteval auto operator "" ## _ ## _literal () { return fpm::q::qFromLiteral<_sq, chars...>(); }
+    template< char ...chars > consteval auto operator "" ## _ ## _literal () { return fpm::q::fromLiteral<_sq, chars...>(); }
 
 /**\}*/
 }

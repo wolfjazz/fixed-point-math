@@ -184,174 +184,174 @@ template< double lower = detail::lowestRealVMin<uint32_t,  31>(), double upper =
 
 /* literal operators */
 
-template< char ...chars > consteval auto operator ""_i8sqm4()   { return sqFromLiteral<  i8sqm4<>, chars...>(); }
-template< char ...chars > consteval auto operator ""_i8sqm3()   { return sqFromLiteral<  i8sqm3<>, chars...>(); }
-template< char ...chars > consteval auto operator ""_i8sqm2()   { return sqFromLiteral<  i8sqm2<>, chars...>(); }
-template< char ...chars > consteval auto operator ""_i8sqm1()   { return sqFromLiteral<  i8sqm1<>, chars...>(); }
-template< char ...chars > consteval auto operator ""_i8sq0()    { return sqFromLiteral<   i8sq0<>, chars...>(); }
-template< char ...chars > consteval auto operator ""_i8sq1()    { return sqFromLiteral<   i8sq1<>, chars...>(); }
-template< char ...chars > consteval auto operator ""_i8sq2()    { return sqFromLiteral<   i8sq2<>, chars...>(); }
-template< char ...chars > consteval auto operator ""_i8sq3()    { return sqFromLiteral<   i8sq3<>, chars...>(); }
-template< char ...chars > consteval auto operator ""_i8sq4()    { return sqFromLiteral<   i8sq4<>, chars...>(); }
-template< char ...chars > consteval auto operator ""_i8sq5()    { return sqFromLiteral<   i8sq5<>, chars...>(); }
-template< char ...chars > consteval auto operator ""_i8sq6()    { return sqFromLiteral<   i8sq6<>, chars...>(); }
-template< char ...chars > consteval auto operator ""_i8sq7()    { return sqFromLiteral<   i8sq7<>, chars...>(); }
-template< char ...chars > consteval auto operator ""_u8sqm4()   { return sqFromLiteral<  u8sqm4<>, chars...>(); }
-template< char ...chars > consteval auto operator ""_u8sqm3()   { return sqFromLiteral<  u8sqm3<>, chars...>(); }
-template< char ...chars > consteval auto operator ""_u8sqm2()   { return sqFromLiteral<  u8sqm2<>, chars...>(); }
-template< char ...chars > consteval auto operator ""_u8sqm1()   { return sqFromLiteral<  u8sqm1<>, chars...>(); }
-template< char ...chars > consteval auto operator ""_u8sq0()    { return sqFromLiteral<   u8sq0<>, chars...>(); }
-template< char ...chars > consteval auto operator ""_u8sq1()    { return sqFromLiteral<   u8sq1<>, chars...>(); }
-template< char ...chars > consteval auto operator ""_u8sq2()    { return sqFromLiteral<   u8sq2<>, chars...>(); }
-template< char ...chars > consteval auto operator ""_u8sq3()    { return sqFromLiteral<   u8sq3<>, chars...>(); }
-template< char ...chars > consteval auto operator ""_u8sq4()    { return sqFromLiteral<   u8sq4<>, chars...>(); }
-template< char ...chars > consteval auto operator ""_u8sq5()    { return sqFromLiteral<   u8sq5<>, chars...>(); }
-template< char ...chars > consteval auto operator ""_u8sq6()    { return sqFromLiteral<   u8sq6<>, chars...>(); }
-template< char ...chars > consteval auto operator ""_u8sq7()    { return sqFromLiteral<   u8sq7<>, chars...>(); }
-template< char ...chars > consteval auto operator ""_i16sqm8()  { return sqFromLiteral< i16sqm8<>, chars...>(); }
-template< char ...chars > consteval auto operator ""_i16sqm7()  { return sqFromLiteral< i16sqm7<>, chars...>(); }
-template< char ...chars > consteval auto operator ""_i16sqm6()  { return sqFromLiteral< i16sqm6<>, chars...>(); }
-template< char ...chars > consteval auto operator ""_i16sqm5()  { return sqFromLiteral< i16sqm5<>, chars...>(); }
-template< char ...chars > consteval auto operator ""_i16sqm4()  { return sqFromLiteral< i16sqm4<>, chars...>(); }
-template< char ...chars > consteval auto operator ""_i16sqm3()  { return sqFromLiteral< i16sqm3<>, chars...>(); }
-template< char ...chars > consteval auto operator ""_i16sqm2()  { return sqFromLiteral< i16sqm2<>, chars...>(); }
-template< char ...chars > consteval auto operator ""_i16sqm1()  { return sqFromLiteral< i16sqm1<>, chars...>(); }
-template< char ...chars > consteval auto operator ""_i16sq0()   { return sqFromLiteral<  i16sq0<>, chars...>(); }
-template< char ...chars > consteval auto operator ""_i16sq1()   { return sqFromLiteral<  i16sq1<>, chars...>(); }
-template< char ...chars > consteval auto operator ""_i16sq2()   { return sqFromLiteral<  i16sq2<>, chars...>(); }
-template< char ...chars > consteval auto operator ""_i16sq3()   { return sqFromLiteral<  i16sq3<>, chars...>(); }
-template< char ...chars > consteval auto operator ""_i16sq4()   { return sqFromLiteral<  i16sq4<>, chars...>(); }
-template< char ...chars > consteval auto operator ""_i16sq5()   { return sqFromLiteral<  i16sq5<>, chars...>(); }
-template< char ...chars > consteval auto operator ""_i16sq6()   { return sqFromLiteral<  i16sq6<>, chars...>(); }
-template< char ...chars > consteval auto operator ""_i16sq7()   { return sqFromLiteral<  i16sq7<>, chars...>(); }
-template< char ...chars > consteval auto operator ""_i16sq8()   { return sqFromLiteral<  i16sq8<>, chars...>(); }
-template< char ...chars > consteval auto operator ""_i16sq9()   { return sqFromLiteral<  i16sq9<>, chars...>(); }
-template< char ...chars > consteval auto operator ""_i16sq10()  { return sqFromLiteral< i16sq10<>, chars...>(); }
-template< char ...chars > consteval auto operator ""_i16sq11()  { return sqFromLiteral< i16sq11<>, chars...>(); }
-template< char ...chars > consteval auto operator ""_i16sq12()  { return sqFromLiteral< i16sq12<>, chars...>(); }
-template< char ...chars > consteval auto operator ""_i16sq13()  { return sqFromLiteral< i16sq13<>, chars...>(); }
-template< char ...chars > consteval auto operator ""_i16sq14()  { return sqFromLiteral< i16sq14<>, chars...>(); }
-template< char ...chars > consteval auto operator ""_i16sq15()  { return sqFromLiteral< i16sq15<>, chars...>(); }
-template< char ...chars > consteval auto operator ""_u16sqm8()  { return sqFromLiteral< u16sqm8<>, chars...>(); }
-template< char ...chars > consteval auto operator ""_u16sqm7()  { return sqFromLiteral< u16sqm7<>, chars...>(); }
-template< char ...chars > consteval auto operator ""_u16sqm6()  { return sqFromLiteral< u16sqm6<>, chars...>(); }
-template< char ...chars > consteval auto operator ""_u16sqm5()  { return sqFromLiteral< u16sqm5<>, chars...>(); }
-template< char ...chars > consteval auto operator ""_u16sqm4()  { return sqFromLiteral< u16sqm4<>, chars...>(); }
-template< char ...chars > consteval auto operator ""_u16sqm3()  { return sqFromLiteral< u16sqm3<>, chars...>(); }
-template< char ...chars > consteval auto operator ""_u16sqm2()  { return sqFromLiteral< u16sqm2<>, chars...>(); }
-template< char ...chars > consteval auto operator ""_u16sqm1()  { return sqFromLiteral< u16sqm1<>, chars...>(); }
-template< char ...chars > consteval auto operator ""_u16sq0()   { return sqFromLiteral<  u16sq0<>, chars...>(); }
-template< char ...chars > consteval auto operator ""_u16sq1()   { return sqFromLiteral<  u16sq1<>, chars...>(); }
-template< char ...chars > consteval auto operator ""_u16sq2()   { return sqFromLiteral<  u16sq2<>, chars...>(); }
-template< char ...chars > consteval auto operator ""_u16sq3()   { return sqFromLiteral<  u16sq3<>, chars...>(); }
-template< char ...chars > consteval auto operator ""_u16sq4()   { return sqFromLiteral<  u16sq4<>, chars...>(); }
-template< char ...chars > consteval auto operator ""_u16sq5()   { return sqFromLiteral<  u16sq5<>, chars...>(); }
-template< char ...chars > consteval auto operator ""_u16sq6()   { return sqFromLiteral<  u16sq6<>, chars...>(); }
-template< char ...chars > consteval auto operator ""_u16sq7()   { return sqFromLiteral<  u16sq7<>, chars...>(); }
-template< char ...chars > consteval auto operator ""_u16sq8()   { return sqFromLiteral<  u16sq8<>, chars...>(); }
-template< char ...chars > consteval auto operator ""_u16sq9()   { return sqFromLiteral<  u16sq9<>, chars...>(); }
-template< char ...chars > consteval auto operator ""_u16sq10()  { return sqFromLiteral< u16sq10<>, chars...>(); }
-template< char ...chars > consteval auto operator ""_u16sq11()  { return sqFromLiteral< u16sq11<>, chars...>(); }
-template< char ...chars > consteval auto operator ""_u16sq12()  { return sqFromLiteral< u16sq12<>, chars...>(); }
-template< char ...chars > consteval auto operator ""_u16sq13()  { return sqFromLiteral< u16sq13<>, chars...>(); }
-template< char ...chars > consteval auto operator ""_u16sq14()  { return sqFromLiteral< u16sq14<>, chars...>(); }
-template< char ...chars > consteval auto operator ""_u16sq15()  { return sqFromLiteral< u16sq15<>, chars...>(); }
-template< char ...chars > consteval auto operator ""_i32sqm16() { return sqFromLiteral<i32sqm16<>, chars...>(); }
-template< char ...chars > consteval auto operator ""_i32sqm15() { return sqFromLiteral<i32sqm15<>, chars...>(); }
-template< char ...chars > consteval auto operator ""_i32sqm14() { return sqFromLiteral<i32sqm14<>, chars...>(); }
-template< char ...chars > consteval auto operator ""_i32sqm13() { return sqFromLiteral<i32sqm13<>, chars...>(); }
-template< char ...chars > consteval auto operator ""_i32sqm12() { return sqFromLiteral<i32sqm12<>, chars...>(); }
-template< char ...chars > consteval auto operator ""_i32sqm11() { return sqFromLiteral<i32sqm11<>, chars...>(); }
-template< char ...chars > consteval auto operator ""_i32sqm10() { return sqFromLiteral<i32sqm10<>, chars...>(); }
-template< char ...chars > consteval auto operator ""_i32sqm9()  { return sqFromLiteral< i32sqm9<>, chars...>(); }
-template< char ...chars > consteval auto operator ""_i32sqm8()  { return sqFromLiteral< i32sqm8<>, chars...>(); }
-template< char ...chars > consteval auto operator ""_i32sqm7()  { return sqFromLiteral< i32sqm7<>, chars...>(); }
-template< char ...chars > consteval auto operator ""_i32sqm6()  { return sqFromLiteral< i32sqm6<>, chars...>(); }
-template< char ...chars > consteval auto operator ""_i32sqm5()  { return sqFromLiteral< i32sqm5<>, chars...>(); }
-template< char ...chars > consteval auto operator ""_i32sqm4()  { return sqFromLiteral< i32sqm4<>, chars...>(); }
-template< char ...chars > consteval auto operator ""_i32sqm3()  { return sqFromLiteral< i32sqm3<>, chars...>(); }
-template< char ...chars > consteval auto operator ""_i32sqm2()  { return sqFromLiteral< i32sqm2<>, chars...>(); }
-template< char ...chars > consteval auto operator ""_i32sqm1()  { return sqFromLiteral< i32sqm1<>, chars...>(); }
-template< char ...chars > consteval auto operator ""_i32sq0()   { return sqFromLiteral<  i32sq0<>, chars...>(); }
-template< char ...chars > consteval auto operator ""_i32sq1()   { return sqFromLiteral<  i32sq1<>, chars...>(); }
-template< char ...chars > consteval auto operator ""_i32sq2()   { return sqFromLiteral<  i32sq2<>, chars...>(); }
-template< char ...chars > consteval auto operator ""_i32sq3()   { return sqFromLiteral<  i32sq3<>, chars...>(); }
-template< char ...chars > consteval auto operator ""_i32sq4()   { return sqFromLiteral<  i32sq4<>, chars...>(); }
-template< char ...chars > consteval auto operator ""_i32sq5()   { return sqFromLiteral<  i32sq5<>, chars...>(); }
-template< char ...chars > consteval auto operator ""_i32sq6()   { return sqFromLiteral<  i32sq6<>, chars...>(); }
-template< char ...chars > consteval auto operator ""_i32sq7()   { return sqFromLiteral<  i32sq7<>, chars...>(); }
-template< char ...chars > consteval auto operator ""_i32sq8()   { return sqFromLiteral<  i32sq8<>, chars...>(); }
-template< char ...chars > consteval auto operator ""_i32sq9()   { return sqFromLiteral<  i32sq9<>, chars...>(); }
-template< char ...chars > consteval auto operator ""_i32sq10()  { return sqFromLiteral< i32sq10<>, chars...>(); }
-template< char ...chars > consteval auto operator ""_i32sq11()  { return sqFromLiteral< i32sq11<>, chars...>(); }
-template< char ...chars > consteval auto operator ""_i32sq12()  { return sqFromLiteral< i32sq12<>, chars...>(); }
-template< char ...chars > consteval auto operator ""_i32sq13()  { return sqFromLiteral< i32sq13<>, chars...>(); }
-template< char ...chars > consteval auto operator ""_i32sq14()  { return sqFromLiteral< i32sq14<>, chars...>(); }
-template< char ...chars > consteval auto operator ""_i32sq15()  { return sqFromLiteral< i32sq15<>, chars...>(); }
-template< char ...chars > consteval auto operator ""_i32sq16()  { return sqFromLiteral< i32sq16<>, chars...>(); }
-template< char ...chars > consteval auto operator ""_i32sq17()  { return sqFromLiteral< i32sq17<>, chars...>(); }
-template< char ...chars > consteval auto operator ""_i32sq18()  { return sqFromLiteral< i32sq18<>, chars...>(); }
-template< char ...chars > consteval auto operator ""_i32sq19()  { return sqFromLiteral< i32sq19<>, chars...>(); }
-template< char ...chars > consteval auto operator ""_i32sq20()  { return sqFromLiteral< i32sq20<>, chars...>(); }
-template< char ...chars > consteval auto operator ""_i32sq21()  { return sqFromLiteral< i32sq21<>, chars...>(); }
-template< char ...chars > consteval auto operator ""_i32sq22()  { return sqFromLiteral< i32sq22<>, chars...>(); }
-template< char ...chars > consteval auto operator ""_i32sq23()  { return sqFromLiteral< i32sq23<>, chars...>(); }
-template< char ...chars > consteval auto operator ""_i32sq24()  { return sqFromLiteral< i32sq24<>, chars...>(); }
-template< char ...chars > consteval auto operator ""_i32sq25()  { return sqFromLiteral< i32sq25<>, chars...>(); }
-template< char ...chars > consteval auto operator ""_i32sq26()  { return sqFromLiteral< i32sq26<>, chars...>(); }
-template< char ...chars > consteval auto operator ""_i32sq27()  { return sqFromLiteral< i32sq27<>, chars...>(); }
-template< char ...chars > consteval auto operator ""_i32sq28()  { return sqFromLiteral< i32sq28<>, chars...>(); }
-template< char ...chars > consteval auto operator ""_i32sq29()  { return sqFromLiteral< i32sq29<>, chars...>(); }
-template< char ...chars > consteval auto operator ""_i32sq30()  { return sqFromLiteral< i32sq30<>, chars...>(); }
-template< char ...chars > consteval auto operator ""_i32sq31()  { return sqFromLiteral< i32sq31<>, chars...>(); }
-template< char ...chars > consteval auto operator ""_u32sqm16() { return sqFromLiteral<u32sqm16<>, chars...>(); }
-template< char ...chars > consteval auto operator ""_u32sqm15() { return sqFromLiteral<u32sqm15<>, chars...>(); }
-template< char ...chars > consteval auto operator ""_u32sqm14() { return sqFromLiteral<u32sqm14<>, chars...>(); }
-template< char ...chars > consteval auto operator ""_u32sqm13() { return sqFromLiteral<u32sqm13<>, chars...>(); }
-template< char ...chars > consteval auto operator ""_u32sqm12() { return sqFromLiteral<u32sqm12<>, chars...>(); }
-template< char ...chars > consteval auto operator ""_u32sqm11() { return sqFromLiteral<u32sqm11<>, chars...>(); }
-template< char ...chars > consteval auto operator ""_u32sqm10() { return sqFromLiteral<u32sqm10<>, chars...>(); }
-template< char ...chars > consteval auto operator ""_u32sqm9()  { return sqFromLiteral< u32sqm9<>, chars...>(); }
-template< char ...chars > consteval auto operator ""_u32sqm8()  { return sqFromLiteral< u32sqm8<>, chars...>(); }
-template< char ...chars > consteval auto operator ""_u32sqm7()  { return sqFromLiteral< u32sqm7<>, chars...>(); }
-template< char ...chars > consteval auto operator ""_u32sqm6()  { return sqFromLiteral< u32sqm6<>, chars...>(); }
-template< char ...chars > consteval auto operator ""_u32sqm5()  { return sqFromLiteral< u32sqm5<>, chars...>(); }
-template< char ...chars > consteval auto operator ""_u32sqm4()  { return sqFromLiteral< u32sqm4<>, chars...>(); }
-template< char ...chars > consteval auto operator ""_u32sqm3()  { return sqFromLiteral< u32sqm3<>, chars...>(); }
-template< char ...chars > consteval auto operator ""_u32sqm2()  { return sqFromLiteral< u32sqm2<>, chars...>(); }
-template< char ...chars > consteval auto operator ""_u32sqm1()  { return sqFromLiteral< u32sqm1<>, chars...>(); }
-template< char ...chars > consteval auto operator ""_u32sq0()   { return sqFromLiteral<  u32sq0<>, chars...>(); }
-template< char ...chars > consteval auto operator ""_u32sq1()   { return sqFromLiteral<  u32sq1<>, chars...>(); }
-template< char ...chars > consteval auto operator ""_u32sq2()   { return sqFromLiteral<  u32sq2<>, chars...>(); }
-template< char ...chars > consteval auto operator ""_u32sq3()   { return sqFromLiteral<  u32sq3<>, chars...>(); }
-template< char ...chars > consteval auto operator ""_u32sq4()   { return sqFromLiteral<  u32sq4<>, chars...>(); }
-template< char ...chars > consteval auto operator ""_u32sq5()   { return sqFromLiteral<  u32sq5<>, chars...>(); }
-template< char ...chars > consteval auto operator ""_u32sq6()   { return sqFromLiteral<  u32sq6<>, chars...>(); }
-template< char ...chars > consteval auto operator ""_u32sq7()   { return sqFromLiteral<  u32sq7<>, chars...>(); }
-template< char ...chars > consteval auto operator ""_u32sq8()   { return sqFromLiteral<  u32sq8<>, chars...>(); }
-template< char ...chars > consteval auto operator ""_u32sq9()   { return sqFromLiteral<  u32sq9<>, chars...>(); }
-template< char ...chars > consteval auto operator ""_u32sq10()  { return sqFromLiteral< u32sq10<>, chars...>(); }
-template< char ...chars > consteval auto operator ""_u32sq11()  { return sqFromLiteral< u32sq11<>, chars...>(); }
-template< char ...chars > consteval auto operator ""_u32sq12()  { return sqFromLiteral< u32sq12<>, chars...>(); }
-template< char ...chars > consteval auto operator ""_u32sq13()  { return sqFromLiteral< u32sq13<>, chars...>(); }
-template< char ...chars > consteval auto operator ""_u32sq14()  { return sqFromLiteral< u32sq14<>, chars...>(); }
-template< char ...chars > consteval auto operator ""_u32sq15()  { return sqFromLiteral< u32sq15<>, chars...>(); }
-template< char ...chars > consteval auto operator ""_u32sq16()  { return sqFromLiteral< u32sq16<>, chars...>(); }
-template< char ...chars > consteval auto operator ""_u32sq17()  { return sqFromLiteral< u32sq17<>, chars...>(); }
-template< char ...chars > consteval auto operator ""_u32sq18()  { return sqFromLiteral< u32sq18<>, chars...>(); }
-template< char ...chars > consteval auto operator ""_u32sq19()  { return sqFromLiteral< u32sq19<>, chars...>(); }
-template< char ...chars > consteval auto operator ""_u32sq20()  { return sqFromLiteral< u32sq20<>, chars...>(); }
-template< char ...chars > consteval auto operator ""_u32sq21()  { return sqFromLiteral< u32sq21<>, chars...>(); }
-template< char ...chars > consteval auto operator ""_u32sq22()  { return sqFromLiteral< u32sq22<>, chars...>(); }
-template< char ...chars > consteval auto operator ""_u32sq23()  { return sqFromLiteral< u32sq23<>, chars...>(); }
-template< char ...chars > consteval auto operator ""_u32sq24()  { return sqFromLiteral< u32sq24<>, chars...>(); }
-template< char ...chars > consteval auto operator ""_u32sq25()  { return sqFromLiteral< u32sq25<>, chars...>(); }
-template< char ...chars > consteval auto operator ""_u32sq26()  { return sqFromLiteral< u32sq26<>, chars...>(); }
-template< char ...chars > consteval auto operator ""_u32sq27()  { return sqFromLiteral< u32sq27<>, chars...>(); }
-template< char ...chars > consteval auto operator ""_u32sq28()  { return sqFromLiteral< u32sq28<>, chars...>(); }
-template< char ...chars > consteval auto operator ""_u32sq29()  { return sqFromLiteral< u32sq29<>, chars...>(); }
-template< char ...chars > consteval auto operator ""_u32sq30()  { return sqFromLiteral< u32sq30<>, chars...>(); }
-template< char ...chars > consteval auto operator ""_u32sq31()  { return sqFromLiteral< u32sq31<>, chars...>(); }
+template< char ...chars > consteval auto operator ""_i8sqm4()   { return fromLiteral<  i8sqm4<>, chars...>(); }
+template< char ...chars > consteval auto operator ""_i8sqm3()   { return fromLiteral<  i8sqm3<>, chars...>(); }
+template< char ...chars > consteval auto operator ""_i8sqm2()   { return fromLiteral<  i8sqm2<>, chars...>(); }
+template< char ...chars > consteval auto operator ""_i8sqm1()   { return fromLiteral<  i8sqm1<>, chars...>(); }
+template< char ...chars > consteval auto operator ""_i8sq0()    { return fromLiteral<   i8sq0<>, chars...>(); }
+template< char ...chars > consteval auto operator ""_i8sq1()    { return fromLiteral<   i8sq1<>, chars...>(); }
+template< char ...chars > consteval auto operator ""_i8sq2()    { return fromLiteral<   i8sq2<>, chars...>(); }
+template< char ...chars > consteval auto operator ""_i8sq3()    { return fromLiteral<   i8sq3<>, chars...>(); }
+template< char ...chars > consteval auto operator ""_i8sq4()    { return fromLiteral<   i8sq4<>, chars...>(); }
+template< char ...chars > consteval auto operator ""_i8sq5()    { return fromLiteral<   i8sq5<>, chars...>(); }
+template< char ...chars > consteval auto operator ""_i8sq6()    { return fromLiteral<   i8sq6<>, chars...>(); }
+template< char ...chars > consteval auto operator ""_i8sq7()    { return fromLiteral<   i8sq7<>, chars...>(); }
+template< char ...chars > consteval auto operator ""_u8sqm4()   { return fromLiteral<  u8sqm4<>, chars...>(); }
+template< char ...chars > consteval auto operator ""_u8sqm3()   { return fromLiteral<  u8sqm3<>, chars...>(); }
+template< char ...chars > consteval auto operator ""_u8sqm2()   { return fromLiteral<  u8sqm2<>, chars...>(); }
+template< char ...chars > consteval auto operator ""_u8sqm1()   { return fromLiteral<  u8sqm1<>, chars...>(); }
+template< char ...chars > consteval auto operator ""_u8sq0()    { return fromLiteral<   u8sq0<>, chars...>(); }
+template< char ...chars > consteval auto operator ""_u8sq1()    { return fromLiteral<   u8sq1<>, chars...>(); }
+template< char ...chars > consteval auto operator ""_u8sq2()    { return fromLiteral<   u8sq2<>, chars...>(); }
+template< char ...chars > consteval auto operator ""_u8sq3()    { return fromLiteral<   u8sq3<>, chars...>(); }
+template< char ...chars > consteval auto operator ""_u8sq4()    { return fromLiteral<   u8sq4<>, chars...>(); }
+template< char ...chars > consteval auto operator ""_u8sq5()    { return fromLiteral<   u8sq5<>, chars...>(); }
+template< char ...chars > consteval auto operator ""_u8sq6()    { return fromLiteral<   u8sq6<>, chars...>(); }
+template< char ...chars > consteval auto operator ""_u8sq7()    { return fromLiteral<   u8sq7<>, chars...>(); }
+template< char ...chars > consteval auto operator ""_i16sqm8()  { return fromLiteral< i16sqm8<>, chars...>(); }
+template< char ...chars > consteval auto operator ""_i16sqm7()  { return fromLiteral< i16sqm7<>, chars...>(); }
+template< char ...chars > consteval auto operator ""_i16sqm6()  { return fromLiteral< i16sqm6<>, chars...>(); }
+template< char ...chars > consteval auto operator ""_i16sqm5()  { return fromLiteral< i16sqm5<>, chars...>(); }
+template< char ...chars > consteval auto operator ""_i16sqm4()  { return fromLiteral< i16sqm4<>, chars...>(); }
+template< char ...chars > consteval auto operator ""_i16sqm3()  { return fromLiteral< i16sqm3<>, chars...>(); }
+template< char ...chars > consteval auto operator ""_i16sqm2()  { return fromLiteral< i16sqm2<>, chars...>(); }
+template< char ...chars > consteval auto operator ""_i16sqm1()  { return fromLiteral< i16sqm1<>, chars...>(); }
+template< char ...chars > consteval auto operator ""_i16sq0()   { return fromLiteral<  i16sq0<>, chars...>(); }
+template< char ...chars > consteval auto operator ""_i16sq1()   { return fromLiteral<  i16sq1<>, chars...>(); }
+template< char ...chars > consteval auto operator ""_i16sq2()   { return fromLiteral<  i16sq2<>, chars...>(); }
+template< char ...chars > consteval auto operator ""_i16sq3()   { return fromLiteral<  i16sq3<>, chars...>(); }
+template< char ...chars > consteval auto operator ""_i16sq4()   { return fromLiteral<  i16sq4<>, chars...>(); }
+template< char ...chars > consteval auto operator ""_i16sq5()   { return fromLiteral<  i16sq5<>, chars...>(); }
+template< char ...chars > consteval auto operator ""_i16sq6()   { return fromLiteral<  i16sq6<>, chars...>(); }
+template< char ...chars > consteval auto operator ""_i16sq7()   { return fromLiteral<  i16sq7<>, chars...>(); }
+template< char ...chars > consteval auto operator ""_i16sq8()   { return fromLiteral<  i16sq8<>, chars...>(); }
+template< char ...chars > consteval auto operator ""_i16sq9()   { return fromLiteral<  i16sq9<>, chars...>(); }
+template< char ...chars > consteval auto operator ""_i16sq10()  { return fromLiteral< i16sq10<>, chars...>(); }
+template< char ...chars > consteval auto operator ""_i16sq11()  { return fromLiteral< i16sq11<>, chars...>(); }
+template< char ...chars > consteval auto operator ""_i16sq12()  { return fromLiteral< i16sq12<>, chars...>(); }
+template< char ...chars > consteval auto operator ""_i16sq13()  { return fromLiteral< i16sq13<>, chars...>(); }
+template< char ...chars > consteval auto operator ""_i16sq14()  { return fromLiteral< i16sq14<>, chars...>(); }
+template< char ...chars > consteval auto operator ""_i16sq15()  { return fromLiteral< i16sq15<>, chars...>(); }
+template< char ...chars > consteval auto operator ""_u16sqm8()  { return fromLiteral< u16sqm8<>, chars...>(); }
+template< char ...chars > consteval auto operator ""_u16sqm7()  { return fromLiteral< u16sqm7<>, chars...>(); }
+template< char ...chars > consteval auto operator ""_u16sqm6()  { return fromLiteral< u16sqm6<>, chars...>(); }
+template< char ...chars > consteval auto operator ""_u16sqm5()  { return fromLiteral< u16sqm5<>, chars...>(); }
+template< char ...chars > consteval auto operator ""_u16sqm4()  { return fromLiteral< u16sqm4<>, chars...>(); }
+template< char ...chars > consteval auto operator ""_u16sqm3()  { return fromLiteral< u16sqm3<>, chars...>(); }
+template< char ...chars > consteval auto operator ""_u16sqm2()  { return fromLiteral< u16sqm2<>, chars...>(); }
+template< char ...chars > consteval auto operator ""_u16sqm1()  { return fromLiteral< u16sqm1<>, chars...>(); }
+template< char ...chars > consteval auto operator ""_u16sq0()   { return fromLiteral<  u16sq0<>, chars...>(); }
+template< char ...chars > consteval auto operator ""_u16sq1()   { return fromLiteral<  u16sq1<>, chars...>(); }
+template< char ...chars > consteval auto operator ""_u16sq2()   { return fromLiteral<  u16sq2<>, chars...>(); }
+template< char ...chars > consteval auto operator ""_u16sq3()   { return fromLiteral<  u16sq3<>, chars...>(); }
+template< char ...chars > consteval auto operator ""_u16sq4()   { return fromLiteral<  u16sq4<>, chars...>(); }
+template< char ...chars > consteval auto operator ""_u16sq5()   { return fromLiteral<  u16sq5<>, chars...>(); }
+template< char ...chars > consteval auto operator ""_u16sq6()   { return fromLiteral<  u16sq6<>, chars...>(); }
+template< char ...chars > consteval auto operator ""_u16sq7()   { return fromLiteral<  u16sq7<>, chars...>(); }
+template< char ...chars > consteval auto operator ""_u16sq8()   { return fromLiteral<  u16sq8<>, chars...>(); }
+template< char ...chars > consteval auto operator ""_u16sq9()   { return fromLiteral<  u16sq9<>, chars...>(); }
+template< char ...chars > consteval auto operator ""_u16sq10()  { return fromLiteral< u16sq10<>, chars...>(); }
+template< char ...chars > consteval auto operator ""_u16sq11()  { return fromLiteral< u16sq11<>, chars...>(); }
+template< char ...chars > consteval auto operator ""_u16sq12()  { return fromLiteral< u16sq12<>, chars...>(); }
+template< char ...chars > consteval auto operator ""_u16sq13()  { return fromLiteral< u16sq13<>, chars...>(); }
+template< char ...chars > consteval auto operator ""_u16sq14()  { return fromLiteral< u16sq14<>, chars...>(); }
+template< char ...chars > consteval auto operator ""_u16sq15()  { return fromLiteral< u16sq15<>, chars...>(); }
+template< char ...chars > consteval auto operator ""_i32sqm16() { return fromLiteral<i32sqm16<>, chars...>(); }
+template< char ...chars > consteval auto operator ""_i32sqm15() { return fromLiteral<i32sqm15<>, chars...>(); }
+template< char ...chars > consteval auto operator ""_i32sqm14() { return fromLiteral<i32sqm14<>, chars...>(); }
+template< char ...chars > consteval auto operator ""_i32sqm13() { return fromLiteral<i32sqm13<>, chars...>(); }
+template< char ...chars > consteval auto operator ""_i32sqm12() { return fromLiteral<i32sqm12<>, chars...>(); }
+template< char ...chars > consteval auto operator ""_i32sqm11() { return fromLiteral<i32sqm11<>, chars...>(); }
+template< char ...chars > consteval auto operator ""_i32sqm10() { return fromLiteral<i32sqm10<>, chars...>(); }
+template< char ...chars > consteval auto operator ""_i32sqm9()  { return fromLiteral< i32sqm9<>, chars...>(); }
+template< char ...chars > consteval auto operator ""_i32sqm8()  { return fromLiteral< i32sqm8<>, chars...>(); }
+template< char ...chars > consteval auto operator ""_i32sqm7()  { return fromLiteral< i32sqm7<>, chars...>(); }
+template< char ...chars > consteval auto operator ""_i32sqm6()  { return fromLiteral< i32sqm6<>, chars...>(); }
+template< char ...chars > consteval auto operator ""_i32sqm5()  { return fromLiteral< i32sqm5<>, chars...>(); }
+template< char ...chars > consteval auto operator ""_i32sqm4()  { return fromLiteral< i32sqm4<>, chars...>(); }
+template< char ...chars > consteval auto operator ""_i32sqm3()  { return fromLiteral< i32sqm3<>, chars...>(); }
+template< char ...chars > consteval auto operator ""_i32sqm2()  { return fromLiteral< i32sqm2<>, chars...>(); }
+template< char ...chars > consteval auto operator ""_i32sqm1()  { return fromLiteral< i32sqm1<>, chars...>(); }
+template< char ...chars > consteval auto operator ""_i32sq0()   { return fromLiteral<  i32sq0<>, chars...>(); }
+template< char ...chars > consteval auto operator ""_i32sq1()   { return fromLiteral<  i32sq1<>, chars...>(); }
+template< char ...chars > consteval auto operator ""_i32sq2()   { return fromLiteral<  i32sq2<>, chars...>(); }
+template< char ...chars > consteval auto operator ""_i32sq3()   { return fromLiteral<  i32sq3<>, chars...>(); }
+template< char ...chars > consteval auto operator ""_i32sq4()   { return fromLiteral<  i32sq4<>, chars...>(); }
+template< char ...chars > consteval auto operator ""_i32sq5()   { return fromLiteral<  i32sq5<>, chars...>(); }
+template< char ...chars > consteval auto operator ""_i32sq6()   { return fromLiteral<  i32sq6<>, chars...>(); }
+template< char ...chars > consteval auto operator ""_i32sq7()   { return fromLiteral<  i32sq7<>, chars...>(); }
+template< char ...chars > consteval auto operator ""_i32sq8()   { return fromLiteral<  i32sq8<>, chars...>(); }
+template< char ...chars > consteval auto operator ""_i32sq9()   { return fromLiteral<  i32sq9<>, chars...>(); }
+template< char ...chars > consteval auto operator ""_i32sq10()  { return fromLiteral< i32sq10<>, chars...>(); }
+template< char ...chars > consteval auto operator ""_i32sq11()  { return fromLiteral< i32sq11<>, chars...>(); }
+template< char ...chars > consteval auto operator ""_i32sq12()  { return fromLiteral< i32sq12<>, chars...>(); }
+template< char ...chars > consteval auto operator ""_i32sq13()  { return fromLiteral< i32sq13<>, chars...>(); }
+template< char ...chars > consteval auto operator ""_i32sq14()  { return fromLiteral< i32sq14<>, chars...>(); }
+template< char ...chars > consteval auto operator ""_i32sq15()  { return fromLiteral< i32sq15<>, chars...>(); }
+template< char ...chars > consteval auto operator ""_i32sq16()  { return fromLiteral< i32sq16<>, chars...>(); }
+template< char ...chars > consteval auto operator ""_i32sq17()  { return fromLiteral< i32sq17<>, chars...>(); }
+template< char ...chars > consteval auto operator ""_i32sq18()  { return fromLiteral< i32sq18<>, chars...>(); }
+template< char ...chars > consteval auto operator ""_i32sq19()  { return fromLiteral< i32sq19<>, chars...>(); }
+template< char ...chars > consteval auto operator ""_i32sq20()  { return fromLiteral< i32sq20<>, chars...>(); }
+template< char ...chars > consteval auto operator ""_i32sq21()  { return fromLiteral< i32sq21<>, chars...>(); }
+template< char ...chars > consteval auto operator ""_i32sq22()  { return fromLiteral< i32sq22<>, chars...>(); }
+template< char ...chars > consteval auto operator ""_i32sq23()  { return fromLiteral< i32sq23<>, chars...>(); }
+template< char ...chars > consteval auto operator ""_i32sq24()  { return fromLiteral< i32sq24<>, chars...>(); }
+template< char ...chars > consteval auto operator ""_i32sq25()  { return fromLiteral< i32sq25<>, chars...>(); }
+template< char ...chars > consteval auto operator ""_i32sq26()  { return fromLiteral< i32sq26<>, chars...>(); }
+template< char ...chars > consteval auto operator ""_i32sq27()  { return fromLiteral< i32sq27<>, chars...>(); }
+template< char ...chars > consteval auto operator ""_i32sq28()  { return fromLiteral< i32sq28<>, chars...>(); }
+template< char ...chars > consteval auto operator ""_i32sq29()  { return fromLiteral< i32sq29<>, chars...>(); }
+template< char ...chars > consteval auto operator ""_i32sq30()  { return fromLiteral< i32sq30<>, chars...>(); }
+template< char ...chars > consteval auto operator ""_i32sq31()  { return fromLiteral< i32sq31<>, chars...>(); }
+template< char ...chars > consteval auto operator ""_u32sqm16() { return fromLiteral<u32sqm16<>, chars...>(); }
+template< char ...chars > consteval auto operator ""_u32sqm15() { return fromLiteral<u32sqm15<>, chars...>(); }
+template< char ...chars > consteval auto operator ""_u32sqm14() { return fromLiteral<u32sqm14<>, chars...>(); }
+template< char ...chars > consteval auto operator ""_u32sqm13() { return fromLiteral<u32sqm13<>, chars...>(); }
+template< char ...chars > consteval auto operator ""_u32sqm12() { return fromLiteral<u32sqm12<>, chars...>(); }
+template< char ...chars > consteval auto operator ""_u32sqm11() { return fromLiteral<u32sqm11<>, chars...>(); }
+template< char ...chars > consteval auto operator ""_u32sqm10() { return fromLiteral<u32sqm10<>, chars...>(); }
+template< char ...chars > consteval auto operator ""_u32sqm9()  { return fromLiteral< u32sqm9<>, chars...>(); }
+template< char ...chars > consteval auto operator ""_u32sqm8()  { return fromLiteral< u32sqm8<>, chars...>(); }
+template< char ...chars > consteval auto operator ""_u32sqm7()  { return fromLiteral< u32sqm7<>, chars...>(); }
+template< char ...chars > consteval auto operator ""_u32sqm6()  { return fromLiteral< u32sqm6<>, chars...>(); }
+template< char ...chars > consteval auto operator ""_u32sqm5()  { return fromLiteral< u32sqm5<>, chars...>(); }
+template< char ...chars > consteval auto operator ""_u32sqm4()  { return fromLiteral< u32sqm4<>, chars...>(); }
+template< char ...chars > consteval auto operator ""_u32sqm3()  { return fromLiteral< u32sqm3<>, chars...>(); }
+template< char ...chars > consteval auto operator ""_u32sqm2()  { return fromLiteral< u32sqm2<>, chars...>(); }
+template< char ...chars > consteval auto operator ""_u32sqm1()  { return fromLiteral< u32sqm1<>, chars...>(); }
+template< char ...chars > consteval auto operator ""_u32sq0()   { return fromLiteral<  u32sq0<>, chars...>(); }
+template< char ...chars > consteval auto operator ""_u32sq1()   { return fromLiteral<  u32sq1<>, chars...>(); }
+template< char ...chars > consteval auto operator ""_u32sq2()   { return fromLiteral<  u32sq2<>, chars...>(); }
+template< char ...chars > consteval auto operator ""_u32sq3()   { return fromLiteral<  u32sq3<>, chars...>(); }
+template< char ...chars > consteval auto operator ""_u32sq4()   { return fromLiteral<  u32sq4<>, chars...>(); }
+template< char ...chars > consteval auto operator ""_u32sq5()   { return fromLiteral<  u32sq5<>, chars...>(); }
+template< char ...chars > consteval auto operator ""_u32sq6()   { return fromLiteral<  u32sq6<>, chars...>(); }
+template< char ...chars > consteval auto operator ""_u32sq7()   { return fromLiteral<  u32sq7<>, chars...>(); }
+template< char ...chars > consteval auto operator ""_u32sq8()   { return fromLiteral<  u32sq8<>, chars...>(); }
+template< char ...chars > consteval auto operator ""_u32sq9()   { return fromLiteral<  u32sq9<>, chars...>(); }
+template< char ...chars > consteval auto operator ""_u32sq10()  { return fromLiteral< u32sq10<>, chars...>(); }
+template< char ...chars > consteval auto operator ""_u32sq11()  { return fromLiteral< u32sq11<>, chars...>(); }
+template< char ...chars > consteval auto operator ""_u32sq12()  { return fromLiteral< u32sq12<>, chars...>(); }
+template< char ...chars > consteval auto operator ""_u32sq13()  { return fromLiteral< u32sq13<>, chars...>(); }
+template< char ...chars > consteval auto operator ""_u32sq14()  { return fromLiteral< u32sq14<>, chars...>(); }
+template< char ...chars > consteval auto operator ""_u32sq15()  { return fromLiteral< u32sq15<>, chars...>(); }
+template< char ...chars > consteval auto operator ""_u32sq16()  { return fromLiteral< u32sq16<>, chars...>(); }
+template< char ...chars > consteval auto operator ""_u32sq17()  { return fromLiteral< u32sq17<>, chars...>(); }
+template< char ...chars > consteval auto operator ""_u32sq18()  { return fromLiteral< u32sq18<>, chars...>(); }
+template< char ...chars > consteval auto operator ""_u32sq19()  { return fromLiteral< u32sq19<>, chars...>(); }
+template< char ...chars > consteval auto operator ""_u32sq20()  { return fromLiteral< u32sq20<>, chars...>(); }
+template< char ...chars > consteval auto operator ""_u32sq21()  { return fromLiteral< u32sq21<>, chars...>(); }
+template< char ...chars > consteval auto operator ""_u32sq22()  { return fromLiteral< u32sq22<>, chars...>(); }
+template< char ...chars > consteval auto operator ""_u32sq23()  { return fromLiteral< u32sq23<>, chars...>(); }
+template< char ...chars > consteval auto operator ""_u32sq24()  { return fromLiteral< u32sq24<>, chars...>(); }
+template< char ...chars > consteval auto operator ""_u32sq25()  { return fromLiteral< u32sq25<>, chars...>(); }
+template< char ...chars > consteval auto operator ""_u32sq26()  { return fromLiteral< u32sq26<>, chars...>(); }
+template< char ...chars > consteval auto operator ""_u32sq27()  { return fromLiteral< u32sq27<>, chars...>(); }
+template< char ...chars > consteval auto operator ""_u32sq28()  { return fromLiteral< u32sq28<>, chars...>(); }
+template< char ...chars > consteval auto operator ""_u32sq29()  { return fromLiteral< u32sq29<>, chars...>(); }
+template< char ...chars > consteval auto operator ""_u32sq30()  { return fromLiteral< u32sq30<>, chars...>(); }
+template< char ...chars > consteval auto operator ""_u32sq31()  { return fromLiteral< u32sq31<>, chars...>(); }
 
 /**\}*/
 }

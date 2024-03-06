@@ -56,7 +56,7 @@ def print_sq_literals():
         f_range = get_f_from_range(sq.fFrom, sq.fTo)
         for f, fStr in f_range:
             templSqType = sq.short + "sq" + fStr
-            print("template< char ...chars > consteval auto operator \"\"_%-10s { return sqFromLiteral<%8s<>, chars...>(); }" % (templSqType + "()", templSqType))
+            print("template< char ...chars > consteval auto operator \"\"_%-10s { return sq::fromLiteral<%8s<>, chars...>(); }" % (templSqType + "()", templSqType))
 
 def print_q_types():
     for q in qTypeList:
@@ -69,7 +69,7 @@ def print_q_literals():
         f_range = get_f_from_range(q.fFrom, q.fTo)
         for f, fStr in f_range:
             templQType = q.short + "q" + fStr
-            print("template< char ...chars > consteval auto operator \"\"_%-9s { return qFromLiteral<%7s<>, chars...>(); }" % (templQType + "()", templQType))
+            print("template< char ...chars > consteval auto operator \"\"_%-9s { return q::fromLiteral<%7s<>, chars...>(); }" % (templQType + "()", templQType))
 
 
 def main():

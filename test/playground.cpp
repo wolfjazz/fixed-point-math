@@ -18,6 +18,7 @@ FPM_Q_BIND_LITERAL(accel_t, mm_p_s2);
 using mtime_t = i32q20<-2000., 2000. /* s */>;
 FPM_Q_BIND_LITERAL(mtime_t, s);
 
+
 void accel(pos_t &position, speed_t &velocity, accel_t const acceleration, mtime_t const forTime, auto const dt) {
     for (mtime_t t = 0_s; t < forTime; t = mtime_t::fromSq<Ovf::noCheck>(t + dt)) {
         auto dv = +acceleration * dt;
@@ -42,8 +43,9 @@ void playground() {
     // limit results
     position = position % 100_mm;
     velocity = clamp(velocity, -100_mm_p_s, -10_mm_p_s);  // runtime limits
-    velocity = clamp<-100., -10.>(velocity);  // same as above line but with compile-time limits
-    //velocity = clamp<-100_mm_p_s, -10_mm_p_s>(velocity);  // TODO: compile-time limits with units
+    // compile-time limits; value is usually clamped at runtime though
+    velocity = clamp<-100., -10.>(velocity);
+    velocity = clamp<-99.9_mm, -9.9_mm>(velocity);  // also works with literals
 
     std::cout << "pos size:" << sizeof(position) << ", spd size:" << sizeof(velocity) << std::endl;
     std::cout << "pos: " << position.toReal() << ", vel: " << velocity.toReal() << std::endl;

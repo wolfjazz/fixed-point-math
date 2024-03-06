@@ -249,13 +249,17 @@ pos_t::Sq<> s5 = s / 3.14159_i32q16;
 // Literals open up lots of opportunities. For example, the user could define a literal operator
 // for the pos_t from above:
 template< char ...chars >
-consteval auto operator""_mm() { return pos_t::fromLiteral<chars...>(); }
+consteval auto operator""_mm() { return q::fromLiteral<pos_t, chars...>(); }
+// Note: For convenience, this is also provided as macro: FPM_Q_BIND_LITERAL(_qtype, _literal) and
+//       similar FPM_SQ_BIND_LITERAL(_sqtype, _literal) for Sq types.
 //
 // Now it is possible to create a pos_t variable from a number that uses the literal _mm:
 pos_t position = 500.5_mm;  // i32q16<-10000., 10000.>::fromReal<500.5>
 //
 // Such literals can be used in any formula of Q variables.
 pos_t::Sq<> position2 = position + 100.1_mm;
+//
+// (!!!) Limitations: A literal can only be bound to a single type (Sq or Q) per translation unit.
 
 
 /* mathematical operators */
@@ -281,15 +285,23 @@ u32q16<> z = sz;  // implicit conversion of Sq result back to Q-value (same valu
 /* division */
 // similar to addition
 
-// clamp value
-posClamped = clamp(position, -100_mm, 100_mm);  // this
-posClamped2 = clamp<-100., 100.>(position);  // this re-limits type and clamps value
-// note: ADL is used when clamp() is unqualified: clamp(position, min, max)
+// clamp value;
+// limits are converted to integers at compile-time if possible; runtime values can also be used;
+// note: lower limit of first limit type and upper limit of second limit typed is used
+posClamped = clamp(position, -100_mm, 100_mm);
+// compile-time limits; value is usually clamped at runtime though
+posClamped2 = clamp<-100., +100.>(position);
+posClamped3 = clamp<-99.9_mm, +99.9_mm>(position);  // also works with literals (implicit -> double)
 
-// ...
+/* equality and comparison operators */
+/* abs, shift, min, max */
+
+
 ````
 
 ---
+
+TODO: create science package, where a user can define fixed powers of a defined base (e.g. 10)
 
 TODO: provide full readme based on the following template:
 

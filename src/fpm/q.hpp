@@ -331,6 +331,9 @@ public:
     constexpr TargetT toReal() const noexcept {
         return v2s<TargetT, -f>(value);
     }
+    /// Implicit conversion of a Q value back into its double representation. Allows using a
+    /// value+unit literal where a double is expected. Compile-time only!
+    consteval operator double() const noexcept { return toReal<double>(); }
 
 private:
     // delete default (runtime) constructor
@@ -520,13 +523,13 @@ constexpr auto max(QType auto const &q1, QType auto const &q2) noexcept { return
 /// Converts a literal number into the corresponding best-fit Q type.
 /// Best-fit means that the literal number represents both limits and the value.
 template< QType Q, char ...charArray >
-consteval auto qFromLiteral() {
+consteval auto fromLiteral() {
     constexpr double value = detail::doubleFromLiteral<charArray...>();
     return Q::template clamp_t<value, value>::template fromReal<value>;
 }
 /// Associates a Q type with a literal.
 #define FPM_Q_BIND_LITERAL(_q, _literal) \
-    template< char ...chars > consteval auto operator "" ## _ ## _literal () { return fpm::q::qFromLiteral<_q, chars...>(); }
+    template< char ...chars > consteval auto operator "" ## _ ## _literal () { return fpm::q::fromLiteral<_q, chars...>(); }
 
 /**\}*/
 }  // end of fpm::q
