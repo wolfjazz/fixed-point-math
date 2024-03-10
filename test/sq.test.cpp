@@ -22,88 +22,10 @@ concept ConstructibleFromScaled = requires {
     { Sq::template fromScaled<scaledValue> } -> std::same_as<Sq const &>;  // false if expression cannot be compiled
 };
 
-/// Checks whether a value of the given Sq type can be negated.
-template< class Sq >
-concept Negatable = requires (Sq sq) {
-    opUnMinusImpl(sq);  // false if expression cannot be compiled
-};
-
-/// Checks whether the absolute value of the given Sq type can be taken.
-template< class Sq >
-concept Absolutizable = requires (Sq sq) {
-    absImpl(sq);  // false if expression cannot be compiled
-};
-
-/// Checks whether Sq1 can be divided by Sq2.
-template< class Sq1, class Sq2 >
-concept Dividable = requires (Sq1 sq1, Sq2 sq2) {
-    opDivImpl(sq1, sq2);  // false if expression cannot be compiled
-};
-
-/// Checks whether Sq1 can be remainder-divided by Sq2.
-template< class Sq1, class Sq2 >
-concept RemainderDividable = requires (Sq1 sq1, Sq2 sq2) {
-    opModImpl(sq1, sq2);  // false if expression cannot be compiled
-};
-
-/// Checks whether Sq can be squared.
-template< class Sq >
-concept Squareable = requires (Sq sq) {
-    squareImpl(sq);  // false if expression cannot be compiled
-};
-
-/// Checks whether the square root of Sq can be taken.
-template< class Sq >
-concept SquareRootable = requires (Sq sq) {
-    sqrtImpl(sq);  // false if expression cannot be compiled
-};
-
-/// Checks whether the reciprocal square root of Sq can be computed.
-template< class Sq >
-concept RSquareRootable = requires (Sq sq) {
-    rsqrtImpl(sq);  // false if expression cannot be compiled
-};
-
-/// Checks whether Sq can be cubed.
-template< class Sq >
-concept Cubeable = requires (Sq sq) {
-    cubeImpl(sq);  // false if expression cannot be compiled
-};
-
-/// Checks whether the cube root of Sq can be taken.
-template< class Sq >
-concept CubeRootable = requires (Sq sq) {
-    cbrtImpl(sq);  // false if expression cannot be compiled
-};
-
-/// Checks whether a comparison between Sq1 and Sq2 for equality is possible.
-template< class Sq1, class Sq2 >
-concept EqComparable = requires (Sq1 sq1, Sq2 sq2) {
-    opEqImpl(sq1, sq2);  // false if expression cannot be compiled
-};
-
 /// Checks whether a comparison between Sq1 and Sq2 for non-equality is possible.
 template< class Sq1, class Sq2 >
 concept NotEqComparable = requires (Sq1 sq1, Sq2 sq2) {
-    !opEqImpl(sq1, sq2);  // false if expression cannot be compiled
-};
-
-/// Checks whether a three-way comparison between Sq1 and Sq2 is possible.
-template< class Sq1, class Sq2 >
-concept ThreewayComparable = requires (Sq1 sq1, Sq2 sq2) {
-    opSpaceshipImpl(sq1, sq2);  // false if expression cannot be compiled
-};
-
-/// Checks whether a shift-left operation of Sq by the given number of bits is possible.
-template< class Sq, class B >
-concept LeftShiftable = requires (Sq sq, B bits) {
-    opLShiftIcImpl(sq, bits);  // false if expression cannot be compiled
-};
-
-/// Checks whether a shift-right operation of Sq by the given number of bits is possible.
-template< class Sq, class B >
-concept RightShiftable = requires (Sq sq, B bits) {
-    opRShiftIcImpl(sq, bits);  // false if expression cannot be compiled
+    sq1 != sq2;  // false if expression cannot be compiled
 };
 
 
@@ -485,7 +407,7 @@ TEST_F(SQTest_Unary, sq_unary_plus__some_signed_q_value__sq_with_same_value_and_
 
 TEST_F(SQTest_Unary, sq_unary_minus__some_signed_positive_sq_value__negated_value_and_limits) {
     using i16sq4_t = i16sq4<-500., 1000.>;
-    EXPECT_TRUE(( Negatable< i16sq4_t > ));
+    EXPECT_TRUE(( fpm::sq::detail::Negatable< i16sq4_t > ));
 
     auto a = i16sq4_t::fromReal<567.89>;
     auto b = -a;
@@ -497,7 +419,7 @@ TEST_F(SQTest_Unary, sq_unary_minus__some_signed_positive_sq_value__negated_valu
 
 TEST_F(SQTest_Unary, sq_unary_minus__some_signed_negative_sq_value__negated_value_and_limits) {
     using i16sq4_t = i16sq4<-500., 1000.>;
-    EXPECT_TRUE(( Negatable< i16sq4_t > ));
+    EXPECT_TRUE(( fpm::sq::detail::Negatable< i16sq4_t > ));
 
     auto a = i16sq4_t::fromReal<-345.67>;
     auto b = -a;
@@ -509,7 +431,7 @@ TEST_F(SQTest_Unary, sq_unary_minus__some_signed_negative_sq_value__negated_valu
 
 TEST_F(SQTest_Unary, sq_unary_minus__some_signed_sq_value_with_full_range__negated_value_and_same_limits) {
     using i16sq4_t = i16sq4<>;  // use full symmetric range
-    EXPECT_TRUE(( Negatable< i16sq4_t > ));
+    EXPECT_TRUE(( fpm::sq::detail::Negatable< i16sq4_t > ));
 
     auto a = i16sq4_t::fromReal<-2047.9375>;
     auto b = -a;
@@ -522,12 +444,12 @@ TEST_F(SQTest_Unary, sq_unary_minus__some_signed_sq_type_with_intmin__does_not_c
     constexpr double absoluteMinValue = fpm::v2s<double, -4>( std::numeric_limits<int16_t>::min() );
     using i16sq4_t = i16sq4< absoluteMinValue, i16sq4<>::realVMax >;
 
-    ASSERT_FALSE(( Negatable< i16sq4_t > ));
+    ASSERT_FALSE(( fpm::sq::detail::Negatable< i16sq4_t > ));
 }
 
 TEST_F(SQTest_Unary, sq_unary_minus__small_unsigned_sq_value__negated_value_and_limits) {
     using u16sq4_t = u16sq4<0., 500.>;
-    EXPECT_TRUE(( Negatable< u16sq4_t > ));
+    EXPECT_TRUE(( fpm::sq::detail::Negatable< u16sq4_t > ));
 
     auto a = u16sq4_t::fromReal<234.56>;
     auto b = -a;
@@ -539,7 +461,7 @@ TEST_F(SQTest_Unary, sq_unary_minus__small_unsigned_sq_value__negated_value_and_
 
 TEST_F(SQTest_Unary, sq_unary_minus__large_unsigned_sq_value__negated_value_and_limits) {
     using u16sq4_t = u16sq4<>;  // use full range
-    EXPECT_TRUE(( Negatable< u16sq4_t > ));
+    EXPECT_TRUE(( fpm::sq::detail::Negatable< u16sq4_t > ));
 
     auto a = u16sq4_t::fromReal<234.56>;
     auto b = -a;
@@ -576,7 +498,7 @@ TEST_F(SQTest_Unary, sq_unary_minus__some_unsigned_sq_literal__negated_value_and
 
 TEST_F(SQTest_Unary, sq_unary_abs__some_signed_negative_sq_value__absolute_value_and_limits) {
     using i16sq4_t = i16sq4<>;  // use full symmetric range
-    EXPECT_TRUE(( Absolutizable< i16sq4_t > ));
+    EXPECT_TRUE(( fpm::sq::detail::Absolutizable< i16sq4_t > ));
 
     auto value = i16sq4_t::fromReal<-1897.6>;
     auto absValue = abs(value);  // unqualified lookup (argument-dependent lookup, ADL)
@@ -588,7 +510,7 @@ TEST_F(SQTest_Unary, sq_unary_abs__some_signed_negative_sq_value__absolute_value
 
 TEST_F(SQTest_Unary, sq_unary_abs__some_signed_positive_sq_value__same_value_absolute_limits) {
     using i16sq4_t = i16sq4<>;  // use full symmetric range
-    EXPECT_TRUE(( Absolutizable< i16sq4_t > ));
+    EXPECT_TRUE(( fpm::sq::detail::Absolutizable< i16sq4_t > ));
 
     auto value = i16sq4_t::fromReal<+1897.6>;
     auto absValue = abs(value);
@@ -602,12 +524,12 @@ TEST_F(SQTest_Unary, sq_unary_abs__some_signed_sq_type_with_intmin__does_not_com
     constexpr double absoluteMinValue = fpm::v2s<double, -8>( std::numeric_limits<int32_t>::min() );
     using i32sq8_t = i32sq8< absoluteMinValue, i32sq8<>::realVMax >;
 
-    ASSERT_FALSE(( Absolutizable< i32sq8_t > ));
+    ASSERT_FALSE(( fpm::sq::detail::Absolutizable< i32sq8_t > ));
 }
 
 TEST_F(SQTest_Unary, sq_unary_abs__some_unsigned_sq_value__same_value_and_limits) {
     using u16sq4_t = u16sq4<0., 2000.>;
-    EXPECT_TRUE(( Absolutizable< u16sq4_t > ));
+    EXPECT_TRUE(( fpm::sq::detail::Absolutizable< u16sq4_t > ));
 
     auto value = u16sq4_t::fromReal<1563.77>;
     auto absValue = abs(value);
@@ -921,8 +843,8 @@ TEST_F(SQTest_Division, sq_divide__two_values_similar_type_and_int_q_constant__v
 }
 
 TEST_F(SQTest_Division, sq_divide__divisor_has_forbidden_range__does_not_compile) {
-    ASSERT_FALSE(( Dividable< u32sq20<0., 200.>, i32sq16<-2., 20.> > ));
-    ASSERT_FALSE(( Dividable< u32sq20<0., 200.>, u16sq6<0.5, 10.> > ));
+    ASSERT_FALSE(( fpm::sq::detail::Dividable< u32sq20<0., 200.>, i32sq16<-2., 20.> > ));
+    ASSERT_FALSE(( fpm::sq::detail::Dividable< u32sq20<0., 200.>, u16sq6<0.5, 10.> > ));
 }
 
 TEST_F(SQTest_Division, sq_divide__two_values_similar_type_and_positive_integral_constant__values_divided) {
@@ -1044,8 +966,8 @@ TEST_F(SQTest_Modulus, sq_modulo__different_type_different_f_negative_dividend_p
 }
 
 TEST_F(SQTest_Modulus, sq_modulo__divisor_has_forbidden_range__does_not_compile) {
-    ASSERT_FALSE(( RemainderDividable< u32sq20<0., 200.>, i32sq16<-2., 20.> > ));
-    ASSERT_FALSE(( RemainderDividable< u32sq20<0., 200.>, u16sq6<0., 10.> > ));
+    ASSERT_FALSE(( fpm::sq::detail::ModDividable< u32sq20<0., 200.>, i32sq16<-2., 20.> > ));
+    ASSERT_FALSE(( fpm::sq::detail::ModDividable< u32sq20<0., 200.>, u16sq6<0., 10.> > ));
 }
 
 
@@ -1087,9 +1009,9 @@ TEST_F(SQTest_Comparison, sq_lt__different_types_some_value_and_larger_value__re
     auto c = i16sq5_t::fromReal<+689.25>;
     auto d = u16sq6_t::fromReal<+889.99>;
 
-    EXPECT_TRUE(( ThreewayComparable< i32sq10_t, i16sq5_t > ));
-    EXPECT_TRUE(( ThreewayComparable< i32sq10_t, u16sq6_t > ));
-    EXPECT_TRUE(( ThreewayComparable< i16sq5_t, i16sq5_t > ));
+    EXPECT_TRUE(( fpm::sq::detail::ThreewayComparable< i32sq10_t, i16sq5_t > ));
+    EXPECT_TRUE(( fpm::sq::detail::ThreewayComparable< i32sq10_t, u16sq6_t > ));
+    EXPECT_TRUE(( fpm::sq::detail::ThreewayComparable< i16sq5_t, i16sq5_t > ));
 
     ASSERT_TRUE(a < b);
     ASSERT_TRUE(a < c);
@@ -1097,7 +1019,7 @@ TEST_F(SQTest_Comparison, sq_lt__different_types_some_value_and_larger_value__re
     ASSERT_TRUE(b < c);
     // b < d does not work
     // c < d does not work
-    ASSERT_FALSE(( ThreewayComparable< i16sq5_t, u16sq6_t > ));
+    ASSERT_FALSE(( fpm::sq::detail::ThreewayComparable< i16sq5_t, u16sq6_t > ));
 }
 
 TEST_F(SQTest_Comparison, sq_lt__same_type_some_value_and_smaller_value__returns_false) {
@@ -1139,7 +1061,7 @@ TEST_F(SQTest_Comparison, sq_lt__same_type_same_value__returns_false) {
     auto c = i32sq10_t::fromReal<-0.0>;
     auto d = i32sq10_t::fromReal<+0.0>;
 
-    EXPECT_TRUE(( ThreewayComparable< i32sq10_t, i32sq10_t > ));
+    EXPECT_TRUE(( fpm::sq::detail::ThreewayComparable< i32sq10_t, i32sq10_t > ));
 
     ASSERT_FALSE(a < a);
     ASSERT_FALSE(b < b);
@@ -1160,8 +1082,8 @@ TEST_F(SQTest_Comparison, sq_lt__different_types_same_value__returns_false) {
     auto c = i16sq5_t::fromReal<+678.25>;
     auto d = i16sq5_t::fromReal<+678.25>;
 
-    EXPECT_TRUE(( ThreewayComparable< i16sq5_t, i16sq5_t > ));
-    EXPECT_TRUE(( ThreewayComparable< u16sq6_t, u16sq6_t > ));
+    EXPECT_TRUE(( fpm::sq::detail::ThreewayComparable< i16sq5_t, i16sq5_t > ));
+    EXPECT_TRUE(( fpm::sq::detail::ThreewayComparable< u16sq6_t, u16sq6_t > ));
 
     ASSERT_FALSE(a < b);
     ASSERT_FALSE(a < c);
@@ -1195,9 +1117,9 @@ TEST_F(SQTest_Comparison, sq_lteq__different_types_some_value_and_larger_value__
     auto c = i16sq5_t::fromReal<+689.25>;
     auto d = u16sq6_t::fromReal<+889.99>;
 
-    EXPECT_TRUE(( ThreewayComparable< i32sq10_t, i16sq5_t > ));
-    EXPECT_TRUE(( ThreewayComparable< i32sq10_t, u16sq6_t > ));
-    EXPECT_TRUE(( ThreewayComparable< i16sq5_t, i16sq5_t > ));
+    EXPECT_TRUE(( fpm::sq::detail::ThreewayComparable< i32sq10_t, i16sq5_t > ));
+    EXPECT_TRUE(( fpm::sq::detail::ThreewayComparable< i32sq10_t, u16sq6_t > ));
+    EXPECT_TRUE(( fpm::sq::detail::ThreewayComparable< i16sq5_t, i16sq5_t > ));
 
     ASSERT_TRUE(a <= b);
     ASSERT_TRUE(a <= c);
@@ -1205,7 +1127,7 @@ TEST_F(SQTest_Comparison, sq_lteq__different_types_some_value_and_larger_value__
     ASSERT_TRUE(b <= c);
     // b <= d does not work
     // c <= d does not work
-    ASSERT_FALSE(( ThreewayComparable< i16sq5_t, u16sq6_t > ));
+    ASSERT_FALSE(( fpm::sq::detail::ThreewayComparable< i16sq5_t, u16sq6_t > ));
 }
 
 TEST_F(SQTest_Comparison, sq_lteq__same_type_some_value_and_smaller_value__returns_false) {
@@ -1247,7 +1169,7 @@ TEST_F(SQTest_Comparison, sq_lteq__same_type_same_value__returns_true) {
     auto c = i32sq10_t::fromReal<-0.0>;
     auto d = i32sq10_t::fromReal<+0.0>;
 
-    EXPECT_TRUE(( ThreewayComparable< i32sq10_t, i32sq10_t > ));
+    EXPECT_TRUE(( fpm::sq::detail::ThreewayComparable< i32sq10_t, i32sq10_t > ));
 
     ASSERT_TRUE(a <= a);
     ASSERT_TRUE(b <= b);
@@ -1268,8 +1190,8 @@ TEST_F(SQTest_Comparison, sq_lteq__different_types_same_value__returns_true) {
     auto c = i16sq5_t::fromReal<+678.25>;
     auto d = i16sq5_t::fromReal<+678.25>;
 
-    EXPECT_TRUE(( ThreewayComparable< i16sq5_t, i16sq5_t > ));
-    EXPECT_TRUE(( ThreewayComparable< u16sq6_t, u16sq6_t > ));
+    EXPECT_TRUE(( fpm::sq::detail::ThreewayComparable< i16sq5_t, i16sq5_t > ));
+    EXPECT_TRUE(( fpm::sq::detail::ThreewayComparable< u16sq6_t, u16sq6_t > ));
 
     ASSERT_TRUE(a <= b);
     ASSERT_TRUE(a <= c);
@@ -1303,9 +1225,9 @@ TEST_F(SQTest_Comparison, sq_gt__different_types_some_value_and_smaller_value__r
     auto c = i16sq5_t::fromReal<+789.25>;
     auto d = i16sq5_t::fromReal<-689.25>;
 
-    EXPECT_TRUE(( ThreewayComparable< i32sq10_t, i16sq5_t > ));
-    EXPECT_TRUE(( ThreewayComparable< i32sq10_t, u16sq6_t > ));
-    EXPECT_TRUE(( ThreewayComparable< i16sq5_t, i16sq5_t > ));
+    EXPECT_TRUE(( fpm::sq::detail::ThreewayComparable< i32sq10_t, i16sq5_t > ));
+    EXPECT_TRUE(( fpm::sq::detail::ThreewayComparable< i32sq10_t, u16sq6_t > ));
+    EXPECT_TRUE(( fpm::sq::detail::ThreewayComparable< i16sq5_t, i16sq5_t > ));
 
     ASSERT_TRUE(a > b);
     ASSERT_TRUE(a > c);
@@ -1313,7 +1235,7 @@ TEST_F(SQTest_Comparison, sq_gt__different_types_some_value_and_smaller_value__r
     ASSERT_TRUE(c > d);
     // b > c does not work
     // b > d does not work
-    ASSERT_FALSE(( ThreewayComparable< i16sq5_t, u16sq6_t > ));
+    ASSERT_FALSE(( fpm::sq::detail::ThreewayComparable< i16sq5_t, u16sq6_t > ));
 }
 
 TEST_F(SQTest_Comparison, sq_gt__same_type_some_value_and_smaller_value__returns_false) {
@@ -1355,7 +1277,7 @@ TEST_F(SQTest_Comparison, sq_gt__same_type_same_value__returns_false) {
     auto c = i32sq10_t::fromReal<-0.0>;
     auto d = i32sq10_t::fromReal<+0.0>;
 
-    EXPECT_TRUE(( ThreewayComparable< i32sq10_t, i32sq10_t > ));
+    EXPECT_TRUE(( fpm::sq::detail::ThreewayComparable< i32sq10_t, i32sq10_t > ));
 
     ASSERT_FALSE(a > a);
     ASSERT_FALSE(b > b);
@@ -1376,8 +1298,8 @@ TEST_F(SQTest_Comparison, sq_gt__different_types_same_value__returns_false) {
     auto c = i16sq5_t::fromReal<+678.25>;
     auto d = i16sq5_t::fromReal<+678.25>;
 
-    EXPECT_TRUE(( ThreewayComparable< i16sq5_t, i16sq5_t > ));
-    EXPECT_TRUE(( ThreewayComparable< u16sq6_t, u16sq6_t > ));
+    EXPECT_TRUE(( fpm::sq::detail::ThreewayComparable< i16sq5_t, i16sq5_t > ));
+    EXPECT_TRUE(( fpm::sq::detail::ThreewayComparable< u16sq6_t, u16sq6_t > ));
 
     ASSERT_FALSE(a > b);
     ASSERT_FALSE(a > c);
@@ -1411,9 +1333,9 @@ TEST_F(SQTest_Comparison, sq_gteq__different_types_some_value_and_smaller_value_
     auto c = i16sq5_t::fromReal<+789.25>;
     auto d = i16sq5_t::fromReal<-689.25>;
 
-    EXPECT_TRUE(( ThreewayComparable< i32sq10_t, i16sq5_t > ));
-    EXPECT_TRUE(( ThreewayComparable< i32sq10_t, u16sq6_t > ));
-    EXPECT_TRUE(( ThreewayComparable< i16sq5_t, i16sq5_t > ));
+    EXPECT_TRUE(( fpm::sq::detail::ThreewayComparable< i32sq10_t, i16sq5_t > ));
+    EXPECT_TRUE(( fpm::sq::detail::ThreewayComparable< i32sq10_t, u16sq6_t > ));
+    EXPECT_TRUE(( fpm::sq::detail::ThreewayComparable< i16sq5_t, i16sq5_t > ));
 
     ASSERT_TRUE(a >= b);
     ASSERT_TRUE(a >= c);
@@ -1421,7 +1343,7 @@ TEST_F(SQTest_Comparison, sq_gteq__different_types_some_value_and_smaller_value_
     ASSERT_TRUE(c >= d);
     // b >= c does not work
     // b >= d does not work
-    ASSERT_FALSE(( ThreewayComparable< i16sq5_t, u16sq6_t > ));
+    ASSERT_FALSE(( fpm::sq::detail::ThreewayComparable< i16sq5_t, u16sq6_t > ));
 }
 
 TEST_F(SQTest_Comparison, sq_gteq__same_type_some_value_and_smaller_value__returns_false) {
@@ -1463,7 +1385,7 @@ TEST_F(SQTest_Comparison, sq_gteq__same_type_same_value__returns_true) {
     auto c = i32sq10_t::fromReal<-0.0>;
     auto d = i32sq10_t::fromReal<+0.0>;
 
-    EXPECT_TRUE(( ThreewayComparable< i32sq10_t, i32sq10_t > ));
+    EXPECT_TRUE(( fpm::sq::detail::ThreewayComparable< i32sq10_t, i32sq10_t > ));
 
     ASSERT_TRUE(a >= a);
     ASSERT_TRUE(b >= b);
@@ -1484,8 +1406,8 @@ TEST_F(SQTest_Comparison, sq_gteq__different_types_same_value__returns_true) {
     auto c = i16sq5_t::fromReal<+678.25>;
     auto d = i16sq5_t::fromReal<+678.25>;
 
-    EXPECT_TRUE(( ThreewayComparable< i16sq5_t, i16sq5_t > ));
-    EXPECT_TRUE(( ThreewayComparable< u16sq6_t, u16sq6_t > ));
+    EXPECT_TRUE(( fpm::sq::detail::ThreewayComparable< i16sq5_t, i16sq5_t > ));
+    EXPECT_TRUE(( fpm::sq::detail::ThreewayComparable< u16sq6_t, u16sq6_t > ));
 
     ASSERT_TRUE(a >= b);
     ASSERT_TRUE(a >= c);
@@ -1503,11 +1425,11 @@ TEST_F(SQTest_Comparison, sq_equal__various_types_same_value__returns_true) {
     auto b = u16sq5_t::fromReal<+488.7>;
     auto c = i16sq5_t::fromReal<+488.7>;
 
-    EXPECT_TRUE(( EqComparable< i32sq5_t, i32sq5_t > ));
-    EXPECT_TRUE(( EqComparable< i32sq5_t, u16sq5_t > ));
-    EXPECT_TRUE(( EqComparable< i32sq5_t, i16sq5_t > ));
-    EXPECT_TRUE(( EqComparable< u16sq5_t, u16sq5_t > ));
-    EXPECT_TRUE(( EqComparable< i16sq5_t, i16sq5_t > ));
+    EXPECT_TRUE(( fpm::sq::detail::EqComparable< i32sq5_t, i32sq5_t > ));
+    EXPECT_TRUE(( fpm::sq::detail::EqComparable< i32sq5_t, u16sq5_t > ));
+    EXPECT_TRUE(( fpm::sq::detail::EqComparable< i32sq5_t, i16sq5_t > ));
+    EXPECT_TRUE(( fpm::sq::detail::EqComparable< u16sq5_t, u16sq5_t > ));
+    EXPECT_TRUE(( fpm::sq::detail::EqComparable< i16sq5_t, i16sq5_t > ));
 
     ASSERT_TRUE(a == a);
     ASSERT_TRUE(a == b);
@@ -1515,7 +1437,7 @@ TEST_F(SQTest_Comparison, sq_equal__various_types_same_value__returns_true) {
     ASSERT_TRUE(b == b);
     ASSERT_TRUE(c == c);
     // b == c does not work
-    ASSERT_FALSE(( EqComparable< u16sq5_t, i16sq5_t > ));
+    ASSERT_FALSE(( fpm::sq::detail::EqComparable< u16sq5_t, i16sq5_t > ));
 }
 
 TEST_F(SQTest_Comparison, sq_equal__various_types_different_value__returns_false) {
@@ -1551,7 +1473,7 @@ TEST_F(SQTest_Comparison, sq_not_equal__various_types_same_value__returns_false)
     ASSERT_FALSE(b != b);
     // b != c does not work
     ASSERT_FALSE(c != c);
-    ASSERT_FALSE(( NotEqComparable< u16sq5_t, i16sq5_t > ));
+    ASSERT_TRUE(( NotEqComparable< u16sq5_t, i16sq5_t > ));
 }
 
 TEST_F(SQTest_Comparison, sq_not_equal__various_types_different_value__returns_true) {
@@ -1586,7 +1508,7 @@ TEST_F(SQTest_Shift, sq_shiftL__some_value__shifted_value) {
     using i32sq14_t = i32sq14<-1000., +1000.>;
     auto value = i32sq14_t::fromReal<-555.55>;
 
-    EXPECT_TRUE(( LeftShiftable<i32sq14_t, decltype(7_ic)> ));
+    EXPECT_TRUE(( fpm::sq::detail::LeftShiftable<i32sq14_t, decltype(7_ic)> ));
     auto shifted = value << 7_ic;
 
     using expected_t = i32sq14_t::clamp_t<-128000., +128000.>;
@@ -1598,7 +1520,7 @@ TEST_F(SQTest_Shift, sq_shiftL__some_value_shifted_by_0__same_value) {
     using i32sq14_t = i32sq14<-10000., +10000.>;
     auto value = i32sq14_t::fromReal<-5555.55>;
 
-    EXPECT_TRUE(( LeftShiftable<i32sq14_t, decltype(0_ic)> ));
+    EXPECT_TRUE(( fpm::sq::detail::LeftShiftable<i32sq14_t, decltype(0_ic)> ));
     auto shifted = value << 0_ic;
 
     ASSERT_TRUE(( std::is_same_v<i32sq14_t, decltype(shifted)> ));
@@ -1606,17 +1528,17 @@ TEST_F(SQTest_Shift, sq_shiftL__some_value_shifted_by_0__same_value) {
 }
 
 TEST_F(SQTest_Shift, sq_shiftL__invalid_shift__not_possible) {
-    ASSERT_FALSE(( LeftShiftable< i32sq14<-128., 127.>, std::integral_constant<int, -2> > ));
-    ASSERT_FALSE(( LeftShiftable< i32sq14<-128., 127.>, std::integral_constant<int, 4> > ));
-    EXPECT_TRUE(( LeftShiftable< i32sq14<-128., 127.>, decltype(10_ic) > ));
-    ASSERT_FALSE(( LeftShiftable< i32sq14<-128., 127.>, decltype(11_ic) > ));
+    ASSERT_FALSE(( fpm::sq::detail::LeftShiftable< i32sq14<-128., 127.>, std::integral_constant<int, -2> > ));
+    ASSERT_FALSE(( fpm::sq::detail::LeftShiftable< i32sq14<-128., 127.>, std::integral_constant<int, 4> > ));
+    EXPECT_TRUE(( fpm::sq::detail::LeftShiftable< i32sq14<-128., 127.>, decltype(10_ic) > ));
+    ASSERT_FALSE(( fpm::sq::detail::LeftShiftable< i32sq14<-128., 127.>, decltype(11_ic) > ));
 }
 
 TEST_F(SQTest_Shift, sq_shiftR__some_value__shifted_value) {
     using i32sq14_t = i32sq14<-10000., +10000.>;
     auto value = i32sq14_t::fromReal<-5555.55>;
 
-    EXPECT_TRUE(( RightShiftable<i32sq14_t, decltype(2_ic)> ));
+    EXPECT_TRUE(( fpm::sq::detail::RightShiftable<i32sq14_t, decltype(2_ic)> ));
     auto shifted = value >> 2_ic;
 
     using expected_t = i32sq14_t::clamp_t<-2500., +2500.>;
@@ -1629,7 +1551,7 @@ TEST_F(SQTest_Shift, sq_shiftR__some_value_shifted_by_much__shifted_value_is_min
     auto value1 = i32sq14_t::fromReal<-5555.55>;
     auto value2 = i32sq14_t::fromReal<+5555.55>;
 
-    EXPECT_TRUE(( RightShiftable<i32sq14_t, decltype(31_ic)> ));
+    EXPECT_TRUE(( fpm::sq::detail::RightShiftable<i32sq14_t, decltype(31_ic)> ));
     auto shifted1 = value1 >> 31_ic;  //< smallest: -1 when source value is negative
     auto shifted2 = value2 >> 31_ic;  //< smallest:  0 when source value is positive
 
@@ -1641,7 +1563,7 @@ TEST_F(SQTest_Shift, sq_shiftR__some_value_shifted_by_0__same_value) {
     using i32sq14_t = i32sq14<-10000., +10000.>;
     auto value = i32sq14_t::fromReal<-5555.55>;
 
-    EXPECT_TRUE(( RightShiftable<i32sq14_t, decltype(0_ic)> ));
+    EXPECT_TRUE(( fpm::sq::detail::RightShiftable<i32sq14_t, decltype(0_ic)> ));
     auto shifted = value >> 0_ic;
 
     ASSERT_TRUE(( std::is_same_v<i32sq14_t, decltype(shifted)> ));
@@ -1649,10 +1571,10 @@ TEST_F(SQTest_Shift, sq_shiftR__some_value_shifted_by_0__same_value) {
 }
 
 TEST_F(SQTest_Shift, sq_shiftR__invalid_shift__not_possible) {
-    ASSERT_FALSE(( RightShiftable< i32sq14<-1024., 1023.>, std::integral_constant<int, -2> > ));
-    ASSERT_FALSE(( RightShiftable< i32sq14<-1024., 1023.>, std::integral_constant<int, 4> > ));
-    EXPECT_TRUE(( RightShiftable< i32sq14<-1024., 1023.>, decltype(8_ic) > ));
-    EXPECT_TRUE(( RightShiftable< i32sq14<-1024., 1023.>, decltype(11_ic) > ));
+    ASSERT_FALSE(( fpm::sq::detail::RightShiftable< i32sq14<-1024., 1023.>, std::integral_constant<int, -2> > ));
+    ASSERT_FALSE(( fpm::sq::detail::RightShiftable< i32sq14<-1024., 1023.>, std::integral_constant<int, 4> > ));
+    EXPECT_TRUE(( fpm::sq::detail::RightShiftable< i32sq14<-1024., 1023.>, decltype(8_ic) > ));
+    EXPECT_TRUE(( fpm::sq::detail::RightShiftable< i32sq14<-1024., 1023.>, decltype(11_ic) > ));
 }
 
 
@@ -1674,7 +1596,7 @@ TEST_F(SQTest_Square, sq_square__positive_value__squared_value) {
     using i32sq12_t = i32sq12<-100., +60.>;
     auto value = i32sq12_t::fromReal<23.4>;
 
-    EXPECT_TRUE(( Squareable<i32sq12_t> ));
+    EXPECT_TRUE(( fpm::sq::detail::Squarable<i32sq12_t> ));
     auto squared = square(value);
 
     using expected_t = i32sq12_t::clamp_t<0., 10000.>;
@@ -1686,7 +1608,7 @@ TEST_F(SQTest_Square, sq_square__positive_value_smaller_type_with_positive_range
     using i16sq10_t = i16sq10<6., +25.>;
     auto value = i16sq10_t::fromReal<23.4>;
 
-    EXPECT_TRUE(( Squareable<i16sq10_t> ));
+    EXPECT_TRUE(( fpm::sq::detail::Squarable<i16sq10_t> ));
     auto squared = square(value);
 
     using expected_t = i32sq10<36., 625.>;
@@ -1698,7 +1620,7 @@ TEST_F(SQTest_Square, sq_square__negative_value__squared_value) {
     using i32sq12_t = i32sq12<-50., +100.>;
     auto value = i32sq12_t::fromReal<-45.999>;
 
-    EXPECT_TRUE(( Squareable<i32sq12_t> ));
+    EXPECT_TRUE(( fpm::sq::detail::Squarable<i32sq12_t> ));
     auto squared = square(value);
 
     using expected_t = i32sq12_t::clamp_t<0., 10000.>;
@@ -1710,7 +1632,7 @@ TEST_F(SQTest_Square, sq_square__negative_value_smaller_type_with_negative_range
     using i16sq10_t = i16sq10<-25., -6.>;
     auto value = i16sq10_t::fromReal<-18.9>;
 
-    EXPECT_TRUE(( Squareable<i16sq10_t> ));
+    EXPECT_TRUE(( fpm::sq::detail::Squarable<i16sq10_t> ));
     auto squared = square(value);
 
     using expected_t = i32sq10<36., 625.>;
@@ -1723,7 +1645,7 @@ TEST_F(SQTest_Square, sq_square__value_zero__value_squared_is_zero) {
     auto value1 = i32sq12_t::fromReal<-0.>;
     auto value2 = i32sq12_t::fromReal<+0.>;
 
-    EXPECT_TRUE(( Squareable<i32sq12_t> ));
+    EXPECT_TRUE(( fpm::sq::detail::Squarable<i32sq12_t> ));
     auto squared1 = square(value1);
     auto squared2 = square(value2);
 
@@ -1735,17 +1657,17 @@ TEST_F(SQTest_Square, sq_square__value_zero__value_squared_is_zero) {
 }
 
 TEST_F(SQTest_Square, sq_square__various_types__squareable_or_not) {
-    ASSERT_TRUE(( Squareable< i32sq12<-50., -0.> > ));
-    ASSERT_TRUE(( Squareable< i32sq12<-0., +0.> > ));
-    ASSERT_TRUE(( Squareable< i32sq12<+0., +66.> > ));
-    ASSERT_FALSE(( Squareable< i32sq12<+0., +725.> > ));  // 725*725 exceeds 2^19
+    ASSERT_TRUE(( fpm::sq::detail::Squarable< i32sq12<-50., -0.> > ));
+    ASSERT_TRUE(( fpm::sq::detail::Squarable< i32sq12<-0., +0.> > ));
+    ASSERT_TRUE(( fpm::sq::detail::Squarable< i32sq12<+0., +66.> > ));
+    ASSERT_FALSE(( fpm::sq::detail::Squarable< i32sq12<+0., +725.> > ));  // 725*725 exceeds 2^19
 }
 
 TEST_F(SQTest_Square, sq_sqrt__some_positive_value__root_taken) {
     using u32sq12_t = i32sq12<0., +1000.>;
     auto value = u32sq12_t::fromReal<900.>;
 
-    EXPECT_TRUE(( SquareRootable<u32sq12_t> ));
+    EXPECT_TRUE(( fpm::sq::detail::SquareRootable<u32sq12_t> ));
     auto root = sqrt(value);
 
     using expected_t = u32sq12_t::clamp_t<0., 32.>;
@@ -1757,7 +1679,7 @@ TEST_F(SQTest_Square, sq_sqrt__maximum_u32_value__root_taken) {
     using u32sq12_t = u32sq12<>;
     auto value = u32sq12_t::fromScaled< std::numeric_limits<uint32_t>::max() >;
 
-    EXPECT_TRUE(( SquareRootable<u32sq12_t> ));
+    EXPECT_TRUE(( fpm::sq::detail::SquareRootable<u32sq12_t> ));
     auto root = sqrt(value);
 
     using expected_t = u32sq12_t::clamp_t<0., 1025.>;
@@ -1769,7 +1691,7 @@ TEST_F(SQTest_Square, sq_sqrt__zero_value__root_zero) {
     using i32sq12_t = i32sq12<0., +100.>;
     auto value = i32sq12_t::fromReal<+0.>;
 
-    EXPECT_TRUE(( SquareRootable<i32sq12_t> ));
+    EXPECT_TRUE(( fpm::sq::detail::SquareRootable<i32sq12_t> ));
     auto root = sqrt(value);
 
     using expected_t = i32sq12_t::clamp_t<0., 11.>;
@@ -1778,14 +1700,14 @@ TEST_F(SQTest_Square, sq_sqrt__zero_value__root_zero) {
 }
 
 TEST_F(SQTest_Square, sq_sqrt__various_types__not_rootable) {
-    ASSERT_FALSE(( SquareRootable< i32sq12<-1000., -0.> > ));
+    ASSERT_FALSE(( fpm::sq::detail::SquareRootable< i32sq12<-1000., -0.> > ));
 }
 
 TEST_F(SQTest_Square, sq_rsqrt__some_positive_value__reciprocal_root_taken) {
     using i32sq20_t = i32sq20<10., 1500.>;
     auto value = i32sq20_t::fromReal<25.0485>;
 
-    EXPECT_TRUE(( RSquareRootable<i32sq20_t> ));
+    EXPECT_TRUE(( fpm::sq::detail::SquareRootable<i32sq20_t> ));
     auto rRoot = rsqrt(value);
 
     using expected_t = i32sq20_t::clamp_t<0., 1.>;
@@ -1797,7 +1719,7 @@ TEST_F(SQTest_Square, sq_rsqrt__maximum_positive_value__reciprocal_root_taken) {
     using u32sq30_t = u32sq30< 1.0, u32sq30<>::realVMax >;
     auto value = u32sq30_t::fromScaled<std::numeric_limits<u32sq30_t::base_t>::max()>;
 
-    EXPECT_TRUE(( RSquareRootable<u32sq30_t> ));
+    EXPECT_TRUE(( fpm::sq::detail::RSquareRootable<u32sq30_t> ));
     auto rRoot = rsqrt(value);
 
     using expected_t = u32sq30_t::clamp_t<0., 1.>;
@@ -1809,7 +1731,7 @@ TEST_F(SQTest_Square, sq_rsqrt__minimum_value__maximum_value_returned) {
     using i32sq29_t = i32sq29< i32sq29<>::resolution, 1. >;
     auto value = i32sq29_t::fromScaled<1>;
 
-    EXPECT_TRUE(( RSquareRootable<i32sq29_t> ));
+    EXPECT_TRUE(( fpm::sq::detail::RSquareRootable<i32sq29_t> ));
     auto rRoot = rsqrt(value);
 
     using expected_t = i32sq29_t::clamp_t<0., i32sq29<>::realVMax>;
@@ -1821,7 +1743,7 @@ TEST_F(SQTest_Square, sq_rsqrt__minimum_value2__reciprocal_root_returned) {
     using i32sq20_t = i32sq20< i32sq20<>::resolution, 1000. >;
     auto value = i32sq20_t::fromScaled<1>;
 
-    EXPECT_TRUE(( RSquareRootable<i32sq20_t> ));
+    EXPECT_TRUE(( fpm::sq::detail::RSquareRootable<i32sq20_t> ));
     auto rRoot = rsqrt(value);
 
     using expected_t = i32sq20_t::clamp_t<0., 1024.>;
@@ -1830,8 +1752,8 @@ TEST_F(SQTest_Square, sq_rsqrt__minimum_value2__reciprocal_root_returned) {
 }
 
 TEST_F(SQTest_Square, sq_rsqrt__various_types__not_rootable) {
-    ASSERT_FALSE(( RSquareRootable< i32sq20<-1000., -0.> > ));
-    ASSERT_FALSE(( RSquareRootable< i32sq20<-1000., +1000.> > ));
+    ASSERT_FALSE(( fpm::sq::detail::RSquareRootable< i32sq20<-1000., -0.> > ));
+    ASSERT_FALSE(( fpm::sq::detail::RSquareRootable< i32sq20<-1000., +1000.> > ));
 }
 
 
@@ -1853,7 +1775,7 @@ TEST_F(SQTest_Cube, sq_cube__positive_value__value_cubed) {
     using u32sq12_t = u32sq12<0., 80.>;
     auto value = u32sq12_t::fromReal<55.999>;
 
-    EXPECT_TRUE(( Cubeable<u32sq12_t> ));
+    EXPECT_TRUE(( fpm::sq::detail::Cubeable<u32sq12_t> ));
     auto cubed = cube(value);
 
     using expected_t = u32sq12_t::clamp_t<0., 512000.>;
@@ -1865,7 +1787,7 @@ TEST_F(SQTest_Cube, sq_cube__positive_value_smaller_type__value_cubed_i32) {
     using u16sq4_t = u16sq4<0., 500.>;
     auto value = u16sq4_t::fromReal<144.999>;
 
-    EXPECT_TRUE(( Cubeable<u16sq4_t> ));
+    EXPECT_TRUE(( fpm::sq::detail::Cubeable<u16sq4_t> ));
     auto cubed = cube(value);
 
     using expected_t = i32sq4<0., 1.25e8>;
@@ -1878,7 +1800,7 @@ TEST_F(SQTest_Cube, sq_cube__zero_value__value_cubed_is_zero) {
     auto value1 = i32sq12_t::fromReal<-0.>;
     auto value2 = i32sq12_t::fromReal<+0.>;
 
-    EXPECT_TRUE(( Cubeable<i32sq12_t> ));
+    EXPECT_TRUE(( fpm::sq::detail::Cubeable<i32sq12_t> ));
     auto cubed1 = cube(value1);
     auto cubed2 = cube(value2);
 
@@ -1893,7 +1815,7 @@ TEST_F(SQTest_Cube, sq_cube__negative_value__value_cubed) {
     using i32sq12_t = i32sq12<-40., 40.>;
     auto value = i32sq12_t::fromReal<-35.999>;
 
-    EXPECT_TRUE(( Cubeable<i32sq12_t> ));
+    EXPECT_TRUE(( fpm::sq::detail::Cubeable<i32sq12_t> ));
     auto cubed = cube(value);
 
     using expected_t = i32sq12_t::clamp_t<-64000., 64000.>;
@@ -1905,7 +1827,7 @@ TEST_F(SQTest_Cube, sq_cube__smallest_value__value_cubed_is_minimum_i32) {
     using i32sq7_t = i32sq7<-256., -0.>;
     auto value = i32sq7_t::fromReal<-256.>;
 
-    EXPECT_TRUE(( Cubeable<i32sq7_t> ));
+    EXPECT_TRUE(( fpm::sq::detail::Cubeable<i32sq7_t> ));
     auto cubed = cube(value);
 
     using expected_t = i32sq7_t::clamp_t<-16777216., -0.>;
@@ -1914,18 +1836,18 @@ TEST_F(SQTest_Cube, sq_cube__smallest_value__value_cubed_is_minimum_i32) {
 }
 
 TEST_F(SQTest_Square, sq_cube__various_types__cubeable_or_not) {
-    ASSERT_TRUE(( Cubeable< i32sq12<-50., -0.> > ));
-    ASSERT_TRUE(( Cubeable< i32sq12<-0., +0.> > ));
-    ASSERT_TRUE(( Cubeable< i32sq12<+0., +66.> > ));
-    ASSERT_FALSE(( Cubeable< i32sq12<+0., +81.> > ));  // 81*81*81 exceeds 2^19
-    ASSERT_FALSE(( Cubeable< i32sq12<-81., -0.> > ));
+    ASSERT_TRUE(( fpm::sq::detail::Cubeable< i32sq12<-50., -0.> > ));
+    ASSERT_TRUE(( fpm::sq::detail::Cubeable< i32sq12<-0., +0.> > ));
+    ASSERT_TRUE(( fpm::sq::detail::Cubeable< i32sq12<+0., +66.> > ));
+    ASSERT_FALSE(( fpm::sq::detail::Cubeable< i32sq12<+0., +81.> > ));  // 81*81*81 exceeds 2^19
+    ASSERT_FALSE(( fpm::sq::detail::Cubeable< i32sq12<-81., -0.> > ));
 }
 
 TEST_F(SQTest_Cube, sq_cbrt__positive_value__cube_root_taken) {
     using u32sq8_t = u32sq8<0., 45000.>;
     auto value = u32sq8_t::fromReal<41599.999>;
 
-    EXPECT_TRUE(( CubeRootable<u32sq8_t> ));
+    EXPECT_TRUE(( fpm::sq::detail::CubeRootable<u32sq8_t> ));
     auto root = cbrt(value);
 
     using expected_t = u32sq8_t::clamp_t<0., 36.>;
@@ -1937,7 +1859,7 @@ TEST_F(SQTest_Cube, sq_cbrt__maximum_u32_value__cube_root_taken) {
     using u32sq16_t = u32sq16<>;
     auto value = u32sq16_t::fromScaled< std::numeric_limits<uint32_t>::max() >;
 
-    EXPECT_TRUE(( CubeRootable<u32sq16_t> ));
+    EXPECT_TRUE(( fpm::sq::detail::CubeRootable<u32sq16_t> ));
     auto root = cbrt(value);
 
     using expected_t = u32sq16_t::clamp_t<0., 41.>;
@@ -1949,7 +1871,7 @@ TEST_F(SQTest_Cube, sq_cbrt__zero_value__cube_root_is_zero) {
     using i32sq12_t = i32sq12<0., 400.>;
     auto value = i32sq12_t::fromReal<+0.>;
 
-    EXPECT_TRUE(( CubeRootable<i32sq12_t> ));
+    EXPECT_TRUE(( fpm::sq::detail::CubeRootable<i32sq12_t> ));
     auto root = cbrt(value);
 
     using expected_t = i32sq12_t::clamp_t<0., 8.>;
@@ -1958,8 +1880,8 @@ TEST_F(SQTest_Cube, sq_cbrt__zero_value__cube_root_is_zero) {
 }
 
 TEST_F(SQTest_Cube, sq_cbrt__various_types__not_rootable) {
-    ASSERT_FALSE(( CubeRootable< i32sq12<-1000., -0.> > ));
-    ASSERT_FALSE(( CubeRootable< i32sq12<-1000., +1000.> > ));
+    ASSERT_FALSE(( fpm::sq::detail::CubeRootable< i32sq12<-1000., -0.> > ));
+    ASSERT_FALSE(( fpm::sq::detail::CubeRootable< i32sq12<-1000., +1000.> > ));
 }
 
 

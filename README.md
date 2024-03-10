@@ -54,7 +54,8 @@ In the end, one just wants to perform calculations within a predefined value ran
 ### What this is NOT
 
 - Q and Sq types are not larger than the underlying integral type, however, the operations are not
-  thread-safe and can therefore not be shared between threads
+  thread-safe and can therefore not be shared between threads; nevertheless, values can be copied
+  atomically (i.e. sent)
 
 ## This Library
 
@@ -301,7 +302,7 @@ posClamped3 = clamp<-99.9_mm, +99.9_mm>(position);  // also works with literals 
 
 ---
 
-TODO: create science package, where a user can define fixed powers of a defined base (e.g. 10)
+TODO: create science package, where a user can define fixed powers of a defined base (e.g. 10)?
 
 TODO: provide full readme based on the following template:
 

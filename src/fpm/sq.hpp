@@ -12,7 +12,7 @@
 // forward declare fpm::q::Q so that it can be friended by fpm::sq::Sq
 namespace fpm::q {
 template< std::integral BaseTQ, scaling_t fQ, double realVMinQ, double realVMaxQ, Overflow ovfQ >
-requires detail::QRequirements<BaseTQ, fQ, realVMinQ, realVMaxQ, ovfQ>
+requires fpm::detail::QRequirements<BaseTQ, fQ, realVMinQ, realVMaxQ, ovfQ>
 class Q;
 }
 
@@ -22,23 +22,131 @@ namespace fpm::sq {
  * \defgroup grp_fpmSq Static Q-Type
  * \{ */
 
-using detail::SqType;
+using fpm::detail::SqType;
 
-/// Static (safe) Q type. Implements mathematical operations and checks at compile-time whether these
-/// operations can be performed for the specified value range without running into overflow issues.
+namespace detail {
+
+template< class SqT, class SqC >
+concept Castable = requires(SqT sq) { { sq.template castImpl<SqC>() } -> std::same_as<SqC>; };
+
+template< class SqT >
+concept Negatable = requires(SqT sq) { opUnMinusImpl(sq); };
+
+template< class SqL, class SqR >
+concept Addable = requires(SqL lhs, SqR &rhs) { opAddImpl(lhs, rhs); };
+
+template< class SqL, class SqR >
+concept Substractable = requires(SqL lhs, SqR &rhs) { opSubImpl(lhs, rhs); };
+
+template< class SqL, class SqR >
+concept Multiplicable = requires(SqL lhs, SqR &rhs) { opMultImpl(lhs, rhs); };
+
+template< class SqT, class Ic >
+concept MultiplicableRIc = requires(SqT lhs, Ic rhs) { opMultIcRImpl(lhs, rhs); };
+
+template< class Ic, class SqT >
+concept MultiplicableLIc = requires(Ic lhs, SqT &rhs) { opMultIcLImpl(lhs, rhs); };
+
+template< class SqL, class SqR >
+concept Dividable = requires(SqL lhs, SqR &rhs) { opDivImpl(lhs, rhs); };
+
+template< class SqT, class Ic >
+concept DividableRIc = requires(SqT lhs, Ic rhs) { opDivIcRImpl(lhs, rhs); };
+
+template< class Ic, class SqT >
+concept DividableLIc = requires(Ic lhs, SqT &rhs) { opDivIcLImpl(lhs, rhs); };
+
+template< class SqL, class SqR >
+concept ModDividable = requires(SqL lhs, SqR &rhs) { opModImpl(lhs, rhs); };
+
+template< class SqL, class SqR >
+concept EqComparable = requires(SqL &lhs, SqR &rhs) { opEqImpl(lhs, rhs); };
+
+template< class SqL, class SqR >
+concept ThreewayComparable = requires(SqL &lhs, SqR &rhs) { opSpaceshipImpl(lhs, rhs); };
+
+template< class SqT, class Ic >
+concept LeftShiftable = requires(SqT &sq, Ic ic) { opLShiftIcImpl(sq, ic); };
+
+template< class SqT, class Ic >
+concept RightShiftable = requires(SqT &sq, Ic ic) { opRShiftIcImpl(sq, ic); };
+
+template< class SqT >
+concept Absolutizable = requires(SqT &sq) { absImpl(sq); };
+
+template< class SqT >
+concept Squarable = requires(SqT &sq) { squareImpl(sq); };
+
+template< class SqT >
+concept SquareRootable = requires(SqT &sq) { sqrtImpl(sq); };
+
+template< class SqT >
+concept RSquareRootable = requires(SqT &sq) { rsqrtImpl(sq); };
+
+template< class SqT >
+concept Cubeable = requires(SqT &sq) { cubeImpl(sq); };
+
+template< class SqT >
+concept CubeRootable = requires(SqT &sq) { cbrtImpl(sq); };
+
+template< class SqT, class SqL, class SqH >
+concept Clampable = requires(SqT &sq, SqL &lo, SqH &hi) { clampImpl(sq, lo, hi); };
+
+template< class SqT, class SqL >
+concept ClampableLower = requires(SqT &sq, SqL &lo) { clampLowerImpl(sq, lo); };
+
+template< class SqT, class SqH >
+concept ClampableUpper = requires(SqT &sq, SqH &hi) { clampUpperImpl(sq, hi); };
+
+template< class SqT, double lo, double hi >
+concept CTClampable = requires(SqT &sq) { clampImpl<lo, hi>(sq); };
+
+template< class SqT, double lo >
+concept CTClampableLower = requires(SqT &sq) { clampLowerImpl<lo>(sq); };
+
+template< class SqT, double hi >
+concept CTClampableUpper = requires(SqT &sq) { clampUpperImpl<hi>(sq); };
+
+template< /* deduced: */ SqType Sq1, SqType Sq2,
+    double realVMinMin = std::min(Sq1::realVMin, Sq2::realVMin),
+    double realVMaxMin = std::min(Sq1::realVMax, Sq2::realVMax) >
+requires ( fpm::detail::Similar<Sq1, Sq2>
+           && fpm::detail::RealLimitsInRangeOfBaseType<typename Sq1::base_t, Sq1::f, realVMinMin, realVMaxMin> )
+constexpr
+auto min(Sq1 const &first, Sq2 const &second) noexcept {
+    using SqR = typename Sq1::template clamp_t<realVMinMin, realVMaxMin>;
+    return (first.value > second.value) ? SqR(second.value) : SqR(first.value);
+}
+
+template< /* deduced: */ SqType Sq1, SqType Sq2,
+    double realVMinMax = std::max(Sq1::realVMin, Sq2::realVMin),
+    double realVMaxMax = std::max(Sq1::realVMax, Sq2::realVMax) >
+requires ( fpm::detail::Similar<Sq1, Sq2>
+           && fpm::detail::RealLimitsInRangeOfBaseType<typename Sq1::base_t, Sq1::f, realVMinMax, realVMaxMax> )
+constexpr
+auto max(Sq1 const &first, Sq2 const &second) noexcept {
+    using SqR = typename Sq1::template clamp_t<realVMinMax, realVMaxMax>;
+    return (first.value < second.value) ? SqR(second.value) : SqR(first.value);
+}
+
+};
+
+
+/// Static (safe) Q-type variant. Implements mathematical operations and checks at compile-time whether
+/// these operations can be performed for the specified value range without running into overflow issues.
 /// \note Usually Sq objects are constructed indirectly via Q objects, but direct construction from
 /// a real or scaled constexpr value is also possible.
 /// \warning Two Sq types which differ only by the sign of the 0 in a limit are not equal by design,
 ///          although the underlying integral value will be the same when 0. This fact is not corrected
 ///          for, because the outcome might be different (wrong) when the compiler is doing its
-///          calculations. It's highly recommended to use -0 when a type is declared that has only
-///          negative numbers in its range.
+///          calculations. It's highly recommended to use -0.0 when a type is declared that has only
+///          negative numbers up to 0 in its range.
 template<
     std::integral BaseT,  ///< type of the scaled integer stored in memory
     scaling_t f_,         ///< number of fraction bits (precision 2^(-f))
-    double realVMin_ = detail::lowestRealVMin<BaseT, f_>,  ///< minimum real value represented by the type
-    double realVMax_ = detail::highestRealVMax<BaseT, f_> >  ///< maximum real value represented by the type
-requires detail::SqRequirements<BaseT, f_, realVMin_, realVMax_>
+    double realVMin_ = fpm::detail::lowestRealVMin<BaseT, f_>,  ///< minimum real value represented by the type
+    double realVMax_ = fpm::detail::highestRealVMax<BaseT, f_> >  ///< maximum real value represented by the type
+requires fpm::detail::SqRequirements<BaseT, f_, realVMin_, realVMax_>
 class Sq final {
 public:
     static constexpr bool isSqType = true;  ///< identifier for the SqType concept
@@ -86,7 +194,7 @@ public:
     /// rounded towards zero to the next integer. The resulting representation error is at most the
     /// sum of the two resolutions before and after a down-scaling operation.
     template< /* deduced: */ SqType SqFrom >
-    requires detail::ImplicitlyConvertible<SqFrom, Sq>
+    requires fpm::detail::ImplicitlyConvertible<SqFrom, Sq>
     static constexpr
     Sq fromSq(SqFrom const &from) noexcept {
         return Sq( s2s<base_t, SqFrom::f, f>(from.reveal()) );
@@ -102,48 +210,43 @@ public:
     /// sum of the two resolutions before and after a down-scaling operation.
     template< /* deduced: */ SqType SqFrom >
     requires ( !std::is_same_v< Sq, SqFrom >  // when the same, default copy constructor should be used
-               && detail::ImplicitlyConvertible<SqFrom, Sq> )
-    constexpr Sq(SqFrom const &from) noexcept : value( s2s<base_t, SqFrom::f, f>(from.reveal()) ) {}
+               && fpm::detail::ImplicitlyConvertible<SqFrom, Sq> )
+    constexpr
+    Sq(SqFrom const &from) noexcept : value( s2s<base_t, SqFrom::f, f>(from.reveal()) ) {}
 
     /// Copy-Constructor from the same type.
-    constexpr Sq(Sq const &) noexcept = default;
+    constexpr
+    Sq(Sq const &) noexcept = default;
 
     /// Move-Constructor from the same type.
-    constexpr Sq(Sq&&) noexcept = default;
+    constexpr
+    Sq(Sq&&) noexcept = default;
 
     /// Destructor.
-    constexpr ~Sq() {}
+    constexpr
+    ~Sq() {}
 
     /// Explicit static and safe cast to a different Sq type with a different base type.
     /// Only possible if the value can be cast safely without any potential overflow, i.e. if the
     /// target value range is equal to or larger than the value range of this class.
     /// \note If a cast does not work it's most probably due to unfulfilled requirements.
     template< /* deduced: */ SqType SqC >
-    requires detail::CastableWithoutChecks<Sq, SqC>
+    requires detail::Castable<Sq, SqC>
     explicit constexpr
-    operator SqC() const noexcept {
-        // scale value
-        auto cValue = s2s<typename SqC::base_t, f, SqC::f>(value);
-        return SqC(cValue);
-    }
+    operator SqC() const noexcept { return castImpl<SqC>(); }
 
     /// Explicit static cast to another Sq type with a different base type.
     /// Uses static_cast internally. Exists for consistency reasons.
-    template< SqType SqC >
-    requires detail::CastableWithoutChecks<Sq, SqC>
+    template< SqType SqC > requires fpm::detail::CastableWithoutChecks<Sq, SqC>
     friend constexpr
-    SqC static_sq_cast(Sq from) noexcept {
-        return static_cast<SqC>(from);
-    }
+    SqC static_sq_cast(Sq from) noexcept { return static_cast<SqC>(from); }
 
     /// Explicit safe cast to another Sq type with a different base type.
     /// Uses static_cast internally. Exists for consistency reasons.
     template< SqType SqC >
-    requires detail::CastableWithoutChecks<Sq, SqC>
+    requires fpm::detail::CastableWithoutChecks<Sq, SqC>
     friend constexpr
-    SqC safe_sq_cast(Sq from) noexcept {
-        return static_cast<SqC>(from);
-    }
+    SqC safe_sq_cast(Sq from) noexcept { return static_cast<SqC>(from); }
 
     /// Unary plus operator. Integral promotion does not make any sense, so this just creates a copy.
     /// \returns a copy of the value with the same type.
@@ -159,6 +262,8 @@ public:
     /// \warning a +0.0 in the limits will be negated to -0.0 and vice versa. Note that two Sq types
     ///          which differ only by the sign of the 0 in a limit are not equal by design!
     /// \returns the negated value, wrapped into a new Sq type with negated limits.
+    template< /* deduced: */ SqType SqT = Sq >
+    requires detail::Negatable<SqT>
     constexpr
     auto operator -() const noexcept { return opUnMinusImpl(*this); }
 
@@ -166,9 +271,10 @@ public:
     /// \returns the sum, wrapped into a new Sq type with the larger scaling (higher precision) and
     /// the value ranges added together. For the base type of the result a common type is determined
     /// that can hold the lowest and highest value of the resulting value range.
-    template< /* deduced: */ SqType SqRhs >
-    friend constexpr
     // Note: Passing lhs by value helps optimize chained a+b+c.
+    template< /* deduced: */ SqType SqRhs >
+    requires detail::Addable<Sq, SqRhs>
+    friend constexpr
     auto operator +(Sq const lhs, SqRhs const &rhs) noexcept { return opAddImpl(lhs, rhs); }
 
     /// Subtracts the rhs value from the lhs value.
@@ -177,9 +283,10 @@ public:
     /// that can hold the lowest and highest value of the resulting value range.
     /// \note For a chain of n additions, the propagated error is approximately n * 2^(-f) plus the
     /// representation error of the initial value.
-    template< /* deduced: */ SqType SqRhs >
-    friend constexpr
     // Note: Passing lhs by value helps optimize chained a-b-c.
+    template< /* deduced: */ SqType SqRhs >
+    requires detail::Substractable<Sq, SqRhs>
+    friend constexpr
     auto operator -(Sq const lhs, SqRhs const &rhs) noexcept { return opSubImpl(lhs, rhs); }
 
     /// Multiplies the lhs value with the rhs value.
@@ -190,17 +297,19 @@ public:
     /// the real error is (n+1)*x^n * 2^(-f). For example, for a chain x*x*x (n=2) the real error is
     /// 3*x^2 * 2^(-f). Higher terms O( 2^(-m*f) ), m > 1 also occur for chains, but normally these
     /// are very close to 0 (when f is large enough) and can be ignored.
-    template< /* deduced: */ SqType SqRhs >
-    friend constexpr
     // Note: Passing lhs by value helps optimize chained a*b*c.
+    template< /* deduced: */ SqType SqRhs >
+    requires detail::Multiplicable<Sq, SqRhs>
+    friend constexpr
     auto operator *(Sq const lhs, SqRhs const &rhs) noexcept { return opMultImpl(lhs, rhs); }
 
     /// Multiplies the lhs Sq value with the rhs integral constant.
     /// \returns the product, wrapped in a new Sq type with the common base type and a value range
     /// scaled by the same integral constant.
-    template< /* deduced: */ std::integral T, T ic >
-    friend constexpr
     // Note: Passing lhs by value helps optimize chained a*b*c.
+    template< /* deduced: */ std::integral T, T ic >
+    requires detail::MultiplicableRIc<Sq, std::integral_constant<T, ic>>
+    friend constexpr
     auto operator *(Sq const lhs, std::integral_constant<T, ic>) noexcept {
         return opMultIcRImpl(lhs, std::integral_constant<T, ic>{});
     }
@@ -209,6 +318,7 @@ public:
     /// \returns the product, wrapped in a new Sq type with the common base type and a value range
     /// scaled by the same integral constant.
     template< /* deduced: */ std::integral T, T ic >
+    requires detail::MultiplicableLIc<std::integral_constant<T, ic>, Sq>
     friend constexpr
     auto operator *(std::integral_constant<T, ic>, Sq const &rhs) noexcept {
         return opMultIcLImpl(std::integral_constant<T, ic>{}, rhs);
@@ -229,9 +339,10 @@ public:
     /// For example, a chain x/x/x, where x is divided by itself two times (n=2), has an error of
     /// 2*2^(-f)  <  2*2^(-f) * (1 + 2^f/(x*2^f+1) + 2^(2f)/(x*2^f+1)^2)  <  2*(1+2^(-f)).
     /// However, for |x| >= 1 and n >= 2 the error can be approximated reasonably well with 3*n*2^(-f).
-    template< /* deduced: */ SqType SqRhs >
-    friend constexpr
     // Note: Passing lhs by value helps optimize chained a/b/c.
+    template< /* deduced: */ SqType SqRhs >
+    requires detail::Dividable<Sq, SqRhs>
+    friend constexpr
     auto operator /(Sq const lhs, SqRhs const &rhs) noexcept { return opDivImpl(lhs, rhs); }
 
     /// Divides the lhs Sq value by the rhs integral constant.
@@ -240,9 +351,10 @@ public:
     /// \warning Arithmetic underflow can happen if the result is smaller than the target resolution.
     /// \warning To ensure that compile-time overflow checks are not required, the rhs constant must
     ///          not be 0.
-    template< /* deduced: */ std::integral T, T ic >
-    friend constexpr
     // Note: Passing lhs by value helps optimize chained a/b/c.
+    template< /* deduced: */ std::integral T, T ic >
+    requires detail::DividableRIc<Sq, std::integral_constant<T, ic>>
+    friend constexpr
     auto operator /(Sq const lhs, std::integral_constant<T, ic>) noexcept {
         return opDivIcRImpl(lhs, std::integral_constant<T, ic>{});
     }
@@ -254,6 +366,7 @@ public:
     /// \warning To ensure that compile-time overflow checks are not required, the rhs type must not
     ///          have values between -1 and +1 in its value range.
     template< /* deduced: */ std::integral T, T ic >
+    requires detail::DividableLIc<std::integral_constant<T, ic>, Sq>
     friend constexpr
     auto operator /(std::integral_constant<T, ic>, Sq const &rhs) noexcept {
         return opDivIcLImpl(std::integral_constant<T, ic>{}, rhs);
@@ -270,9 +383,10 @@ public:
     /// \warning To ensure that compile-time overflow checks are not required, the rhs type must not
     ///          have values between -resolution and +resolution in its value range.
     /// \note The error propagation is similar to that of the division operator.
-    template< /* deduced: */ SqType SqRhs >
-    friend constexpr
     // Note: Passing lhs by value helps optimize chained a%b%c.
+    template< /* deduced: */ SqType SqRhs >
+    requires detail::ModDividable<Sq, SqRhs>
+    friend constexpr
     auto operator %(Sq const lhs, SqRhs const &rhs) noexcept { return opModImpl(lhs, rhs); }
 
     /// Primary operator to compare for equality. The inequality operator (!=) is synthesized from
@@ -284,6 +398,7 @@ public:
     /// \warning If two real values ​​are compared that are closer together than the higher resolution,
     ///          the result may be true instead of false.
     template< /* deduced: */ SqType SqRhs >
+    requires detail::EqComparable<Sq, SqRhs>
     constexpr
     bool operator ==(SqRhs const &rhs) const noexcept { return opEqImpl(*this, rhs); }
 
@@ -296,6 +411,7 @@ public:
     /// \warning If two real values ​​are ordered that are closer together than the resolution, the
     ///          result may be false instead of true (i.e. the values may be considered equal).
     template< /* deduced: */ SqType SqRhs >
+    requires detail::ThreewayComparable<Sq, SqRhs>
     constexpr
     std::strong_ordering operator <=>(SqRhs const &rhs) const noexcept { return opSpaceshipImpl(*this, rhs); }
 
@@ -304,8 +420,9 @@ public:
     /// \warning Arithmetic underflow can happen if the result is smaller than the target resolution.
     /// \returns the shifted value, wrapped into a new Sq type with shifted limits.
     template< /* deduced: */ std::integral T, T v >
+    requires detail::LeftShiftable<Sq, std::integral_constant<T, v>>
     constexpr
-    auto operator <<(std::integral_constant<T, v>) noexcept {
+    auto operator <<(std::integral_constant<T, v>) const noexcept {
         return opLShiftIcImpl(*this, std::integral_constant<T, v>{});
     }
 
@@ -313,8 +430,9 @@ public:
     /// \note Shifting is possible if the shifted limits cannot exceed the base type's value range.
     /// \returns the shifted value, wrapped into a new Sq type with shifted limits.
     template< /* deduced: */ std::integral T, T v >
+    requires detail::RightShiftable<Sq, std::integral_constant<T, v>>
     constexpr
-    auto operator >>(std::integral_constant<T, v>) noexcept {
+    auto operator >>(std::integral_constant<T, v>) const noexcept {
         return opRShiftIcImpl(*this, std::integral_constant<T, v>{});
     }
 
@@ -322,7 +440,10 @@ public:
     /// \note The absolute value of a signed type can be taken if the corresponding INT_MIN value is
     /// not in the value range of the Sq type.
     /// \returns the absolute value, wrapped into a new unsigned Sq type with a modified range.
-    friend constexpr auto abs(Sq const &of) noexcept { return absImpl(of); }
+    template< /* deduced: */ SqType SqT = Sq >
+    requires detail::Squarable<SqT>
+    friend constexpr
+    auto abs(Sq const &of) noexcept { return absImpl(of); }
 
     /// \returns the squared value of the given number x, wrapped into a new Sq type with at least
     /// 32 bits base type and squared limits. The base type of the resulting value is the common type
@@ -330,12 +451,18 @@ public:
     /// \note The error propagation is similar to that of the multiplication operator: When a number
     /// x is multiplied with itself n times, the maximum real error is (n+1)*x^n * 2^(-f).
     /// For the square function (n=1) this gives 2x * 2^(-f) at most.
-    friend constexpr auto square(Sq const &x) noexcept { return squareImpl(x); }
+    template< /* deduced: */ SqType SqT = Sq >
+    requires detail::Squarable<SqT>
+    friend constexpr
+    auto square(Sq const &x) noexcept { return squareImpl(x); }
 
     /// \returns the computed square root of the given number x, wrapped into a new Sq type with the
     /// square roots of the limits.
     /// \note A binary search algorithm is used to calculate the square root in logarithmic time.
-    friend constexpr auto sqrt(Sq const &x) noexcept { return sqrtImpl(x); }
+    template< /* deduced: */ SqType SqT = Sq >
+    requires detail::SquareRootable<SqT>
+    friend constexpr
+    auto sqrt(Sq const &x) noexcept { return sqrtImpl(x); }
 
     /// \returns the computed reciprocal square root of the given number x, wrapped into a new Sq type
     /// with the reciprocal square root of the limits. The maximum limit of the resulting type does not
@@ -344,7 +471,10 @@ public:
     /// \note The maximum real error evaluates to 2^(-f) * ( 1/2*(1/x)^(3/2) - O( 2^(-f)*(1/x)^(5/2) ) ).
     /// Unless x is very small ( x < 1 / 2^((2f+2)/3) ), it is usually enough to estimate the real
     /// error with the resolution of the given number.
-    friend constexpr auto rsqrt(Sq const &x) noexcept { return rsqrtImpl(x); }
+    template< /* deduced: */ SqType SqT = Sq >
+    requires detail::RSquareRootable<SqT>
+    friend constexpr
+    auto rsqrt(Sq const &x) noexcept { return rsqrtImpl(x); }
 
     /// \returns the cube of the given number x, wrapped into a new Sq type with at least 32 bits
     /// base type and cubed limits. The base type of the resulting value is the common type of int32
@@ -352,13 +482,19 @@ public:
     /// \note The error propagation is similar to that of the multiplication operator: When a number
     /// x is multiplied with itself n times, the maximum real error is (n+1)*x^n * 2^(-f).
     /// For the cube function (n=2) this gives 3x^2 * 2^(-f) at most.
-    friend constexpr auto cube(Sq const &x) noexcept { return cubeImpl(x); }
+    template< /* deduced: */ SqType SqT = Sq >
+    requires detail::Cubeable<SqT>
+    friend constexpr
+    auto cube(Sq const &x) noexcept { return cubeImpl(x); }
 
     /// \returns the computed cube root of the given number x, wrapped into a new Sq type with the
     /// cube roots of the limits.
     /// \note A hardware algorithm is used to calculate the cube root of the number, the cube root
     /// of the limits is approximated via binary search.
-    friend constexpr auto cbrt(Sq const &x) noexcept { return cbrtImpl(x); }
+    template< /* deduced: */ SqType SqT = Sq >
+    requires detail::CubeRootable<SqT>
+    friend constexpr
+    auto cbrt(Sq const &x) noexcept { return cbrtImpl(x); }
 
     /// If v compares less than lo, lo is returned; otherwise if hi compares less than v, hi is
     /// returned; otherwise v is returned.
@@ -367,75 +503,49 @@ public:
     template< /* deduced: */ SqType SqLo, SqType SqHi >
     requires detail::Clampable<Sq, SqLo, SqHi>
     friend constexpr
-    auto clamp(Sq const &v, SqLo const &lo, SqHi const &hi) noexcept {
-        using SqR = typename Sq::template clamp_t<SqLo::realVMin, SqHi::realVMax>;
-        // lo and hi are scaled via constructor from similar type if used; v's value just can be taken as is
-        return (v < lo) ? SqR(lo) : (hi < v) ? SqR(hi) : SqR(v.value);
-    }
+    auto clamp(Sq const &v, SqLo const &lo, SqHi const &hi) noexcept { return clampImpl(v, lo, hi); }
 
     /// If v compares less than lo, lo is returned; otherwise v is returned.
     /// \returns clamped v, wrapped into a new Sq type with the lower limit of SqLo.
     template< /* deduced: */ SqType SqLo >
-    requires detail::ImplicitlyConvertible<SqLo, Sq>
+    requires detail::ClampableLower<Sq, SqLo>
     friend constexpr
-    auto clampLower(Sq const &v, SqLo const &lo) noexcept {
-        using SqR = typename Sq::template clamp_t<SqLo::realVMin, realVMax>;
-        // lo is scaled via constructor from similar type if used; v's value just can be taken as is
-        return (v < lo) ? SqR(lo) : SqR(v.value);
-    }
+    auto clampLower(Sq const &v, SqLo const &lo) noexcept { return clampLowerImpl(v, lo); }
 
     /// If hi compares less than v, hi is returned; otherwise v is returned.
     /// \returns clamped v, wrapped into a new Sq type with the upper limit of SqHi.
     template< /* deduced: */ SqType SqHi >
-    requires detail::ImplicitlyConvertible<SqHi, Sq>
+    requires detail::ClampableUpper<Sq, SqHi>
     friend constexpr
-    auto clampUpper(Sq const &v, SqHi const &hi) noexcept {
-        using SqR = typename Sq::template clamp_t<realVMin, SqHi::realVMax>;
-        // hi is scaled via constructor from similar type if used; v's value just can be taken as is
-        return (hi < v) ? SqR(hi) : SqR(v.value);
-    }
+    auto clampUpper(Sq const &v, SqHi const &hi) noexcept { return clampUpperImpl(v, hi); }
 
     /// Version of clamp() for limits known at compile-time: if v compares less than lo, lo is returned;
     /// otherwise if hi compares less than v, hi is returned; otherwise v is returned.
     /// \returns clamped v, wrapped into a new Sq type with the value range from the template parameters.
     template< double realLo, double realHi >
-    requires detail::RealLimitsInRangeOfBaseType<base_t, f, realLo, realHi>
+    requires detail::CTClampable<Sq, realLo, realHi>
     friend constexpr
-    auto clamp(Sq const &v) noexcept {
-        using SqR = typename Sq::template clamp_t<realLo, realHi>;
-        constexpr auto sqLo = SqR::template fromReal<realLo>;
-        constexpr auto sqHi = SqR::template fromReal<realHi>;
-        return (v < sqLo) ? sqLo : (sqHi < v) ? sqHi : SqR(v.value);
-    }
+    auto clamp(Sq const &v) noexcept { return clampImpl<realLo, realHi>(v); }
 
     /// Version of clampLower() for lower limit known at compile-time: if v compares less than lo,
     /// lo is returned; otherwise v is returned.
     /// \returns clamped v, wrapped into a new Sq type with the template parameter as lower limit.
     template< double realLo >
-    requires detail::RealLimitsInRangeOfBaseType<base_t, f, realLo, realVMax>
+    requires detail::CTClampableLower<Sq, realLo>
     friend constexpr
-    auto clampLower(Sq const &v) noexcept {
-        using SqR = typename Sq::template clamp_t<realLo, realVMax>;
-        constexpr auto sqLo = SqR::template fromReal<realLo>;
-        return (v < sqLo) ? sqLo : SqR(v.value);
-    }
+    auto clampLower(Sq const &v) noexcept { return clampLowerImpl<realLo>(v); }
 
     /// Version of clampUpper() for upper limit known at compile-time: if hi compares less than v,
     /// hi is returned; otherwise v is returned.
     /// \returns clamped v, wrapped into a new Sq type with the template parameter as upper limit.
     template< double realHi >
-    requires detail::RealLimitsInRangeOfBaseType<base_t, f, realVMin, realHi>
+    requires detail::CTClampableUpper<Sq, realHi>
     friend constexpr
-    auto clampUpper(Sq const &v) noexcept {
-        using SqR = typename Sq::template clamp_t<realVMin, realHi>;
-        constexpr auto sqHi = SqR::template fromReal<realHi>;
-        return (sqHi < v) ? sqHi : SqR(v.value);
-    }
+    auto clampUpper(Sq const &v) noexcept { return clampUpperImpl<realHi>(v); }
 
     /// Reveals the integer value stored in memory.
-    constexpr base_t reveal() const noexcept {
-        return value;
-    }
+    constexpr
+    base_t reveal() const noexcept { return value; }
 
     /// Unwraps to the real value. May be used for debugging purposes.
     /// \warning This conversion is expensive if the target type is a floating-point type.
@@ -446,12 +556,12 @@ public:
 #   else
     template< typename TargetT = double >
 #   endif
-    constexpr TargetT toReal() const noexcept {
-        return v2s<TargetT, -f>(value);
-    }
+    constexpr
+    TargetT toReal() const noexcept { return v2s<TargetT, -f>(value); }
     /// Implicit conversion of a Sq value back into its double representation. Allows using a
     /// value+unit literal where a double is expected. Compile-time only!
-    consteval operator double() const noexcept { return toReal<double>(); }
+    consteval
+    operator double() const noexcept { return toReal<double>(); }
 
 private:
     // delete undesired special members
@@ -460,26 +570,38 @@ private:
     Sq& operator =(Sq&&) = delete;  // move-assignment
 
     /// Explicit, possibly compile-time constructor from scaled integer value.
-    explicit constexpr Sq(base_t value) noexcept : value(value) {}
+    explicit constexpr
+    Sq(base_t value) noexcept : value(value) {}
 
     // friend all Sq types so that private members of similar types can be accessed for construction
     template< std::integral BaseTSq, scaling_t fSq, double realVMinSq, double realVMaxSq >
-    requires detail::SqRequirements<BaseTSq, fSq, realVMinSq, realVMaxSq>
+    requires fpm::detail::SqRequirements<BaseTSq, fSq, realVMinSq, realVMaxSq>
     friend class Sq;
 
     // friend Q type so that it can access the private members of a Sq type to construct it
     template< std::integral BaseTQ, scaling_t fQ, double realVMinQ, double realVMaxQ, Overflow ovfQ >
-    requires detail::QRequirements<BaseTQ, fQ, realVMinQ, realVMaxQ, ovfQ>
+    requires fpm::detail::QRequirements<BaseTQ, fQ, realVMinQ, realVMaxQ, ovfQ>
     friend class q::Q;
 
-    // friend some methods so that they can access private members of a Sq type to construct new
-    // variants of it
+    //
+    // actual implementation methods; the public variants are mostly just to hide implementation
+    // specifics so that hover help texts and API descriptions are not too confusing
+    //
+
+    template< SqType SqC >
+    requires fpm::detail::CastableWithoutChecks<Sq, SqC>
+    constexpr
+    auto castImpl() const noexcept {
+        // scale value
+        auto cValue = s2s<typename SqC::base_t, f, SqC::f>(value);
+        return SqC(cValue);
+    }
 
     template< /* deduced: */ SqType SqRhs,
         scaling_t fR = std::max(SqRhs::f, f),
         double realVMinR = realVMin + SqRhs::realVMin, double realVMaxR = realVMax + SqRhs::realVMax,
-        std::integral BaseTR = detail::common_q_base_t<base_t, typename SqRhs::base_t, fR, realVMinR, realVMaxR> >
-    requires detail::RealLimitsInRangeOfBaseType<BaseTR, fR, realVMinR, realVMaxR>
+        std::integral BaseTR = fpm::detail::common_q_base_t<base_t, typename SqRhs::base_t, fR, realVMinR, realVMaxR> >
+    requires fpm::detail::RealLimitsInRangeOfBaseType<BaseTR, fR, realVMinR, realVMaxR>
     friend constexpr
     auto opAddImpl(Sq const lhs, SqRhs const &rhs) noexcept {
         using SqR = Sq<BaseTR, fR, realVMinR, realVMaxR>;
@@ -490,8 +612,8 @@ private:
     }
 
     template< /* deduced: */ double realVMinR = -realVMax, double realVMaxR = -realVMin,
-        std::integral BaseTR = detail::common_q_base_t<base_t, std::make_signed_t<base_t>, f, realVMinR, realVMaxR> >
-    requires detail::Absolutizable<base_t, vMin>
+        std::integral BaseTR = fpm::detail::common_q_base_t<base_t, std::make_signed_t<base_t>, f, realVMinR, realVMaxR> >
+    requires fpm::detail::Absolutizable<base_t, vMin>
     friend constexpr
     auto opUnMinusImpl(Sq const sq) noexcept {
         using SqR = Sq<BaseTR, f, realVMinR, realVMaxR>;
@@ -502,8 +624,8 @@ private:
         scaling_t fR = std::max(SqRhs::f, f),
         double realVMinR = std::min(realVMin - SqRhs::realVMax, SqRhs::realVMin - realVMax),
         double realVMaxR = std::max(realVMax - SqRhs::realVMin, SqRhs::realVMax - realVMin),
-        std::integral BaseTR = detail::common_q_base_t<base_t, typename SqRhs::base_t, fR, realVMinR, realVMaxR> >
-    requires detail::RealLimitsInRangeOfBaseType<BaseTR, fR, realVMinR, realVMaxR>
+        std::integral BaseTR = fpm::detail::common_q_base_t<base_t, typename SqRhs::base_t, fR, realVMinR, realVMaxR> >
+    requires fpm::detail::RealLimitsInRangeOfBaseType<BaseTR, fR, realVMinR, realVMaxR>
     friend constexpr
     auto opSubImpl(Sq const lhs, SqRhs const &rhs) noexcept {
         using SqR = Sq<BaseTR, fR, realVMinR, realVMaxR>;
@@ -519,8 +641,8 @@ private:
                                     std::min(realVMin * SqRhs::realVMin, realVMax * SqRhs::realVMax)),
         double realVMaxR = std::max(std::max(realVMax * SqRhs::realVMin, SqRhs::realVMax * realVMin),
                                     std::max(realVMin * SqRhs::realVMin, realVMax * SqRhs::realVMax)),
-        std::integral BaseTR = detail::common_q_base_t<base_t, typename SqRhs::base_t, fR, realVMinR, realVMaxR> >
-    requires detail::RealLimitsInRangeOfBaseType<BaseTR, fR, realVMinR, realVMaxR>
+        std::integral BaseTR = fpm::detail::common_q_base_t<base_t, typename SqRhs::base_t, fR, realVMinR, realVMaxR> >
+    requires fpm::detail::RealLimitsInRangeOfBaseType<BaseTR, fR, realVMinR, realVMaxR>
     friend constexpr
     auto opMultImpl(Sq const lhs, SqRhs const &rhs) noexcept {
         using SqR = Sq<BaseTR, fR, realVMinR, realVMaxR>;
@@ -536,8 +658,8 @@ private:
     template< /* deduced: */ std::integral T, T ic,
         double realVMinR = std::min(realVMin * ic, realVMax * ic),
         double realVMaxR = std::max(realVMin * ic, realVMax * ic),
-        std::integral BaseTR = detail::common_q_base_t<base_t, T, f, realVMinR, realVMaxR> >
-    requires detail::RealLimitsInRangeOfBaseType<BaseTR, f, realVMinR, realVMaxR>
+        std::integral BaseTR = fpm::detail::common_q_base_t<base_t, T, f, realVMinR, realVMaxR> >
+    requires fpm::detail::RealLimitsInRangeOfBaseType<BaseTR, f, realVMinR, realVMaxR>
     friend constexpr
     auto opMultIcRImpl(Sq const lhs, std::integral_constant<T, ic>) noexcept {
         using SqR = Sq<BaseTR, f, realVMinR, realVMaxR>;
@@ -549,8 +671,8 @@ private:
     template< /* deduced: */ std::integral T, T ic,
         double realVMinR = std::min(realVMin * ic, realVMax * ic),
         double realVMaxR = std::max(realVMin * ic, realVMax * ic),
-        std::integral BaseTR = detail::common_q_base_t<base_t, T, f, realVMinR, realVMaxR> >
-    requires detail::RealLimitsInRangeOfBaseType<BaseTR, f, realVMinR, realVMaxR>
+        std::integral BaseTR = fpm::detail::common_q_base_t<base_t, T, f, realVMinR, realVMaxR> >
+    requires fpm::detail::RealLimitsInRangeOfBaseType<BaseTR, f, realVMinR, realVMaxR>
     friend constexpr
     auto opMultIcLImpl(std::integral_constant<T, ic>, Sq const &rhs) noexcept {
         using SqR = Sq<BaseTR, f, realVMinR, realVMaxR>;
@@ -565,9 +687,9 @@ private:
                                     std::min(realVMax / SqRhs::realVMin, realVMax / SqRhs::realVMax)),
         double realVMaxR = std::max(std::max(realVMin / SqRhs::realVMax, realVMin / SqRhs::realVMin),
                                     std::max(realVMax / SqRhs::realVMin, realVMax / SqRhs::realVMax)),
-        std::integral BaseTR = detail::common_q_base_t<base_t, typename SqRhs::base_t, fR, realVMinR, realVMaxR> >
-    requires ( detail::CanBeUsedAsDivisor<SqRhs>
-               && detail::RealLimitsInRangeOfBaseType<BaseTR, fR, realVMinR, realVMaxR> )
+        std::integral BaseTR = fpm::detail::common_q_base_t<base_t, typename SqRhs::base_t, fR, realVMinR, realVMaxR> >
+    requires ( fpm::detail::CanBeUsedAsDivisor<SqRhs>
+               && fpm::detail::RealLimitsInRangeOfBaseType<BaseTR, fR, realVMinR, realVMaxR> )
     friend constexpr
     auto opDivImpl(Sq const lhs, SqRhs const &rhs) noexcept {
         using SqR = Sq<BaseTR, fR, realVMinR, realVMaxR>;
@@ -583,8 +705,8 @@ private:
     template< /* deduced: */ std::integral T, T ic,
         double realVMinR = std::min(realVMin / ic, realVMax / ic),
         double realVMaxR = std::max(realVMin / ic, realVMax / ic),
-        std::integral BaseTR = detail::common_q_base_t<base_t, T, f, realVMinR, realVMaxR> >
-    requires ( detail::RealLimitsInRangeOfBaseType<BaseTR, f, realVMinR, realVMaxR>
+        std::integral BaseTR = fpm::detail::common_q_base_t<base_t, T, f, realVMinR, realVMaxR> >
+    requires ( fpm::detail::RealLimitsInRangeOfBaseType<BaseTR, f, realVMinR, realVMaxR>
                && ic != 0 )
     friend constexpr
     auto opDivIcRImpl(Sq const lhs, std::integral_constant<T, ic>) noexcept {
@@ -597,10 +719,10 @@ private:
     template< /* deduced: */ std::integral T, T ic,
         double realVMinR = std::min(ic / realVMin, ic / realVMax),
         double realVMaxR = std::max(ic / realVMin, ic / realVMax),
-        std::integral BaseTR = detail::common_q_base_t<base_t, T, f, realVMinR, realVMaxR> >
-    requires ( detail::CanBeUsedAsDivisor<Sq>
+        std::integral BaseTR = fpm::detail::common_q_base_t<base_t, T, f, realVMinR, realVMaxR> >
+    requires ( fpm::detail::CanBeUsedAsDivisor<Sq>
                && v2s<interm_t<BaseTR>, 2*f>(ic) <= std::numeric_limits<interm_t<BaseTR>>::max()
-               && detail::RealLimitsInRangeOfBaseType<BaseTR, f, realVMinR, realVMaxR> )
+               && fpm::detail::RealLimitsInRangeOfBaseType<BaseTR, f, realVMinR, realVMaxR> )
     friend constexpr
     auto opDivIcLImpl(std::integral_constant<T, ic>, Sq const &rhs) noexcept {
         using SqR = Sq<BaseTR, f, realVMinR, realVMaxR>;
@@ -612,13 +734,13 @@ private:
 
     template< /* deduced: */ SqType SqRhs,
         scaling_t fR = std::max(SqRhs::f, f),
-        double realVMinR = std::max(realVMin, detail::signum(realVMin) *
-                                    std::max(detail::abs(SqRhs::realVMin), detail::abs(SqRhs::realVMax))),
-        double realVMaxR = std::min(realVMax, detail::signum(realVMax) *
-                                    std::max(detail::abs(SqRhs::realVMin), detail::abs(SqRhs::realVMax))),
-        std::integral BaseTR = detail::common_q_base_t<base_t, typename SqRhs::base_t, fR, realVMinR, realVMaxR> >
-    requires ( detail::CanBeUsedAsModulusDivisor<SqRhs>
-               && detail::RealLimitsInRangeOfBaseType<BaseTR, fR, realVMinR, realVMaxR> )
+        double realVMinR = std::max(realVMin, fpm::detail::signum(realVMin) *
+                                    std::max(fpm::detail::abs(SqRhs::realVMin), fpm::detail::abs(SqRhs::realVMax))),
+        double realVMaxR = std::min(realVMax, fpm::detail::signum(realVMax) *
+                                    std::max(fpm::detail::abs(SqRhs::realVMin), fpm::detail::abs(SqRhs::realVMax))),
+        std::integral BaseTR = fpm::detail::common_q_base_t<base_t, typename SqRhs::base_t, fR, realVMinR, realVMaxR> >
+    requires ( fpm::detail::CanBeUsedAsModulusDivisor<SqRhs>
+               && fpm::detail::RealLimitsInRangeOfBaseType<BaseTR, fR, realVMinR, realVMaxR> )
     friend constexpr
     auto opModImpl(Sq const lhs, SqRhs const &rhs) noexcept {
         using SqR = Sq<BaseTR, fR, realVMinR, realVMaxR>;
@@ -634,9 +756,9 @@ private:
     template< /* deduced: */ SqType SqRhs,
         typename BaseTR = std::common_type_t<base_t, typename SqRhs::base_t>,
         scaling_t fMax = std::max(f, SqRhs::f) >
-    requires detail::Comparable<base_t, typename SqRhs::base_t>
+    requires fpm::detail::Comparable<base_t, typename SqRhs::base_t>
     friend constexpr
-    bool opEqImpl(Sq const lhs, SqRhs const &rhs) noexcept {
+    bool opEqImpl(Sq const &lhs, SqRhs const &rhs) noexcept {
         // two values are considered equal if the values, scaled to the higher resolution, are equivalent
         return s2s<BaseTR, f, fMax>(lhs.value) == s2s<BaseTR, SqRhs::f, fMax>(rhs.value);
     }
@@ -644,9 +766,9 @@ private:
     template< /* deduced: */ SqType SqRhs,
         typename BaseTR = std::common_type_t<base_t, typename SqRhs::base_t>,
         scaling_t fMax = std::max(f, SqRhs::f) >
-    requires detail::Comparable<base_t, typename SqRhs::base_t>
+    requires fpm::detail::Comparable<base_t, typename SqRhs::base_t>
     friend constexpr
-    std::strong_ordering opSpaceshipImpl(Sq const lhs, SqRhs const &rhs) noexcept {
+    std::strong_ordering opSpaceshipImpl(Sq const &lhs, SqRhs const &rhs) noexcept {
         // the two values are ordered with the higher resolution
         return s2s<BaseTR, f, fMax>(lhs.value) <=> s2s<BaseTR, SqRhs::f, fMax>(rhs.value);
     }
@@ -655,7 +777,7 @@ private:
         double realVMinR = v2s<double, -f>(static_cast<fpm::interm_t<base_t>>(vMin) << v),
         double realVMaxR = v2s<double, -f>(static_cast<fpm::interm_t<base_t>>(vMax) << v) >
     requires ( std::is_unsigned_v<T>
-               && detail::RealLimitsInRangeOfBaseType<base_t, f, realVMinR, realVMaxR> )
+               && fpm::detail::RealLimitsInRangeOfBaseType<base_t, f, realVMinR, realVMaxR> )
     friend constexpr
     auto opLShiftIcImpl(Sq const &lhs, std::integral_constant<T, v>) noexcept {
         using SqR = typename Sq::clamp_t<realVMinR, realVMaxR>;
@@ -666,7 +788,7 @@ private:
         double realVMinR = v2s<double, -f>(static_cast<fpm::interm_t<base_t>>(vMin) >> v),
         double realVMaxR = v2s<double, -f>(static_cast<fpm::interm_t<base_t>>(vMax) >> v) >
     requires ( std::is_unsigned_v<T>
-               && detail::RealLimitsInRangeOfBaseType<base_t, f, realVMinR, realVMaxR> )
+               && fpm::detail::RealLimitsInRangeOfBaseType<base_t, f, realVMinR, realVMaxR> )
     friend constexpr
     auto opRShiftIcImpl(Sq const &lhs, std::integral_constant<T, v>) noexcept {
         using SqR = typename Sq::clamp_t<realVMinR, realVMaxR>;
@@ -677,9 +799,9 @@ private:
         std::integral BaseTR = std::make_unsigned_t<base_t>,
         double realVMinR = (std::is_signed_v<base_t> && vMin < 0 && vMax > 0)
             ? 0.0  // use 0 as new minimum if signed input type has a range of negative and positive values
-            : std::min(detail::abs(realVMin), detail::abs(realVMax)),
-        double realVMaxR = std::max(detail::abs(realVMin), detail::abs(realVMax)) >
-    requires detail::Absolutizable<base_t, vMin>
+            : std::min(fpm::detail::abs(realVMin), fpm::detail::abs(realVMax)),
+        double realVMaxR = std::max(fpm::detail::abs(realVMin), fpm::detail::abs(realVMax)) >
+    requires fpm::detail::Absolutizable<base_t, vMin>
     friend constexpr
     auto absImpl(Sq const &of) noexcept {
         return Sq<BaseTR, f, realVMinR, realVMaxR>( std::abs(of.value) );
@@ -690,7 +812,7 @@ private:
             ? 0.0  // use 0 as new minimum if signed input type has a range of negative and positive values
             : std::min(realVMin*realVMin, realVMax*realVMax),
         double realVMaxR = std::max(realVMin*realVMin, realVMax*realVMax) >
-    requires detail::RealLimitsInRangeOfBaseType<BaseTR, f, realVMinR, realVMaxR>
+    requires fpm::detail::RealLimitsInRangeOfBaseType<BaseTR, f, realVMinR, realVMaxR>
     friend constexpr
     auto squareImpl(Sq const &x) noexcept {
         using SqR = Sq<BaseTR, f, realVMinR, realVMaxR>;
@@ -702,12 +824,12 @@ private:
     }
 
     template< /* deduced: */
-        double realVMinR = detail::floor( detail::sqrt(realVMin) ),  // round limits to be more tolerant towards approximation
-        double realVMaxR = detail::ceil( detail::sqrt(realVMax) ) >
+        double realVMinR = fpm::detail::floor( fpm::detail::sqrt(realVMin) ),  // round limits to be more tolerant towards approximation
+        double realVMaxR = fpm::detail::ceil( fpm::detail::sqrt(realVMax) ) >
     requires ( sizeof(base_t) <= sizeof(uint32_t)
             && realVMin >= 0.
             && f <= 30  //< ceil of upper q31 limit would round up to 2.0 which is out of value range
-            && detail::RealLimitsInRangeOfBaseType<base_t, f, realVMinR, realVMaxR> )
+            && fpm::detail::RealLimitsInRangeOfBaseType<base_t, f, realVMinR, realVMaxR> )
     friend constexpr
     auto sqrtImpl(Sq const &x) noexcept {
         using SqR = clamp_t<realVMinR, realVMaxR>;
@@ -718,17 +840,17 @@ private:
             ? 0
             // take root of corrected number; result can be cast to base_t without truncation
             // sqrt(x) <=> [ ((x*2^f) * 2^f)^1/2 ] = x^1/2 * 2^f
-            : static_cast<base_t>( detail::isqrt( static_cast<interm_v_t>(x.value) * v2s<interm_v_t, SqR::f>(1) ) );
+            : static_cast<base_t>( fpm::detail::isqrt( static_cast<interm_v_t>(x.value) * v2s<interm_v_t, SqR::f>(1) ) );
         return SqR( y );
     }
 
-    template< /* deduced: */ double thMax = detail::highestRealVMax<base_t, f>(),
-        double realVMinR = detail::floor( detail::rsqrt(realVMax) ),
-        double realVMaxR = std::min( thMax, detail::ceil( detail::rsqrt(realVMin) ) ) >
+    template< /* deduced: */ double thMax = fpm::detail::highestRealVMax<base_t, f>(),
+        double realVMinR = fpm::detail::floor( fpm::detail::rsqrt(realVMax) ),
+        double realVMaxR = std::min( thMax, fpm::detail::ceil( fpm::detail::rsqrt(realVMin) ) ) >
     requires ( sizeof(base_t) <= sizeof(int32_t)
             && realVMin > 0.
             && f <= 30  //< ceil of upper q31 limit would round up to 2.0 which is out of value range
-            && detail::RealLimitsInRangeOfBaseType<base_t, f, realVMinR, realVMaxR> )
+            && fpm::detail::RealLimitsInRangeOfBaseType<base_t, f, realVMinR, realVMaxR> )
     friend constexpr
     auto rsqrtImpl(Sq const &x) noexcept {
         using SqR = clamp_t<realVMinR, realVMaxR>;
@@ -750,7 +872,7 @@ private:
         double l4 = realVMax*realVMax*realVMax,
         double realVMinR = std::min(std::min(std::min(l1, l2), l3), l4),
         double realVMaxR = std::max(std::max(std::max(l1, l2), l3), l4) >
-    requires detail::RealLimitsInRangeOfBaseType<BaseTR, f, realVMinR, realVMaxR>
+    requires fpm::detail::RealLimitsInRangeOfBaseType<BaseTR, f, realVMinR, realVMaxR>
     friend constexpr
     auto cubeImpl(Sq const &x) noexcept {
         using SqR = Sq<BaseTR, f, realVMinR, realVMaxR>;
@@ -763,12 +885,12 @@ private:
     }
 
     template< /* deduced: */
-        double realVMinR = (realVMin < 0. ? 0. : detail::floor( detail::cbrt(realVMin) )),  // round limits to be more tolerant towards approximation
-        double realVMaxR = (realVMax < 0. ? 0. : detail::ceil( detail::cbrt(realVMax) )) >
+        double realVMinR = (realVMin < 0. ? 0. : fpm::detail::floor( fpm::detail::cbrt(realVMin) )),  // round limits to be more tolerant towards approximation
+        double realVMaxR = (realVMax < 0. ? 0. : fpm::detail::ceil( fpm::detail::cbrt(realVMax) )) >
     requires ( sizeof(base_t) <= sizeof(int32_t)
                && f <= 16  // limit scaling to prevent overflow
                && realVMin >= 0.
-               && detail::RealLimitsInRangeOfBaseType<base_t, f, realVMinR, realVMaxR> )
+               && fpm::detail::RealLimitsInRangeOfBaseType<base_t, f, realVMinR, realVMaxR> )
     friend constexpr
     auto cbrtImpl(Sq const &x) noexcept {
         using SqR = clamp_t<realVMinR, realVMaxR>;
@@ -779,21 +901,84 @@ private:
             ? 0
             // cbrt(x) <=> [ ((x*2^f) * 2^f * 2^f)^1/3 ] = x^1/3 * 2^f
             : static_cast<base_t>(
-                detail::icbrt( static_cast<interm_v_t>(x.value) * v2s<interm_v_t, SqR::f>(1) * v2s<interm_v_t, SqR::f>(1) ) );
+                fpm::detail::icbrt( static_cast<interm_v_t>(x.value) * v2s<interm_v_t, SqR::f>(1) * v2s<interm_v_t, SqR::f>(1) ) );
         return SqR( y );
     }
 
-    template< SqType Sq1, SqType Sq2, double realVMinMin, double realVMaxMin >
-    requires ( detail::Similar<Sq1, Sq2>
-               && detail::RealLimitsInRangeOfBaseType<typename Sq1::base_t, Sq1::f, realVMinMin, realVMaxMin> )
+    template< /* deduced: */ SqType SqLo, SqType SqHi >
+    requires fpm::detail::Clampable<Sq, SqLo, SqHi>
     friend constexpr
-    auto min(Sq1 const &first, Sq2 const &second) noexcept;
+    auto clampImpl(Sq const &v, SqLo const &lo, SqHi const &hi) noexcept {
+        using SqR = typename Sq::template clamp_t<SqLo::realVMin, SqHi::realVMax>;
+        // lo and hi are scaled via constructor from similar type if used; v's value just can be taken as is
+        return (v < lo) ? SqR(lo) : (hi < v) ? SqR(hi) : SqR(v.value);
+    }
 
-    template< SqType Sq1, SqType Sq2, double realVMinMax, double realVMaxMax >
-    requires ( detail::Similar<Sq1, Sq2>
-               && detail::RealLimitsInRangeOfBaseType<typename Sq1::base_t, Sq1::f, realVMinMax, realVMaxMax> )
+    template< /* deduced: */ SqType SqLo >
+    requires fpm::detail::ImplicitlyConvertible<SqLo, Sq>
     friend constexpr
-    auto max(Sq1 const &first, Sq2 const &second) noexcept;
+    auto clampLowerImpl(Sq const &v, SqLo const &lo) noexcept {
+        using SqR = typename Sq::template clamp_t<SqLo::realVMin, realVMax>;
+        // lo is scaled via constructor from similar type if used; v's value just can be taken as is
+        return (v < lo) ? SqR(lo) : SqR(v.value);
+    }
+
+    template< /* deduced: */ SqType SqHi >
+    requires fpm::detail::ImplicitlyConvertible<SqHi, Sq>
+    friend constexpr
+    auto clampUpperImpl(Sq const &v, SqHi const &hi) noexcept {
+        using SqR = typename Sq::template clamp_t<realVMin, SqHi::realVMax>;
+        // hi is scaled via constructor from similar type if used; v's value just can be taken as is
+        return (hi < v) ? SqR(hi) : SqR(v.value);
+    }
+
+    template< double realLo, double realHi >
+    requires fpm::detail::RealLimitsInRangeOfBaseType<base_t, f, realLo, realHi>
+    friend constexpr
+    auto clampImpl(Sq const &v) noexcept {
+        using SqR = typename Sq::template clamp_t<realLo, realHi>;
+        constexpr auto sqLo = SqR::template fromReal<realLo>;
+        constexpr auto sqHi = SqR::template fromReal<realHi>;
+        return (v < sqLo) ? sqLo : (sqHi < v) ? sqHi : SqR(v.value);
+    }
+
+    template< double realLo >
+    requires fpm::detail::RealLimitsInRangeOfBaseType<base_t, f, realLo, realVMax>
+    friend constexpr
+    auto clampLowerImpl(Sq const &v) noexcept {
+        using SqR = typename Sq::template clamp_t<realLo, realVMax>;
+        constexpr auto sqLo = SqR::template fromReal<realLo>;
+        return (v < sqLo) ? sqLo : SqR(v.value);
+    }
+
+    template< double realHi >
+    requires fpm::detail::RealLimitsInRangeOfBaseType<base_t, f, realVMin, realHi>
+    friend constexpr
+    auto clampUpperImpl(Sq const &v) noexcept {
+        using SqR = typename Sq::template clamp_t<realVMin, realHi>;
+        constexpr auto sqHi = SqR::template fromReal<realHi>;
+        return (sqHi < v) ? sqHi : SqR(v.value);
+    }
+
+    //
+    // implementations of friend functions which have to be outside of the class; still, they are friends
+    //
+
+    template< /* deduced: */ SqType Sq1, SqType Sq2, double realVMinMin, double realVMaxMin >
+    requires ( fpm::detail::Similar<Sq1, Sq2>
+               && fpm::detail::RealLimitsInRangeOfBaseType<typename Sq1::base_t, Sq1::f, realVMinMin, realVMaxMin> )
+    friend constexpr
+    auto detail::min(Sq1 const &first, Sq2 const &second) noexcept;
+
+    template< /* deduced: */ SqType Sq1, SqType Sq2, double realVMinMax, double realVMaxMax >
+    requires ( fpm::detail::Similar<Sq1, Sq2>
+               && fpm::detail::RealLimitsInRangeOfBaseType<typename Sq1::base_t, Sq1::f, realVMinMax, realVMaxMax> )
+    friend constexpr
+    auto detail::max(Sq1 const &first, Sq2 const &second) noexcept;
+
+    //
+    // memory
+    //
 
     /// scaled integer value that represents a fixed-point value; stored in memory
     base_t const value;
@@ -801,40 +986,26 @@ private:
 
 /// \returns the minimum value of the two given values, wrapped into a new Sq type with the minimum
 /// of the limits. If both values are equivalent, the first value is returned.
-template< /* deduced: */ SqType Sq1, SqType Sq2,
-    double realVMinMin = std::min(Sq1::realVMin, Sq2::realVMin),
-    double realVMaxMin = std::min(Sq1::realVMax, Sq2::realVMax) >
-requires ( detail::Similar<Sq1, Sq2>
-           && detail::RealLimitsInRangeOfBaseType<typename Sq1::base_t, Sq1::f, realVMinMin, realVMaxMin> )
+template< /* deduced: */ SqType Sq1, SqType Sq2 >
 constexpr
-auto min(Sq1 const &first, Sq2 const &second) noexcept {
-    using SqR = typename Sq1::template clamp_t<realVMinMin, realVMaxMin>;
-    return (first.value > second.value) ? SqR(second.value) : SqR(first.value);
-}
+auto min(Sq1 const &first, Sq2 const &second) noexcept { return detail::min(first, second); }
 
 /// \returns the maximum value of the two given values, wrapped into a new Sq type with the maximum
 /// of the limits. If both values are equivalent, the first value is returned.
-template< /* deduced: */ SqType Sq1, SqType Sq2,
-    double realVMinMax = std::max(Sq1::realVMin, Sq2::realVMin),
-    double realVMaxMax = std::max(Sq1::realVMax, Sq2::realVMax) >
-requires ( detail::Similar<Sq1, Sq2>
-           && detail::RealLimitsInRangeOfBaseType<typename Sq1::base_t, Sq1::f, realVMinMax, realVMaxMax> )
+template< /* deduced: */ SqType Sq1, SqType Sq2 >
 constexpr
-auto max(Sq1 const &first, Sq2 const &second) noexcept {
-    using SqR = typename Sq1::template clamp_t<realVMinMax, realVMaxMax>;
-    return (first.value < second.value) ? SqR(second.value) : SqR(first.value);
-}
+auto max(Sq1 const &first, Sq2 const &second) noexcept { return detail::max(first, second); }
 
 /// Converts a literal number into the corresponding best-fit sq type.
 /// Best-fit means that the literal number represents both limits and the value.
 template< SqType Sq, char ...charArray >
 consteval auto fromLiteral() {
-    constexpr double value = detail::doubleFromLiteral<charArray...>();
+    constexpr double value = fpm::detail::doubleFromLiteral<charArray...>();
     return Sq::template clamp_t<value, value>::template fromReal<value>;
 }
 /// Associates an Sq type with a literal.
 #define FPM_SQ_BIND_LITERAL(_sq, _literal) \
-    template< char ...chars > consteval auto operator "" ## _ ## _literal () { return fpm::q::fromLiteral<_sq, chars...>(); }
+    template< char ...chars > consteval auto operator "" ## _ ## _literal () { return fpm::sq::fromLiteral<_sq, chars...>(); }
 
 /**\}*/
 }

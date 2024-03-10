@@ -47,6 +47,8 @@ void playground() {
     velocity = clamp<-100., -10.>(velocity);
     velocity = clamp<-99.9_mm, -9.9_mm>(velocity);  // also works with literals
 
+    velocity = sqrt(clamp<2_mm, 100_mm>(-velocity));
+
     std::cout << "pos size:" << sizeof(position) << ", spd size:" << sizeof(velocity) << std::endl;
     std::cout << "pos: " << position.toReal() << ", vel: " << velocity.toReal() << std::endl;
 }

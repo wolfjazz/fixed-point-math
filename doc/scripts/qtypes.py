@@ -49,27 +49,27 @@ def print_sq_types():
     for sq in sqTypeList:
         f_range = get_f_from_range(sq.fFrom, sq.fTo)
         for f, fStr in f_range:
-            print("template< double lower = detail::lowestRealVMin<%8s, %3s>(), double upper = detail::highestRealVMax<%8s, %3s>() > using %8s = sq<%8s, %3s, lower, upper>;" % (sq.type, f, sq.type, f, sq.short + "sq" + fStr, sq.type, f))
+            print("template< double lower = fpm::detail::lowestRealVMin<%8s, %3s>(), double upper = fpm::detail::highestRealVMax<%8s, %3s>() > using %8s = sq<%8s, %3s, lower, upper>;" % (sq.type, f, sq.type, f, sq.short + "sq" + fStr, sq.type, f))
 
 def print_sq_literals():
     for sq in sqTypeList:
         f_range = get_f_from_range(sq.fFrom, sq.fTo)
         for f, fStr in f_range:
             templSqType = sq.short + "sq" + fStr
-            print("template< char ...chars > consteval auto operator \"\"_%-10s { return sq::fromLiteral<%8s<>, chars...>(); }" % (templSqType + "()", templSqType))
+            print("FPM_SQ_BIND_LITERAL(%8s<>, %-8s)" % (templSqType, templSqType))
 
 def print_q_types():
     for q in qTypeList:
         f_range = get_f_from_range(q.fFrom, q.fTo)
         for f, fStr in f_range:
-            print("template< double lower = detail::lowestRealVMin<%8s, %3s>(), double upper = detail::highestRealVMax<%8s, %3s>(), Overflow ovfBx = Ovf::%-9s > using %7s = q<%8s, %3s, lower, upper, ovfBx>;" % (q.type, f, q.type, f, q.defOvf, q.short + "q" + fStr, q.type, f))
+            print("template< double lower = fpm::detail::lowestRealVMin<%8s, %3s>(), double upper = fpm::detail::highestRealVMax<%8s, %3s>(), Overflow ovfBx = Ovf::%-9s > using %7s = q<%8s, %3s, lower, upper, ovfBx>;" % (q.type, f, q.type, f, q.defOvf, q.short + "q" + fStr, q.type, f))
 
 def print_q_literals():
     for q in qTypeList:
         f_range = get_f_from_range(q.fFrom, q.fTo)
         for f, fStr in f_range:
             templQType = q.short + "q" + fStr
-            print("template< char ...chars > consteval auto operator \"\"_%-9s { return q::fromLiteral<%7s<>, chars...>(); }" % (templQType + "()", templQType))
+            print("FPM_Q_BIND_LITERAL(%7s<>, %-7s)" % (templQType, templQType))
 
 
 def main():
