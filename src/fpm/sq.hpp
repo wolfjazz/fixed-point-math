@@ -164,7 +164,7 @@ public:
 
     /// Type alias for clamp::type.
     template< double newRealVMin, double newRealVMax >
-    using clamp_t = clamp<newRealVMin, newRealVMax>::type;
+    using clamp_t = typename clamp<newRealVMin, newRealVMax>::type;
 
     /// Named compile-time-only "constructor" from a floating-point value. This will use v2s to scale
     /// the given floating-point value at compile-time before the Sq value is constructed with the
@@ -177,14 +177,14 @@ public:
     template< double realValue >
     requires ( realVMin <= realValue && realValue <= realVMax )  // must not overflow
     static constexpr
-    Sq fromReal = Sq( v2s<base_t, f>(realValue) );
+    Sq fromReal() { return Sq( v2s<base_t, f>(realValue) ); }
 
     /// Named compile-time-only "constructor" from a scaled integer value.
     /// \note Does not compile if the value is outside the value range.
     template< base_t value >
     requires ( vMin <= value && value <= vMax )  // must not overflow
     static constexpr
-    Sq fromScaled = Sq( value );
+    Sq fromScaled() { return Sq( value ); }
 
     /// Named "Copy-Constructor" from another Sq type value with the same base type.
     /// \note When an Sq value is up-scaled to a larger resolution, the initial representation error
@@ -416,7 +416,7 @@ public:
     std::strong_ordering operator <=>(SqRhs const &rhs) const noexcept { return opSpaceshipImpl(*this, rhs); }
 
     /// Left-Shifts lhs by the number of bits given by the rhs integral constant.
-    /// \note Shifting is possible if the shifted limits cannot exceed the base type's value range.
+    /// \note Shifting is possible if the shifted limits do not exceed the base type's value range.
     /// \warning Arithmetic underflow can happen if the result is smaller than the target resolution.
     /// \returns the shifted value, wrapped into a new Sq type with shifted limits.
     template< /* deduced: */ std::integral T, T v >
@@ -427,7 +427,7 @@ public:
     }
 
     /// Right-Shifts lhs by the number of bits given by the rhs integral constant.
-    /// \note Shifting is possible if the shifted limits cannot exceed the base type's value range.
+    /// \note Shifting is possible if the shifted limits do not exceed the base type's value range.
     /// \returns the shifted value, wrapped into a new Sq type with shifted limits.
     template< /* deduced: */ std::integral T, T v >
     requires detail::RightShiftable<Sq, std::integral_constant<T, v>>
@@ -608,7 +608,7 @@ private:
 
         // add values
         auto result = s2s<BaseTR, f, SqR::f>(lhs.value) + s2s<BaseTR, SqRhs::f, SqR::f>(rhs.reveal());
-        return SqR( static_cast<SqR::base_t>(result) );
+        return SqR( static_cast<typename SqR::base_t>(result) );
     }
 
     template< /* deduced: */ double realVMinR = -realVMax, double realVMaxR = -realVMin,
@@ -632,7 +632,7 @@ private:
 
         // subtract rhs value from lhs value
         auto result = s2s<BaseTR, f, SqR::f>(lhs.value) - s2s<BaseTR, SqRhs::f, SqR::f>(rhs.reveal());
-        return SqR( static_cast<SqR::base_t>(result) );
+        return SqR( static_cast<typename SqR::base_t>(result) );
     }
 
     template< /* deduced: */ SqType SqRhs,
@@ -780,7 +780,7 @@ private:
                && fpm::detail::RealLimitsInRangeOfBaseType<base_t, f, realVMinR, realVMaxR> )
     friend constexpr
     auto opLShiftIcImpl(Sq const &lhs, std::integral_constant<T, v>) noexcept {
-        using SqR = typename Sq::clamp_t<realVMinR, realVMaxR>;
+        using SqR = typename Sq::template clamp_t<realVMinR, realVMaxR>;
         return SqR( lhs.value << v );
     }
 
@@ -791,7 +791,7 @@ private:
                && fpm::detail::RealLimitsInRangeOfBaseType<base_t, f, realVMinR, realVMaxR> )
     friend constexpr
     auto opRShiftIcImpl(Sq const &lhs, std::integral_constant<T, v>) noexcept {
-        using SqR = typename Sq::clamp_t<realVMinR, realVMaxR>;
+        using SqR = typename Sq::template clamp_t<realVMinR, realVMaxR>;
         return SqR( lhs.value >> v );
     }
 
@@ -804,7 +804,8 @@ private:
     requires fpm::detail::Absolutizable<base_t, vMin>
     friend constexpr
     auto absImpl(Sq const &of) noexcept {
-        return Sq<BaseTR, f, realVMinR, realVMaxR>( std::abs(of.value) );
+        if constexpr (std::is_unsigned_v<typename Sq::base_t>) { return Sq<BaseTR, f, realVMinR, realVMaxR>( of.value ); }
+        else { return Sq<BaseTR, f, realVMinR, realVMaxR>( std::abs(of.value) ); }
     }
 
     template< /* deduced: */ typename BaseTR = std::common_type_t<int32_t, base_t>,
@@ -937,8 +938,8 @@ private:
     friend constexpr
     auto clampImpl(Sq const &v) noexcept {
         using SqR = typename Sq::template clamp_t<realLo, realHi>;
-        constexpr auto sqLo = SqR::template fromReal<realLo>;
-        constexpr auto sqHi = SqR::template fromReal<realHi>;
+        constexpr auto sqLo = SqR::template fromReal<realLo>();
+        constexpr auto sqHi = SqR::template fromReal<realHi>();
         return (v < sqLo) ? sqLo : (sqHi < v) ? sqHi : SqR(v.value);
     }
 
@@ -947,7 +948,7 @@ private:
     friend constexpr
     auto clampLowerImpl(Sq const &v) noexcept {
         using SqR = typename Sq::template clamp_t<realLo, realVMax>;
-        constexpr auto sqLo = SqR::template fromReal<realLo>;
+        constexpr auto sqLo = SqR::template fromReal<realLo>();
         return (v < sqLo) ? sqLo : SqR(v.value);
     }
 
@@ -956,7 +957,7 @@ private:
     friend constexpr
     auto clampUpperImpl(Sq const &v) noexcept {
         using SqR = typename Sq::template clamp_t<realVMin, realHi>;
-        constexpr auto sqHi = SqR::template fromReal<realHi>;
+        constexpr auto sqHi = SqR::template fromReal<realHi>();
         return (sqHi < v) ? sqHi : SqR(v.value);
     }
 
@@ -1001,7 +1002,7 @@ auto max(Sq1 const &first, Sq2 const &second) noexcept { return detail::max(firs
 template< SqType Sq, char ...charArray >
 consteval auto fromLiteral() {
     constexpr double value = fpm::detail::doubleFromLiteral<charArray...>();
-    return Sq::template clamp_t<value, value>::template fromReal<value>;
+    return Sq::template clamp_t<value, value>::template fromReal<value>();
 }
 /// Associates an Sq type with a literal.
 #define FPM_SQ_BIND_LITERAL(_sq, _literal) \

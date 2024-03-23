@@ -356,7 +356,8 @@ namespace detail {
         constexpr std::size_t length = sizeof...(charArray);
         constexpr char chars[length]{ charArray... };
         static_assert(length > 0u && length <= std::numeric_limits<double>::digits10
-            && std::all_of(chars, chars + length, [](char c) { return isdigit(c) || c == '.' || c == 'e' || c == 'E' || c == '-'; }),
+            && std::all_of(chars, chars + length, [](char c) {
+                return (c >= '0' && c <= '9') || c == '.' || c == 'e' || c == 'E' || c == '-'; }),
             "Argument to literal must be a positive integer or double");
         double number = 0., fScale = 1.;
         int exp = 0, eSign = 0;
@@ -381,7 +382,7 @@ namespace detail {
         constexpr std::size_t length = sizeof...(charArray);
         constexpr char chars[length]{ charArray... };
         static_assert(length > 0u && length <= std::numeric_limits<unsigned int>::digits10
-            && std::all_of(chars, chars + length, [](char c) { return isdigit(c); }),
+            && std::all_of(chars, chars + length, [](char c) { return (c >= '0' && c <= '9'); }),
             "Argument to literal must be a positive integer");
         unsigned int value = 0;
         for (size_t i = 0u; i < length; ++i) {

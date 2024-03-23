@@ -93,13 +93,13 @@ using i16q2<...> = i16q<2, ..., fpm::Overflow::clamp>;  // res. 2^-2; overflow: 
 
 
 /* declaration and initialization */
-u32q16<> a0::fromReal<99.9>;  // direct initialization; default value range is full possible range
-auto a = u32q16<>::fromReal<45678.123>;  // construction
-auto b = u32q16<45.0, 98.2>::fromReal<66.>;  // constr.; value range 45.0-98.2 (2949120-6435635);
+u32q16<> a0::fromReal<99.9>();  // direct initialization; default value range is full possible range
+auto a = u32q16<>::fromReal<45678.123>();  // construction
+auto b = u32q16<45.0, 98.2>::fromReal<66.>();  // constr.; value range 45.0-98.2 (2949120-6435635);
 // value range specified via scaled integer is not useful because if the value of n is changed
 // all ranges need to be adapted when scaled values are used; this is not needed for real values
 // and lets be honest - this is not intuitive either.
-//auto c = u32q16<1966080, 3932160>::fromReal<45.1>;
+//auto c = u32q16<1966080, 3932160>::fromReal<45.1>();
 
 // copy: construct from another Q value with same base-type; value range and overflow behavior can
 // be changed this way; note that copy will perform a range check at runtime when the lhs range is
@@ -109,7 +109,7 @@ auto d2 = u32q16<40000.0, 50000.0>::fromQ(a);  // limitation of value range; wil
                                                // check at runtime
 // upscale-copy: mem-value increased by 2^4 and checked at runtime; value range implicitly reduced
 auto e = u32q20<>::fromQ(a);
-auto e2 = u32q20<>::fromQ( u32q16<>::fromReal<1.1> );  // construct temporary q16 and upscale-move
+auto e2 = u32q20<>::fromQ( u32q16<>::fromReal<1.1>() );  // construct temporary q16 and upscale-move
                                                        // to q20 lvalue
 // downscale-copy: mem-value decreased at runtime without checks; value range implicitly extended
 auto f = u32q16<>::fromQ(e);
@@ -176,9 +176,9 @@ using u16sq<...> = fpm::sq::Sq<uint16_t, ...>;
 using speed_t = i32q16<-100., 100.>;
 using accel_t = i32q16<-10., 10.>;
 using pos_t = i32q16<-10000., 10000.>;
-auto speed = speed_t::fromReal<50.>;
-auto accel = accel_t::fromReal<5.>;
-auto pos = pos_t::fromReal<1000.>;
+auto speed = speed_t::fromReal<50.>();
+auto accel = accel_t::fromReal<5.>();
+auto pos = pos_t::fromReal<1000.>();
 // ...
 
 // Sq-calculation, performed safely via Sq values. As mentioned above, if only Sq values are used
@@ -203,7 +203,7 @@ auto pos = pos_t::fromReal<1000.>;
 auto s0 = pos.toSq< -5e3, 5e3, Overflow::clamp >();
 //
 // also given: current time [s]
-auto time = u16sq8<0., 10.>::fromReal<4.>;
+auto time = u16sq8<0., 10.>::fromReal<4.>();
 //
 // calculation; for a range of input values; expect an Sq value within a given range (can and should
 // be calculated with the real decimal range values given when the types are defined; for example,
@@ -220,7 +220,7 @@ pos_t::Sq<-6500., 6500.> s = accel*time*time / 2_ic + speed*time + pos.toSq<-5e3
 //
 // next calculation step; note that a new variable needs to be defined because s cannot be changed
 // since it is of Sq type.
-pos_t::Sq<-6500., 7000.> s2 = s + pos_t::Sq<0., 500.>::fromReal<250.>; 
+pos_t::Sq<-6500., 7000.> s2 = s + pos_t::Sq<0., 500.>::fromReal<250.>(); 
 //    add some constant value from a range ^^^^^^^^^^^^^^^^^^^^^^^^^^
 //
 // now update position in Q scaling;
@@ -236,7 +236,7 @@ pos = pos_t::fromSq< ovf_override >(s2);
 //    the real value and the scaled value are scaled by the same factor and the operation is
 //    therefore intuitive)
 pos_t::Sq<> s3 = 2_ic * s / 3_ic;  // 2 and 3 are converted to integral constants via literal _ic
-pos_t::Sq<> s4 = s * 4.2_i32q16;   // converts 4.2 to i32q16<4.2,4.2>::fromReal<4.2>
+pos_t::Sq<> s4 = s * 4.2_i32q16;   // converts 4.2 to i32q16<4.2,4.2>::fromReal<4.2>()
 pos_t::Sq<> s5 = s / 3.14159_i32q16;
 
 // >> some thoughts about implicit conversion of numbers in formulas:
@@ -255,7 +255,7 @@ consteval auto operator""_mm() { return q::fromLiteral<pos_t, chars...>(); }
 //       similar FPM_SQ_BIND_LITERAL(_sqtype, _literal) for Sq types.
 //
 // Now it is possible to create a pos_t variable from a number that uses the literal _mm:
-pos_t position = 500.5_mm;  // i32q16<-10000., 10000.>::fromReal<500.5>
+pos_t position = 500.5_mm;  // i32q16<-10000., 10000.>::fromReal<500.5>()
 //
 // Such literals can be used in any formula of Q variables.
 pos_t::Sq<> position2 = position + 100.1_mm;
@@ -275,8 +275,8 @@ u32sq20<> i = aa + ee;  // addition performed in q20 (higher precision of e) and
 u32sq16<> j = aa + ee;  // addition performed in q20 (higher precision of e) and stored as q16 (j)
 //
 // remember: no range check performed when R1 * R2 (ranges Ri, * is an operator) cannot go ooR
-auto x = u32q16<40., 80.>::fromReal<50.>;
-auto y = u32q16<10., 20.>::fromReal<15.>;
+auto x = u32q16<40., 80.>::fromReal<50.>();
+auto y = u32q16<10., 20.>::fromReal<15.>();
 u32sq16<> sz = x + y;  // no range check performed here; implicit conversion of x and y to Sq type!
 u32q16<> z = sz;  // implicit conversion of Sq result back to Q-value (same value range)
 //
@@ -292,7 +292,7 @@ u32q16<> z = sz;  // implicit conversion of Sq result back to Q-value (same valu
 posClamped = clamp(position, -100_mm, 100_mm);
 // compile-time limits; value is usually clamped at runtime though
 posClamped2 = clamp<-100., +100.>(position);
-posClamped3 = clamp<-99.9_mm, +99.9_mm>(position);  // also works with literals (implicit -> double)
+posClamped3 = clamp<-99.9_mm, +99.9_mm>(position);  // also works with literals (implicit ct double)
 
 /* equality and comparison operators */
 /* abs, shift, min, max */

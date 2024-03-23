@@ -13,13 +13,13 @@ using namespace fpm::types;
 /// Test concept to checks whether a value with the given Sq type can be constructed from the given real value.
 template< class Sq, double realValue >
 concept ConstructibleFromReal = requires {
-    { Sq::template fromReal<realValue> } -> std::same_as<Sq const &>;  // false if expression cannot be compiled
+    { Sq::template fromReal<realValue>() } -> std::same_as<Sq>;  // false if expression cannot be compiled
 };
 
 /// Checks whether a value with the given Sq type can be constructed from the given scaled value.
 template< class Sq, Sq::base_t scaledValue >
 concept ConstructibleFromScaled = requires {
-    { Sq::template fromScaled<scaledValue> } -> std::same_as<Sq const &>;  // false if expression cannot be compiled
+    { Sq::template fromScaled<scaledValue>() } -> std::same_as<Sq>;  // false if expression cannot be compiled
 };
 
 /// Checks whether a comparison between Sq1 and Sq2 for non-equality is possible.
@@ -72,7 +72,7 @@ TEST_F(SQTest_Construct, sq_relimit__some_sq_type__relimited_sq_type) {
 
 TEST_F(SQTest_Construct, sq_from_real__constexpr_int16_positiveF__expected_value) {
     constexpr double realValue = -2047.6;
-    auto sqValue = i16sq4_2k::fromReal<realValue>;
+    auto sqValue = i16sq4_2k::fromReal<realValue>();
 
     EXPECT_TRUE((std::is_same_v<int16_t, decltype(sqValue.reveal())>));
     EXPECT_TRUE((std::is_same_v<int, decltype(sqValue.toReal<int>())>));
@@ -98,8 +98,8 @@ TEST_F(SQTest_Construct, sq_from_real__positive_value_out_of_range__construction
 
 TEST_F(SQTest_Construct, sq_from_scaled__constexpr_int16_positiveF__expected_value) {
     constexpr int16_t memValue = 31686;
-    auto a = i16sq4_2k::fromScaled<+memValue>;
-    auto b = i16sq4_2k::fromScaled<-memValue>;
+    auto a = i16sq4_2k::fromScaled<+memValue>();
+    auto b = i16sq4_2k::fromScaled<-memValue>();
 
     constexpr double RESULT_REAL_VALUE = 1980.375;
     ASSERT_EQ(+memValue, a.reveal());
@@ -122,7 +122,7 @@ TEST_F(SQTest_Construct, sq_from_scaled__positive_value_out_of_range__constructi
 
 TEST_F(SQTest_Construct, sq_copy_constructor__int16_someF__int16_sameF) {
     constexpr double realValueA = -1024.2;
-    auto a = i16sq4_2k::fromReal<realValueA>;
+    auto a = i16sq4_2k::fromReal<realValueA>();
     auto b = i16sq4_2k::fromSq(a);
     i16sq4_2k c = a;
 
@@ -132,7 +132,7 @@ TEST_F(SQTest_Construct, sq_copy_constructor__int16_someF__int16_sameF) {
 
 TEST_F(SQTest_Construct, sq_move_constructor__int16_someF__int16_sameF) {
     constexpr double realValueA = -1024.2;
-    auto a = i16sq4_2k::fromReal<realValueA>;
+    auto a = i16sq4_2k::fromReal<realValueA>();
     i16sq4_2k b = std::move(a);
 
     ASSERT_NEAR(realValueA, b.toReal(), i16sq4_2k::resolution);
@@ -140,7 +140,7 @@ TEST_F(SQTest_Construct, sq_move_constructor__int16_someF__int16_sameF) {
 
 TEST_F(SQTest_Construct, sq_upscale_copy_constructor__int16_someF__int16_largerF) {
     constexpr double realValueA = -1024.2;
-    auto a = i32sq4_2k::fromReal<realValueA>;
+    auto a = i32sq4_2k::fromReal<realValueA>();
     auto b = i32sq8_2k::fromSq(a);
     i32sq8_2k c = a;
 
@@ -152,7 +152,7 @@ TEST_F(SQTest_Construct, sq_upscale_copy_constructor__int16_someF__int16_largerF
 
 TEST_F(SQTest_Construct, sq_downscale_copy_constructor__int16_someF__int16_smallerF) {
     constexpr double realValueA = -1024.2;
-    auto a = i32sq4_2k::fromReal<realValueA>;
+    auto a = i32sq4_2k::fromReal<realValueA>();
     auto b = i32sqm2_2k::fromSq(a);
     i32sqm2_2k c = a;
 
@@ -225,9 +225,9 @@ TEST_F(SQTest_Casting, sq_static_cast__signed_user_range__unsigned_larger_range_
 
     using i16sqm3_t = i16sqm3<10000., 100000.>;  // i16 -> u32, max delta f is 17
     using u32sq14_t = u32sq14<10000., 160000.>;
-    auto a = i16sqm3_t::fromReal<i16sqm3_t::realVMin>;
-    auto b = i16sqm3_t::fromReal<70000.>;
-    auto c = i16sqm3_t::fromReal<i16sqm3_t::realVMax>;
+    auto a = i16sqm3_t::fromReal<i16sqm3_t::realVMin>();
+    auto b = i16sqm3_t::fromReal<70000.>();
+    auto c = i16sqm3_t::fromReal<i16sqm3_t::realVMax>();
     auto ac = static_cast<u32sq14_t>(a);
     auto ac2 = static_sq_cast<u32sq14_t>(a);
     auto ac3 = safe_sq_cast<u32sq14_t>(a);
@@ -263,9 +263,9 @@ TEST_F(SQTest_Casting, sq_static_cast__unsigned_user_range__signed_larger_range_
 
     using u16sqm3_t = u16sqm3<10000., 400000.>;  // u16 -> i32, max delta f is 15
     using i32sq12_t = i32sq12<-80000., 500000.>;
-    auto a = u16sqm3_t::fromReal<u16sqm3_t::realVMin>;
-    auto b = u16sqm3_t::fromReal<50000.>;
-    auto c = u16sqm3_t::fromReal<u16sqm3_t::realVMax>;
+    auto a = u16sqm3_t::fromReal<u16sqm3_t::realVMin>();
+    auto b = u16sqm3_t::fromReal<50000.>();
+    auto c = u16sqm3_t::fromReal<u16sqm3_t::realVMax>();
     auto ac = static_cast<i32sq12_t>(a);
     auto ac2 = static_sq_cast<i32sq12_t>(a);
     auto ac3 = safe_sq_cast<i32sq12_t>(a);
@@ -301,9 +301,9 @@ TEST_F(SQTest_Casting, sq_static_cast__signed_user_range__signed_larger_range__s
 
     using i16sqm4_t = i16sqm4<-100000., 400000.>;  // i16 -> i32, max delta f is 16
     using i32sq12_t = i32sq12<-120000., 500000.>;
-    auto a = i16sqm4_t::fromReal<i16sqm4_t::realVMin>;
-    auto b = i16sqm4_t::fromReal<-50000.>;
-    auto c = i16sqm4_t::fromReal<i16sqm4_t::realVMax>;
+    auto a = i16sqm4_t::fromReal<i16sqm4_t::realVMin>();
+    auto b = i16sqm4_t::fromReal<-50000.>();
+    auto c = i16sqm4_t::fromReal<i16sqm4_t::realVMax>();
     auto ac = static_cast<i32sq12_t>(a);
     auto ac2 = static_sq_cast<i32sq12_t>(a);
     auto ac3 = safe_sq_cast<i32sq12_t>(a);
@@ -339,9 +339,9 @@ TEST_F(SQTest_Casting, q_static_cast__unsigned_user_range__unsigned_larger_range
 
     using u16sqm2_t = u16sqm2<10000., 100000.>;  // u16 -> u32, max delta f is 16
     using u32sq14_t = u32sq14<0., 160000.>;
-    auto a = u16sqm2_t::fromReal<u16sqm2_t::realVMin>;
-    auto b = u16sqm2_t::fromReal<50000.>;
-    auto c = u16sqm2_t::fromReal<u16sqm2_t::realVMax>;
+    auto a = u16sqm2_t::fromReal<u16sqm2_t::realVMin>();
+    auto b = u16sqm2_t::fromReal<50000.>();
+    auto c = u16sqm2_t::fromReal<u16sqm2_t::realVMax>();
     auto ac = static_cast<u32sq14_t>(a);
     auto ac2 = static_sq_cast<u32sq14_t>(a);
     auto ac3 = safe_sq_cast<u32sq14_t>(a);
@@ -380,7 +380,7 @@ protected:
 
 TEST_F(SQTest_Unary, sq_unary_plus__some_signed_sq_value__same_value_and_limits) {
     using i16sq4_t = i16sq4<-1000., 2000.>;
-    auto a = i16sq4_t::fromReal<1567.89>;
+    auto a = i16sq4_t::fromReal<1567.89>();
     auto b = +a;
 
     ASSERT_TRUE((std::is_same_v<decltype(a), decltype(b)>));
@@ -389,7 +389,7 @@ TEST_F(SQTest_Unary, sq_unary_plus__some_signed_sq_value__same_value_and_limits)
 
 TEST_F(SQTest_Unary, sq_unary_plus__some_unsigned_sq_value__same_value_and_limits) {
     using u16sq4_t = u16sq4<0., 2000.>;
-    auto a = u16sq4_t::fromReal<1567.89>;
+    auto a = u16sq4_t::fromReal<1567.89>();
     auto b = +a;
 
     ASSERT_TRUE((std::is_same_v<decltype(a), decltype(b)>));
@@ -398,7 +398,7 @@ TEST_F(SQTest_Unary, sq_unary_plus__some_unsigned_sq_value__same_value_and_limit
 
 TEST_F(SQTest_Unary, sq_unary_plus__some_signed_q_value__sq_with_same_value_and_limits) {
     using i16q4_t = i16q4<-1000., 2000.>;
-    auto a = i16q4_t::fromReal<-567.89>;
+    auto a = i16q4_t::fromReal<-567.89>();
     auto b = +a;
 
     ASSERT_TRUE(( std::is_same_v< i16q4_t::Sq<>, decltype(b) > ));
@@ -409,7 +409,7 @@ TEST_F(SQTest_Unary, sq_unary_minus__some_signed_positive_sq_value__negated_valu
     using i16sq4_t = i16sq4<-500., 1000.>;
     EXPECT_TRUE(( fpm::sq::detail::Negatable< i16sq4_t > ));
 
-    auto a = i16sq4_t::fromReal<567.89>;
+    auto a = i16sq4_t::fromReal<567.89>();
     auto b = -a;
 
     using expected_result_t = i16sq4<-1000., 500.>;
@@ -421,7 +421,7 @@ TEST_F(SQTest_Unary, sq_unary_minus__some_signed_negative_sq_value__negated_valu
     using i16sq4_t = i16sq4<-500., 1000.>;
     EXPECT_TRUE(( fpm::sq::detail::Negatable< i16sq4_t > ));
 
-    auto a = i16sq4_t::fromReal<-345.67>;
+    auto a = i16sq4_t::fromReal<-345.67>();
     auto b = -a;
 
     using expected_result_t = i16sq4<-1000., 500.>;
@@ -433,7 +433,7 @@ TEST_F(SQTest_Unary, sq_unary_minus__some_signed_sq_value_with_full_range__negat
     using i16sq4_t = i16sq4<>;  // use full symmetric range
     EXPECT_TRUE(( fpm::sq::detail::Negatable< i16sq4_t > ));
 
-    auto a = i16sq4_t::fromReal<-2047.9375>;
+    auto a = i16sq4_t::fromReal<-2047.9375>();
     auto b = -a;
 
     ASSERT_TRUE((std::is_same_v<decltype(a), decltype(b)>));
@@ -451,7 +451,7 @@ TEST_F(SQTest_Unary, sq_unary_minus__small_unsigned_sq_value__negated_value_and_
     using u16sq4_t = u16sq4<0., 500.>;
     EXPECT_TRUE(( fpm::sq::detail::Negatable< u16sq4_t > ));
 
-    auto a = u16sq4_t::fromReal<234.56>;
+    auto a = u16sq4_t::fromReal<234.56>();
     auto b = -a;
 
     using expected_result_t = i16sq4<-500., -0.>;  // (!) -0.0 is not equal to +0.0
@@ -463,7 +463,7 @@ TEST_F(SQTest_Unary, sq_unary_minus__large_unsigned_sq_value__negated_value_and_
     using u16sq4_t = u16sq4<>;  // use full range
     EXPECT_TRUE(( fpm::sq::detail::Negatable< u16sq4_t > ));
 
-    auto a = u16sq4_t::fromReal<234.56>;
+    auto a = u16sq4_t::fromReal<234.56>();
     auto b = -a;
 
     using expected_result_t = i32sq4< -u16sq4_t::realVMax, -0. >;  // (!) -0.0 is not equal to +0.0
@@ -473,7 +473,7 @@ TEST_F(SQTest_Unary, sq_unary_minus__large_unsigned_sq_value__negated_value_and_
 
 TEST_F(SQTest_Unary, sq_unary_minus__some_signed_q_value__sq_with_negated_value_and_limits) {
     using i16q4_t = i16q4<-1000., 2000.>;
-    auto a = i16q4_t::fromReal<-567.89>;
+    auto a = i16q4_t::fromReal<-567.89>();
     auto b = -a;
 
     ASSERT_TRUE(( std::is_same_v< i16sq4<-2000., 1000.>, decltype(b) > ));
@@ -500,7 +500,7 @@ TEST_F(SQTest_Unary, sq_unary_abs__some_signed_negative_sq_value__absolute_value
     using i16sq4_t = i16sq4<>;  // use full symmetric range
     EXPECT_TRUE(( fpm::sq::detail::Absolutizable< i16sq4_t > ));
 
-    auto value = i16sq4_t::fromReal<-1897.6>;
+    auto value = i16sq4_t::fromReal<-1897.6>();
     auto absValue = abs(value);  // unqualified lookup (argument-dependent lookup, ADL)
 
     using expected_result_t = u16sq4< 0., i16sq4<>::realVMax >;
@@ -512,7 +512,7 @@ TEST_F(SQTest_Unary, sq_unary_abs__some_signed_positive_sq_value__same_value_abs
     using i16sq4_t = i16sq4<>;  // use full symmetric range
     EXPECT_TRUE(( fpm::sq::detail::Absolutizable< i16sq4_t > ));
 
-    auto value = i16sq4_t::fromReal<+1897.6>;
+    auto value = i16sq4_t::fromReal<+1897.6>();
     auto absValue = abs(value);
 
     using expected_result_t = u16sq4< 0., i16sq4<>::realVMax >;
@@ -531,7 +531,7 @@ TEST_F(SQTest_Unary, sq_unary_abs__some_unsigned_sq_value__same_value_and_limits
     using u16sq4_t = u16sq4<0., 2000.>;
     EXPECT_TRUE(( fpm::sq::detail::Absolutizable< u16sq4_t > ));
 
-    auto value = u16sq4_t::fromReal<1563.77>;
+    auto value = u16sq4_t::fromReal<1563.77>();
     auto absValue = abs(value);
 
     ASSERT_TRUE((std::is_same_v<u16sq4_t, decltype(absValue)>));
@@ -541,7 +541,7 @@ TEST_F(SQTest_Unary, sq_unary_abs__some_unsigned_sq_value__same_value_and_limits
 TEST_F(SQTest_Unary, sq_unary_abs__some_signed_q_value__absolute_sq_value_and_limits) {
     using i16q4_t = i16q4<>;  // use full symmetric range
 
-    auto value = i16q4_t::fromReal<-1897.6>;
+    auto value = i16q4_t::fromReal<-1897.6>();
     auto absValue = abs(value);
 
     using expected_result_t = u16sq4< 0., i16sq4<>::realVMax >;
@@ -566,9 +566,9 @@ protected:
 
 TEST_F(SQTest_Addition, sq_add__three_sq_values_same_sq_type__values_added) {
     using i32sq16_t = i32sq16<-10000., 10000.>;
-    auto a = i32sq16_t::fromReal<5000.>;
-    auto b = i32sq16_t::fromReal<-3333.>;
-    auto c = i32sq16_t::fromReal<1333.>;
+    auto a = i32sq16_t::fromReal<5000.>();
+    auto b = i32sq16_t::fromReal<-3333.>();
+    auto c = i32sq16_t::fromReal<1333.>();
 
     auto d = a + b + c;
 
@@ -580,9 +580,9 @@ TEST_F(SQTest_Addition, sq_add__three_sq_values_same_sq_type__values_added) {
 TEST_F(SQTest_Addition, sq_add__three_sq_values_different_sq_type__values_added_largest_resolution) {
     using i32sq16_t = i32sq16<-500., 500.>;
     using i32sq20_t = i32sq20<-300., 300.>;
-    auto a = i32sq16_t::fromReal<-455.>;
-    auto b = i32sq20_t::fromReal<233.>;
-    auto c = i32sq16_t::fromReal<167.>;
+    auto a = i32sq16_t::fromReal<-455.>();
+    auto b = i32sq20_t::fromReal<233.>();
+    auto c = i32sq16_t::fromReal<167.>();
 
     auto d = a + b + c;
 
@@ -594,9 +594,9 @@ TEST_F(SQTest_Addition, sq_add__three_sq_values_different_sq_type__values_added_
 TEST_F(SQTest_Addition, sq_add__three_q_values_different_q_type__values_added_to_sq_with_largest_resolution) {
     using i32q16_t = i32q16<-500., 500.>;
     using i32q20_t = i32q20<-300., 300.>;
-    auto a = i32q16_t::fromReal<-455.>;
-    auto b = i32q20_t::fromReal<233.>;
-    auto c = i32q16_t::fromReal<167.>;
+    auto a = i32q16_t::fromReal<-455.>();
+    auto b = i32q20_t::fromReal<233.>();
+    auto c = i32q16_t::fromReal<167.>();
 
     auto d = a + b + c;
 
@@ -622,9 +622,9 @@ protected:
 
 TEST_F(SQTest_Subtraction, sq_subtract__three_values_same_sq_type__values_subtracted) {
     using i32sq16_t = i32sq16<-500., 500.>;
-    auto a = i32sq16_t::fromReal<-455.>;
-    auto b = i32sq16_t::fromReal<233.>;
-    auto c = i32sq16_t::fromReal<167.>;
+    auto a = i32sq16_t::fromReal<-455.>();
+    auto b = i32sq16_t::fromReal<233.>();
+    auto c = i32sq16_t::fromReal<167.>();
 
     auto d = a - b - c;
 
@@ -636,9 +636,9 @@ TEST_F(SQTest_Subtraction, sq_subtract__three_values_same_sq_type__values_subtra
 TEST_F(SQTest_Subtraction, sq_subtract__three_values_different_sq_type__values_subtracted_largest_resolution) {
     using i32sq16_t = i32sq16<-500., 500.>;
     using i32sq20_t = i32sq20<-300., 300.>;
-    auto a = i32sq16_t::fromReal<255.1111>;
-    auto b = i32sq20_t::fromReal<233.2222>;
-    auto c = i32sq16_t::fromReal<167.3333>;
+    auto a = i32sq16_t::fromReal<255.1111>();
+    auto b = i32sq20_t::fromReal<233.2222>();
+    auto c = i32sq16_t::fromReal<167.3333>();
 
     auto d = a - b - c;
 
@@ -664,9 +664,9 @@ protected:
 
 TEST_F(SQTest_Multiplication, sq_multiplicate__three_values_same_sq_type__values_multiplied) {
     using i32sq16_t = i32sq16<-8., 8.>;
-    auto a = i32sq16_t::fromReal< -4.5 >;
-    auto b = i32sq16_t::fromReal<  7./3 >;
-    auto c = i32sq16_t::fromReal<  5./3 >;
+    auto a = i32sq16_t::fromReal< -4.5 >();
+    auto b = i32sq16_t::fromReal<  7./3 >();
+    auto c = i32sq16_t::fromReal<  5./3 >();
 
     auto d = a * b * c;
 
@@ -678,9 +678,9 @@ TEST_F(SQTest_Multiplication, sq_multiplicate__three_values_same_sq_type__values
 TEST_F(SQTest_Multiplication, sq_multiplicate__three_values_different_sq_type__values_multiplied_largest_resolution) {
     using i32sq16_t = i32sq16<-8., -2.>;
     using i32sq20_t = i32sq20<-9., 10.>;
-    auto a = i32sq16_t::fromReal< -7.888 >;
-    auto b = i32sq20_t::fromReal< -2.666 >;
-    auto c = i32sq20_t::fromReal<  8.123 >;
+    auto a = i32sq16_t::fromReal< -7.888 >();
+    auto b = i32sq20_t::fromReal< -2.666 >();
+    auto c = i32sq20_t::fromReal<  8.123 >();
 
     auto d = a * b * c;
 
@@ -691,8 +691,8 @@ TEST_F(SQTest_Multiplication, sq_multiplicate__three_values_different_sq_type__v
 
 TEST_F(SQTest_Multiplication, sq_multiplicate__three_values_same_type_one_int_sq_constant__values_multiplied) {
     using i32sq16_t = i32sq16<-8., 8.>;
-    auto a = i32sq16_t::fromReal<  5.5 >;
-    auto b = i32sq16_t::fromReal< -2.6 >;
+    auto a = i32sq16_t::fromReal<  5.5 >();
+    auto b = i32sq16_t::fromReal< -2.6 >();
 
     auto d = a * b * 15_i32sq16;
     auto e = a * 15_i32sq16 * b;
@@ -709,8 +709,8 @@ TEST_F(SQTest_Multiplication, sq_multiplicate__three_values_same_type_one_int_sq
 
 TEST_F(SQTest_Multiplication, sq_multiplicate__two_values_same_type_and_int_q_constant__values_multiplied) {
     using i32sq16_t = i32sq16<-8., 8.>;
-    auto a = i32sq16_t::fromReal<  5.5 >;
-    auto b = i32sq16_t::fromReal< -2.6 >;
+    auto a = i32sq16_t::fromReal<  5.5 >();
+    auto b = i32sq16_t::fromReal< -2.6 >();
 
     auto d = a * b * 20.1_i32q16;
     auto e = a * 20.1_i32q16 * b;
@@ -727,8 +727,8 @@ TEST_F(SQTest_Multiplication, sq_multiplicate__two_values_same_type_and_int_q_co
 
 TEST_F(SQTest_Multiplication, sq_multiplicate__sq_values_with_positive_integral_constant__values_multiplied) {
     using i32sq16_t = i32sq16<-8., 8.>;
-    auto a = i32sq16_t::fromReal<  5.5 >;
-    auto b = i32sq16_t::fromReal< -2.6 >;
+    auto a = i32sq16_t::fromReal<  5.5 >();
+    auto b = i32sq16_t::fromReal< -2.6 >();
 
     auto d = a * b * 20_ic;
     auto e = a * 20_ic * b;
@@ -745,8 +745,8 @@ TEST_F(SQTest_Multiplication, sq_multiplicate__sq_values_with_positive_integral_
 
 TEST_F(SQTest_Multiplication, sq_multiplicate__sq_values_with_negative_integral_constant__values_multiplied) {
     using i32sq16_t = i32sq16<-8., 8.>;
-    auto a = i32sq16_t::fromReal<  5.5 >;
-    auto b = i32sq16_t::fromReal< -2.6 >;
+    auto a = i32sq16_t::fromReal<  5.5 >();
+    auto b = i32sq16_t::fromReal< -2.6 >();
 
     auto d = a * b * -20_ic;
     auto e = a * -20_ic * b;
@@ -779,9 +779,9 @@ protected:
 TEST_F(SQTest_Division, sq_divide__three_values_similar_sq_type__values_divided) {
     using dividend_t = i32sq16<-80., 80.>;
     using divisor_t = i32sq16<-20., -1.>;
-    auto a = dividend_t::fromReal< -45. >;
-    auto b = divisor_t::fromReal< -7./3 >;
-    auto c = divisor_t::fromReal< -5./3 >;
+    auto a = dividend_t::fromReal< -45. >();
+    auto b = divisor_t::fromReal< -7./3 >();
+    auto c = divisor_t::fromReal< -5./3 >();
 
     auto d = a / b / c;
 
@@ -793,9 +793,9 @@ TEST_F(SQTest_Division, sq_divide__three_values_similar_sq_type__values_divided)
 TEST_F(SQTest_Division, sq_divide__three_values_different_sq_type__values_divided_largest_resolution) {
     using dividend_t = i32sq16<-8., -2.>;
     using divisor_t = u32sq20<1., 10.>;
-    auto a = dividend_t::fromReal< -7.888 >;
-    auto b = divisor_t::fromReal< 2.666 >;
-    auto c = divisor_t::fromReal< 8.123 >;
+    auto a = dividend_t::fromReal< -7.888 >();
+    auto b = divisor_t::fromReal< 2.666 >();
+    auto c = divisor_t::fromReal< 8.123 >();
 
     auto d = a / b / c;
 
@@ -806,8 +806,8 @@ TEST_F(SQTest_Division, sq_divide__three_values_different_sq_type__values_divide
 
 TEST_F(SQTest_Division, sq_divide__three_values_similar_type_one_int_sq_constant__values_divided) {
     using i32sq16_t = i32sq16<1., 8.>;
-    auto a = i32sq16_t::fromReal< 5.5 >;
-    auto b = i32sq16_t::fromReal< 2.6 >;
+    auto a = i32sq16_t::fromReal< 5.5 >();
+    auto b = i32sq16_t::fromReal< 2.6 >();
 
     auto d = a / b / -2.5_i32sq16;
     auto e = a / -2.5_i32sq16 / b;
@@ -825,8 +825,8 @@ TEST_F(SQTest_Division, sq_divide__three_values_similar_type_one_int_sq_constant
 
 TEST_F(SQTest_Division, sq_divide__two_values_similar_type_and_int_q_constant__values_divided) {
     using i32sq16_t = i32sq16<10., 80.>;
-    auto a = i32sq16_t::fromReal< 55.5 >;
-    auto b = i32sq16_t::fromReal< 11.1 >;
+    auto a = i32sq16_t::fromReal< 55.5 >();
+    auto b = i32sq16_t::fromReal< 11.1 >();
 
     auto d = a / b / 10_i32q8;
     auto e = a / 10_i32q8 / b;
@@ -849,8 +849,8 @@ TEST_F(SQTest_Division, sq_divide__divisor_has_forbidden_range__does_not_compile
 
 TEST_F(SQTest_Division, sq_divide__two_values_similar_type_and_positive_integral_constant__values_divided) {
     using i32sq16_t = i32sq16<10., 80.>;
-    auto a = i32sq16_t::fromReal< 55.5 >;
-    auto b = i32sq16_t::fromReal< 11.1 >;
+    auto a = i32sq16_t::fromReal< 55.5 >();
+    auto b = i32sq16_t::fromReal< 11.1 >();
 
     auto d = a / b / 10_ic;
     auto e = a / 10_ic / b;
@@ -868,8 +868,8 @@ TEST_F(SQTest_Division, sq_divide__two_values_similar_type_and_positive_integral
 
 TEST_F(SQTest_Division, sq_divide__two_values_similar_type_and_negative_integral_constant__values_divided) {
     using i32sq16_t = i32sq16<10., 80.>;
-    auto a = i32sq16_t::fromReal< 55.5 >;
-    auto b = i32sq16_t::fromReal< 11.1 >;
+    auto a = i32sq16_t::fromReal< 55.5 >();
+    auto b = i32sq16_t::fromReal< 11.1 >();
 
     auto d = a / b / -10_ic;
     auto e = a / -10_ic / b;
@@ -903,8 +903,8 @@ protected:
 TEST_F(SQTest_Modulus, sq_modulo__similar_type_negative_dividend_positive_divisor__modulo_works) {
     using dividend_t = i16sq8<-8., 3.>;
     using divisor_t = i16sq8<i16sq8<>::resolution, 6.>;
-    auto a = dividend_t::fromReal<-4.56>;
-    auto b = divisor_t::fromReal<+3.33>;
+    auto a = dividend_t::fromReal<-4.56>();
+    auto b = divisor_t::fromReal<+3.33>();
 
     auto c = a % b;
 
@@ -916,8 +916,8 @@ TEST_F(SQTest_Modulus, sq_modulo__similar_type_negative_dividend_positive_diviso
 TEST_F(SQTest_Modulus, sq_modulo__similar_type_negative_dividend__negative_divisor__modulo_works) {
     using dividend_t = i16sq8<-8., 3.>;
     using divisor_t = i16sq8<-6., -i16sq8<>::resolution>;
-    auto a = dividend_t::fromReal<-4.56>;
-    auto b = divisor_t::fromReal<-3.33>;
+    auto a = dividend_t::fromReal<-4.56>();
+    auto b = divisor_t::fromReal<-3.33>();
 
     auto c = a % b;
 
@@ -929,8 +929,8 @@ TEST_F(SQTest_Modulus, sq_modulo__similar_type_negative_dividend__negative_divis
 TEST_F(SQTest_Modulus, sq_modulo__different_type_positive_dividend_positive_divisor__modulo_works) {
     using dividend_t = u16sq8<0., 8.>;
     using divisor_t = i16sq8<i16sq8<>::resolution, 6.>;
-    auto a = dividend_t::fromReal<+4.56>;
-    auto b = divisor_t::fromReal<+3.33>;
+    auto a = dividend_t::fromReal<+4.56>();
+    auto b = divisor_t::fromReal<+3.33>();
 
     auto c = a % b;
 
@@ -942,8 +942,8 @@ TEST_F(SQTest_Modulus, sq_modulo__different_type_positive_dividend_positive_divi
 TEST_F(SQTest_Modulus, sq_modulo__different_type_positive_dividend__negative_divisor__modulo_works) {
     using dividend_t = u16sq8<0., 8.>;
     using divisor_t = i16sq8<-6., -i16sq8<>::resolution>;
-    auto a = dividend_t::fromReal<+4.56>;
-    auto b = divisor_t::fromReal<-3.33>;
+    auto a = dividend_t::fromReal<+4.56>();
+    auto b = divisor_t::fromReal<-3.33>();
 
     auto c = a % b;
 
@@ -955,8 +955,8 @@ TEST_F(SQTest_Modulus, sq_modulo__different_type_positive_dividend__negative_div
 TEST_F(SQTest_Modulus, sq_modulo__different_type_different_f_negative_dividend_positive_divisor__modulo_works) {
     using dividend_t = i16sq8<-8., 3.>;
     using divisor_t = u16sq12<i16sq8<>::resolution, 6.>;
-    auto a = dividend_t::fromReal<-4.56>;
-    auto b = divisor_t::fromReal<+3.33>;
+    auto a = dividend_t::fromReal<-4.56>();
+    auto b = divisor_t::fromReal<+3.33>();
 
     auto c = a % b;
 
@@ -987,10 +987,10 @@ protected:
 
 TEST_F(SQTest_Comparison, sq_lt__same_type_some_value_and_larger_value__returns_true) {
     using i32sq10_t = i32sq10<-100000., 100000.>;
-    auto a = i32sq10_t::fromReal<-34456.78>;
-    auto b = i32sq10_t::fromReal<-16789.25>;
-    auto c = i32sq10_t::fromReal<+16789.25>;
-    auto d = i32sq10_t::fromReal<+89999.99>;
+    auto a = i32sq10_t::fromReal<-34456.78>();
+    auto b = i32sq10_t::fromReal<-16789.25>();
+    auto c = i32sq10_t::fromReal<+16789.25>();
+    auto d = i32sq10_t::fromReal<+89999.99>();
 
     ASSERT_TRUE(a < b);
     ASSERT_TRUE(a < c);
@@ -1004,10 +1004,10 @@ TEST_F(SQTest_Comparison, sq_lt__different_types_some_value_and_larger_value__re
     using i32sq10_t = i32sq10<-100000., 100000.>;
     using i16sq5_t = i16sq5<-1000., 1000.>;
     using u16sq6_t = u16sq6<0., 1000.>;
-    auto a = i32sq10_t::fromReal<-34456.78>;
-    auto b = i16sq5_t::fromReal<-789.25>;
-    auto c = i16sq5_t::fromReal<+689.25>;
-    auto d = u16sq6_t::fromReal<+889.99>;
+    auto a = i32sq10_t::fromReal<-34456.78>();
+    auto b = i16sq5_t::fromReal<-789.25>();
+    auto c = i16sq5_t::fromReal<+689.25>();
+    auto d = u16sq6_t::fromReal<+889.99>();
 
     EXPECT_TRUE(( fpm::sq::detail::ThreewayComparable< i32sq10_t, i16sq5_t > ));
     EXPECT_TRUE(( fpm::sq::detail::ThreewayComparable< i32sq10_t, u16sq6_t > ));
@@ -1024,10 +1024,10 @@ TEST_F(SQTest_Comparison, sq_lt__different_types_some_value_and_larger_value__re
 
 TEST_F(SQTest_Comparison, sq_lt__same_type_some_value_and_smaller_value__returns_false) {
     using i32sq10_t = i32sq10<-100000., 100000.>;
-    auto a = i32sq10_t::fromReal<+38976.84>;
-    auto b = i32sq10_t::fromReal<+23456.43>;
-    auto c = i32sq10_t::fromReal<-12345.67>;
-    auto d = i32sq10_t::fromReal<-65432.19>;
+    auto a = i32sq10_t::fromReal<+38976.84>();
+    auto b = i32sq10_t::fromReal<+23456.43>();
+    auto c = i32sq10_t::fromReal<-12345.67>();
+    auto d = i32sq10_t::fromReal<-65432.19>();
 
     ASSERT_FALSE(a < b);
     ASSERT_FALSE(a < c);
@@ -1041,10 +1041,10 @@ TEST_F(SQTest_Comparison, sq_lt__different_types_some_value_and_smaller_value__r
     using i32sq10_t = i32sq10<-100000., 100000.>;
     using i16sq5_t = i16sq5<-1000., 1000.>;
     using u16sq6_t = u16sq6<0., 1000.>;
-    auto a = i32sq10_t::fromReal<+34456.78>;
-    auto b = u16sq6_t::fromReal<+889.99>;
-    auto c = i16sq5_t::fromReal<+678.25>;
-    auto d = i16sq5_t::fromReal<-567.25>;
+    auto a = i32sq10_t::fromReal<+34456.78>();
+    auto b = u16sq6_t::fromReal<+889.99>();
+    auto c = i16sq5_t::fromReal<+678.25>();
+    auto d = i16sq5_t::fromReal<-567.25>();
 
     ASSERT_FALSE(a < b);
     ASSERT_FALSE(a < c);
@@ -1056,10 +1056,10 @@ TEST_F(SQTest_Comparison, sq_lt__different_types_some_value_and_smaller_value__r
 
 TEST_F(SQTest_Comparison, sq_lt__same_type_same_value__returns_false) {
     using i32sq10_t = i32sq10<-100000., 100000.>;
-    auto a = i32sq10_t::fromReal<-65432.19>;
-    auto b = i32sq10_t::fromReal<+56897.129>;
-    auto c = i32sq10_t::fromReal<-0.0>;
-    auto d = i32sq10_t::fromReal<+0.0>;
+    auto a = i32sq10_t::fromReal<-65432.19>();
+    auto b = i32sq10_t::fromReal<+56897.129>();
+    auto c = i32sq10_t::fromReal<-0.0>();
+    auto d = i32sq10_t::fromReal<+0.0>();
 
     EXPECT_TRUE(( fpm::sq::detail::ThreewayComparable< i32sq10_t, i32sq10_t > ));
 
@@ -1077,10 +1077,10 @@ TEST_F(SQTest_Comparison, sq_lt__different_types_same_value__returns_false) {
     using i32sq10_t = i32sq10<-100000., 100000.>;
     using i16sq5_t = i16sq5<-1000., 1000.>;
     using u16sq6_t = u16sq6<0., 1000.>;
-    auto a = i32sq10_t::fromReal<+678.25>;
-    auto b = u16sq6_t::fromReal<+678.25>;
-    auto c = i16sq5_t::fromReal<+678.25>;
-    auto d = i16sq5_t::fromReal<+678.25>;
+    auto a = i32sq10_t::fromReal<+678.25>();
+    auto b = u16sq6_t::fromReal<+678.25>();
+    auto c = i16sq5_t::fromReal<+678.25>();
+    auto d = i16sq5_t::fromReal<+678.25>();
 
     EXPECT_TRUE(( fpm::sq::detail::ThreewayComparable< i16sq5_t, i16sq5_t > ));
     EXPECT_TRUE(( fpm::sq::detail::ThreewayComparable< u16sq6_t, u16sq6_t > ));
@@ -1095,10 +1095,10 @@ TEST_F(SQTest_Comparison, sq_lt__different_types_same_value__returns_false) {
 
 TEST_F(SQTest_Comparison, sq_lteq__same_type_some_value_and_larger_value__returns_true) {
     using i32sq10_t = i32sq10<-100000., 100000.>;
-    auto a = i32sq10_t::fromReal<-34456.78>;
-    auto b = i32sq10_t::fromReal<-16789.25>;
-    auto c = i32sq10_t::fromReal<+16789.25>;
-    auto d = i32sq10_t::fromReal<+89999.99>;
+    auto a = i32sq10_t::fromReal<-34456.78>();
+    auto b = i32sq10_t::fromReal<-16789.25>();
+    auto c = i32sq10_t::fromReal<+16789.25>();
+    auto d = i32sq10_t::fromReal<+89999.99>();
 
     ASSERT_TRUE(a <= b);
     ASSERT_TRUE(a <= c);
@@ -1112,10 +1112,10 @@ TEST_F(SQTest_Comparison, sq_lteq__different_types_some_value_and_larger_value__
     using i32sq10_t = i32sq10<-100000., 100000.>;
     using i16sq5_t = i16sq5<-1000., 1000.>;
     using u16sq6_t = u16sq6<0., 1000.>;
-    auto a = i32sq10_t::fromReal<-34456.78>;
-    auto b = i16sq5_t::fromReal<-789.25>;
-    auto c = i16sq5_t::fromReal<+689.25>;
-    auto d = u16sq6_t::fromReal<+889.99>;
+    auto a = i32sq10_t::fromReal<-34456.78>();
+    auto b = i16sq5_t::fromReal<-789.25>();
+    auto c = i16sq5_t::fromReal<+689.25>();
+    auto d = u16sq6_t::fromReal<+889.99>();
 
     EXPECT_TRUE(( fpm::sq::detail::ThreewayComparable< i32sq10_t, i16sq5_t > ));
     EXPECT_TRUE(( fpm::sq::detail::ThreewayComparable< i32sq10_t, u16sq6_t > ));
@@ -1132,10 +1132,10 @@ TEST_F(SQTest_Comparison, sq_lteq__different_types_some_value_and_larger_value__
 
 TEST_F(SQTest_Comparison, sq_lteq__same_type_some_value_and_smaller_value__returns_false) {
     using i32sq10_t = i32sq10<-100000., 100000.>;
-    auto a = i32sq10_t::fromReal<+38976.84>;
-    auto b = i32sq10_t::fromReal<+23456.43>;
-    auto c = i32sq10_t::fromReal<-12345.67>;
-    auto d = i32sq10_t::fromReal<-65432.19>;
+    auto a = i32sq10_t::fromReal<+38976.84>();
+    auto b = i32sq10_t::fromReal<+23456.43>();
+    auto c = i32sq10_t::fromReal<-12345.67>();
+    auto d = i32sq10_t::fromReal<-65432.19>();
 
     ASSERT_FALSE(a <= b);
     ASSERT_FALSE(a <= c);
@@ -1149,10 +1149,10 @@ TEST_F(SQTest_Comparison, sq_lteq__different_types_some_value_and_smaller_value_
     using i32sq10_t = i32sq10<-100000., 100000.>;
     using i16sq5_t = i16sq5<-1000., 1000.>;
     using u16sq6_t = u16sq6<0., 1000.>;
-    auto a = i32sq10_t::fromReal<+34456.78>;
-    auto b = u16sq6_t::fromReal<+889.99>;
-    auto c = i16sq5_t::fromReal<+678.25>;
-    auto d = i16sq5_t::fromReal<-567.25>;
+    auto a = i32sq10_t::fromReal<+34456.78>();
+    auto b = u16sq6_t::fromReal<+889.99>();
+    auto c = i16sq5_t::fromReal<+678.25>();
+    auto d = i16sq5_t::fromReal<-567.25>();
 
     ASSERT_FALSE(a <= b);
     ASSERT_FALSE(a <= c);
@@ -1164,10 +1164,10 @@ TEST_F(SQTest_Comparison, sq_lteq__different_types_some_value_and_smaller_value_
 
 TEST_F(SQTest_Comparison, sq_lteq__same_type_same_value__returns_true) {
     using i32sq10_t = i32sq10<-100000., 100000.>;
-    auto a = i32sq10_t::fromReal<-65432.19>;
-    auto b = i32sq10_t::fromReal<+56897.129>;
-    auto c = i32sq10_t::fromReal<-0.0>;
-    auto d = i32sq10_t::fromReal<+0.0>;
+    auto a = i32sq10_t::fromReal<-65432.19>();
+    auto b = i32sq10_t::fromReal<+56897.129>();
+    auto c = i32sq10_t::fromReal<-0.0>();
+    auto d = i32sq10_t::fromReal<+0.0>();
 
     EXPECT_TRUE(( fpm::sq::detail::ThreewayComparable< i32sq10_t, i32sq10_t > ));
 
@@ -1185,10 +1185,10 @@ TEST_F(SQTest_Comparison, sq_lteq__different_types_same_value__returns_true) {
     using i32sq10_t = i32sq10<-100000., 100000.>;
     using i16sq5_t = i16sq5<-1000., 1000.>;
     using u16sq6_t = u16sq6<0., 1000.>;
-    auto a = i32sq10_t::fromReal<+678.25>;
-    auto b = u16sq6_t::fromReal<+678.25>;
-    auto c = i16sq5_t::fromReal<+678.25>;
-    auto d = i16sq5_t::fromReal<+678.25>;
+    auto a = i32sq10_t::fromReal<+678.25>();
+    auto b = u16sq6_t::fromReal<+678.25>();
+    auto c = i16sq5_t::fromReal<+678.25>();
+    auto d = i16sq5_t::fromReal<+678.25>();
 
     EXPECT_TRUE(( fpm::sq::detail::ThreewayComparable< i16sq5_t, i16sq5_t > ));
     EXPECT_TRUE(( fpm::sq::detail::ThreewayComparable< u16sq6_t, u16sq6_t > ));
@@ -1203,10 +1203,10 @@ TEST_F(SQTest_Comparison, sq_lteq__different_types_same_value__returns_true) {
 
 TEST_F(SQTest_Comparison, sq_gt__same_type_some_value_and_smaller_value__returns_true) {
     using i32sq10_t = i32sq10<-100000., 100000.>;
-    auto a = i32sq10_t::fromReal<+89999.99>;
-    auto b = i32sq10_t::fromReal<+16789.25>;
-    auto c = i32sq10_t::fromReal<-16789.25>;
-    auto d = i32sq10_t::fromReal<-34456.78>;
+    auto a = i32sq10_t::fromReal<+89999.99>();
+    auto b = i32sq10_t::fromReal<+16789.25>();
+    auto c = i32sq10_t::fromReal<-16789.25>();
+    auto d = i32sq10_t::fromReal<-34456.78>();
 
     ASSERT_TRUE(a > b);
     ASSERT_TRUE(a > c);
@@ -1220,10 +1220,10 @@ TEST_F(SQTest_Comparison, sq_gt__different_types_some_value_and_smaller_value__r
     using i32sq10_t = i32sq10<-100000., 100000.>;
     using i16sq5_t = i16sq5<-1000., 1000.>;
     using u16sq6_t = u16sq6<0., 1000.>;
-    auto a = i32sq10_t::fromReal<+34456.78>;
-    auto b = u16sq6_t::fromReal<+889.99>;
-    auto c = i16sq5_t::fromReal<+789.25>;
-    auto d = i16sq5_t::fromReal<-689.25>;
+    auto a = i32sq10_t::fromReal<+34456.78>();
+    auto b = u16sq6_t::fromReal<+889.99>();
+    auto c = i16sq5_t::fromReal<+789.25>();
+    auto d = i16sq5_t::fromReal<-689.25>();
 
     EXPECT_TRUE(( fpm::sq::detail::ThreewayComparable< i32sq10_t, i16sq5_t > ));
     EXPECT_TRUE(( fpm::sq::detail::ThreewayComparable< i32sq10_t, u16sq6_t > ));
@@ -1240,10 +1240,10 @@ TEST_F(SQTest_Comparison, sq_gt__different_types_some_value_and_smaller_value__r
 
 TEST_F(SQTest_Comparison, sq_gt__same_type_some_value_and_smaller_value__returns_false) {
     using i32sq10_t = i32sq10<-100000., 100000.>;
-    auto a = i32sq10_t::fromReal<-65432.19>;
-    auto b = i32sq10_t::fromReal<-12345.67>;
-    auto c = i32sq10_t::fromReal<+23456.43>;
-    auto d = i32sq10_t::fromReal<+38976.84>;
+    auto a = i32sq10_t::fromReal<-65432.19>();
+    auto b = i32sq10_t::fromReal<-12345.67>();
+    auto c = i32sq10_t::fromReal<+23456.43>();
+    auto d = i32sq10_t::fromReal<+38976.84>();
 
     ASSERT_FALSE(a > b);
     ASSERT_FALSE(a > c);
@@ -1257,10 +1257,10 @@ TEST_F(SQTest_Comparison, sq_gt__different_types_some_value_and_larger_value__re
     using i32sq10_t = i32sq10<-100000., 100000.>;
     using i16sq5_t = i16sq5<-1000., 1000.>;
     using u16sq6_t = u16sq6<0., 1000.>;
-    auto a = i32sq10_t::fromReal<-34456.78>;
-    auto b = i16sq5_t::fromReal<-689.25>;
-    auto c = i16sq5_t::fromReal<+789.25>;
-    auto d = u16sq6_t::fromReal<+889.99>;
+    auto a = i32sq10_t::fromReal<-34456.78>();
+    auto b = i16sq5_t::fromReal<-689.25>();
+    auto c = i16sq5_t::fromReal<+789.25>();
+    auto d = u16sq6_t::fromReal<+889.99>();
 
     ASSERT_FALSE(a > b);
     ASSERT_FALSE(a > c);
@@ -1272,10 +1272,10 @@ TEST_F(SQTest_Comparison, sq_gt__different_types_some_value_and_larger_value__re
 
 TEST_F(SQTest_Comparison, sq_gt__same_type_same_value__returns_false) {
     using i32sq10_t = i32sq10<-100000., 100000.>;
-    auto a = i32sq10_t::fromReal<-65432.19>;
-    auto b = i32sq10_t::fromReal<+56897.129>;
-    auto c = i32sq10_t::fromReal<-0.0>;
-    auto d = i32sq10_t::fromReal<+0.0>;
+    auto a = i32sq10_t::fromReal<-65432.19>();
+    auto b = i32sq10_t::fromReal<+56897.129>();
+    auto c = i32sq10_t::fromReal<-0.0>();
+    auto d = i32sq10_t::fromReal<+0.0>();
 
     EXPECT_TRUE(( fpm::sq::detail::ThreewayComparable< i32sq10_t, i32sq10_t > ));
 
@@ -1293,10 +1293,10 @@ TEST_F(SQTest_Comparison, sq_gt__different_types_same_value__returns_false) {
     using i32sq10_t = i32sq10<-100000., 100000.>;
     using i16sq5_t = i16sq5<-1000., 1000.>;
     using u16sq6_t = u16sq6<0., 1000.>;
-    auto a = i32sq10_t::fromReal<+678.25>;
-    auto b = u16sq6_t::fromReal<+678.25>;
-    auto c = i16sq5_t::fromReal<+678.25>;
-    auto d = i16sq5_t::fromReal<+678.25>;
+    auto a = i32sq10_t::fromReal<+678.25>();
+    auto b = u16sq6_t::fromReal<+678.25>();
+    auto c = i16sq5_t::fromReal<+678.25>();
+    auto d = i16sq5_t::fromReal<+678.25>();
 
     EXPECT_TRUE(( fpm::sq::detail::ThreewayComparable< i16sq5_t, i16sq5_t > ));
     EXPECT_TRUE(( fpm::sq::detail::ThreewayComparable< u16sq6_t, u16sq6_t > ));
@@ -1311,10 +1311,10 @@ TEST_F(SQTest_Comparison, sq_gt__different_types_same_value__returns_false) {
 
 TEST_F(SQTest_Comparison, sq_gteq__same_type_some_value_and_smaller_value__returns_true) {
     using i32sq10_t = i32sq10<-100000., 100000.>;
-    auto a = i32sq10_t::fromReal<+89999.99>;
-    auto b = i32sq10_t::fromReal<+16789.25>;
-    auto c = i32sq10_t::fromReal<-16789.25>;
-    auto d = i32sq10_t::fromReal<-34456.78>;
+    auto a = i32sq10_t::fromReal<+89999.99>();
+    auto b = i32sq10_t::fromReal<+16789.25>();
+    auto c = i32sq10_t::fromReal<-16789.25>();
+    auto d = i32sq10_t::fromReal<-34456.78>();
 
     ASSERT_TRUE(a >= b);
     ASSERT_TRUE(a >= c);
@@ -1328,10 +1328,10 @@ TEST_F(SQTest_Comparison, sq_gteq__different_types_some_value_and_smaller_value_
     using i32sq10_t = i32sq10<-100000., 100000.>;
     using i16sq5_t = i16sq5<-1000., 1000.>;
     using u16sq6_t = u16sq6<0., 1000.>;
-    auto a = i32sq10_t::fromReal<+34456.78>;
-    auto b = u16sq6_t::fromReal<+889.99>;
-    auto c = i16sq5_t::fromReal<+789.25>;
-    auto d = i16sq5_t::fromReal<-689.25>;
+    auto a = i32sq10_t::fromReal<+34456.78>();
+    auto b = u16sq6_t::fromReal<+889.99>();
+    auto c = i16sq5_t::fromReal<+789.25>();
+    auto d = i16sq5_t::fromReal<-689.25>();
 
     EXPECT_TRUE(( fpm::sq::detail::ThreewayComparable< i32sq10_t, i16sq5_t > ));
     EXPECT_TRUE(( fpm::sq::detail::ThreewayComparable< i32sq10_t, u16sq6_t > ));
@@ -1348,10 +1348,10 @@ TEST_F(SQTest_Comparison, sq_gteq__different_types_some_value_and_smaller_value_
 
 TEST_F(SQTest_Comparison, sq_gteq__same_type_some_value_and_smaller_value__returns_false) {
     using i32sq10_t = i32sq10<-100000., 100000.>;
-    auto a = i32sq10_t::fromReal<-65432.19>;
-    auto b = i32sq10_t::fromReal<-12345.67>;
-    auto c = i32sq10_t::fromReal<+23456.43>;
-    auto d = i32sq10_t::fromReal<+38976.84>;
+    auto a = i32sq10_t::fromReal<-65432.19>();
+    auto b = i32sq10_t::fromReal<-12345.67>();
+    auto c = i32sq10_t::fromReal<+23456.43>();
+    auto d = i32sq10_t::fromReal<+38976.84>();
 
     ASSERT_FALSE(a >= b);
     ASSERT_FALSE(a >= c);
@@ -1365,10 +1365,10 @@ TEST_F(SQTest_Comparison, sq_gteq__different_types_some_value_and_larger_value__
     using i32sq10_t = i32sq10<-100000., 100000.>;
     using i16sq5_t = i16sq5<-1000., 1000.>;
     using u16sq6_t = u16sq6<0., 1000.>;
-    auto a = i32sq10_t::fromReal<-34456.78>;
-    auto b = i16sq5_t::fromReal<-689.25>;
-    auto c = i16sq5_t::fromReal<+789.25>;
-    auto d = u16sq6_t::fromReal<+889.99>;
+    auto a = i32sq10_t::fromReal<-34456.78>();
+    auto b = i16sq5_t::fromReal<-689.25>();
+    auto c = i16sq5_t::fromReal<+789.25>();
+    auto d = u16sq6_t::fromReal<+889.99>();
 
     ASSERT_FALSE(a >= b);
     ASSERT_FALSE(a >= c);
@@ -1380,10 +1380,10 @@ TEST_F(SQTest_Comparison, sq_gteq__different_types_some_value_and_larger_value__
 
 TEST_F(SQTest_Comparison, sq_gteq__same_type_same_value__returns_true) {
     using i32sq10_t = i32sq10<-100000., 100000.>;
-    auto a = i32sq10_t::fromReal<-65432.19>;
-    auto b = i32sq10_t::fromReal<+56897.129>;
-    auto c = i32sq10_t::fromReal<-0.0>;
-    auto d = i32sq10_t::fromReal<+0.0>;
+    auto a = i32sq10_t::fromReal<-65432.19>();
+    auto b = i32sq10_t::fromReal<+56897.129>();
+    auto c = i32sq10_t::fromReal<-0.0>();
+    auto d = i32sq10_t::fromReal<+0.0>();
 
     EXPECT_TRUE(( fpm::sq::detail::ThreewayComparable< i32sq10_t, i32sq10_t > ));
 
@@ -1401,10 +1401,10 @@ TEST_F(SQTest_Comparison, sq_gteq__different_types_same_value__returns_true) {
     using i32sq10_t = i32sq10<-100000., 100000.>;
     using i16sq5_t = i16sq5<-1000., 1000.>;
     using u16sq6_t = u16sq6<0., 1000.>;
-    auto a = i32sq10_t::fromReal<+678.25>;
-    auto b = u16sq6_t::fromReal<+678.25>;
-    auto c = i16sq5_t::fromReal<+678.25>;
-    auto d = i16sq5_t::fromReal<+678.25>;
+    auto a = i32sq10_t::fromReal<+678.25>();
+    auto b = u16sq6_t::fromReal<+678.25>();
+    auto c = i16sq5_t::fromReal<+678.25>();
+    auto d = i16sq5_t::fromReal<+678.25>();
 
     EXPECT_TRUE(( fpm::sq::detail::ThreewayComparable< i16sq5_t, i16sq5_t > ));
     EXPECT_TRUE(( fpm::sq::detail::ThreewayComparable< u16sq6_t, u16sq6_t > ));
@@ -1421,9 +1421,9 @@ TEST_F(SQTest_Comparison, sq_equal__various_types_same_value__returns_true) {
     using i32sq5_t = i32sq5<-20000., 20000.>;
     using u16sq5_t = u16sq5<0., 1000.>;
     using i16sq5_t = i16sq5<-1000., 1000.>;
-    auto a = i32sq5_t::fromReal<+488.7>;
-    auto b = u16sq5_t::fromReal<+488.7>;
-    auto c = i16sq5_t::fromReal<+488.7>;
+    auto a = i32sq5_t::fromReal<+488.7>();
+    auto b = u16sq5_t::fromReal<+488.7>();
+    auto c = i16sq5_t::fromReal<+488.7>();
 
     EXPECT_TRUE(( fpm::sq::detail::EqComparable< i32sq5_t, i32sq5_t > ));
     EXPECT_TRUE(( fpm::sq::detail::EqComparable< i32sq5_t, u16sq5_t > ));
@@ -1444,9 +1444,9 @@ TEST_F(SQTest_Comparison, sq_equal__various_types_different_value__returns_false
     using i32sq5_t = i32sq5<-20000., 20000.>;
     using u16sq5_t = u16sq5<0., 1000.>;
     using i16sq5_t = i16sq5<-1000., 1000.>;
-    auto a = i32sq5_t::fromReal<+1488.7>;
-    auto b = u16sq5_t::fromReal<+488.7>;
-    auto c = i16sq5_t::fromReal<-288.4>;
+    auto a = i32sq5_t::fromReal<+1488.7>();
+    auto b = u16sq5_t::fromReal<+488.7>();
+    auto c = i16sq5_t::fromReal<-288.4>();
 
     ASSERT_FALSE(a == b);
     ASSERT_FALSE(a == c);
@@ -1457,9 +1457,9 @@ TEST_F(SQTest_Comparison, sq_not_equal__various_types_same_value__returns_false)
     using i32sq5_t = i32sq5<-20000., 20000.>;
     using u16sq5_t = u16sq5<0., 1000.>;
     using i16sq5_t = i16sq5<-1000., 1000.>;
-    auto a = i32sq5_t::fromReal<+488.7>;
-    auto b = u16sq5_t::fromReal<+488.7>;
-    auto c = i16sq5_t::fromReal<+488.7>;
+    auto a = i32sq5_t::fromReal<+488.7>();
+    auto b = u16sq5_t::fromReal<+488.7>();
+    auto c = i16sq5_t::fromReal<+488.7>();
 
     EXPECT_TRUE(( NotEqComparable< i32sq5_t, i32sq5_t > ));
     EXPECT_TRUE(( NotEqComparable< i32sq5_t, u16sq5_t > ));
@@ -1480,9 +1480,9 @@ TEST_F(SQTest_Comparison, sq_not_equal__various_types_different_value__returns_t
     using i32sq5_t = i32sq5<-20000., 20000.>;
     using u16sq5_t = u16sq5<0., 1000.>;
     using i16sq5_t = i16sq5<-1000., 1000.>;
-    auto a = i32sq5_t::fromReal<+1488.7>;
-    auto b = u16sq5_t::fromReal<+488.7>;
-    auto c = i16sq5_t::fromReal<-288.4>;
+    auto a = i32sq5_t::fromReal<+1488.7>();
+    auto b = u16sq5_t::fromReal<+488.7>();
+    auto c = i16sq5_t::fromReal<-288.4>();
 
     ASSERT_TRUE(a != b);
     ASSERT_TRUE(a != c);
@@ -1506,7 +1506,7 @@ protected:
 
 TEST_F(SQTest_Shift, sq_shiftL__some_value__shifted_value) {
     using i32sq14_t = i32sq14<-1000., +1000.>;
-    auto value = i32sq14_t::fromReal<-555.55>;
+    auto value = i32sq14_t::fromReal<-555.55>();
 
     EXPECT_TRUE(( fpm::sq::detail::LeftShiftable<i32sq14_t, decltype(7_ic)> ));
     auto shifted = value << 7_ic;
@@ -1518,7 +1518,7 @@ TEST_F(SQTest_Shift, sq_shiftL__some_value__shifted_value) {
 
 TEST_F(SQTest_Shift, sq_shiftL__some_value_shifted_by_0__same_value) {
     using i32sq14_t = i32sq14<-10000., +10000.>;
-    auto value = i32sq14_t::fromReal<-5555.55>;
+    auto value = i32sq14_t::fromReal<-5555.55>();
 
     EXPECT_TRUE(( fpm::sq::detail::LeftShiftable<i32sq14_t, decltype(0_ic)> ));
     auto shifted = value << 0_ic;
@@ -1536,7 +1536,7 @@ TEST_F(SQTest_Shift, sq_shiftL__invalid_shift__not_possible) {
 
 TEST_F(SQTest_Shift, sq_shiftR__some_value__shifted_value) {
     using i32sq14_t = i32sq14<-10000., +10000.>;
-    auto value = i32sq14_t::fromReal<-5555.55>;
+    auto value = i32sq14_t::fromReal<-5555.55>();
 
     EXPECT_TRUE(( fpm::sq::detail::RightShiftable<i32sq14_t, decltype(2_ic)> ));
     auto shifted = value >> 2_ic;
@@ -1548,8 +1548,8 @@ TEST_F(SQTest_Shift, sq_shiftR__some_value__shifted_value) {
 
 TEST_F(SQTest_Shift, sq_shiftR__some_value_shifted_by_much__shifted_value_is_minus_one) {
     using i32sq14_t = i32sq14<-10000., +10000.>;
-    auto value1 = i32sq14_t::fromReal<-5555.55>;
-    auto value2 = i32sq14_t::fromReal<+5555.55>;
+    auto value1 = i32sq14_t::fromReal<-5555.55>();
+    auto value2 = i32sq14_t::fromReal<+5555.55>();
 
     EXPECT_TRUE(( fpm::sq::detail::RightShiftable<i32sq14_t, decltype(31_ic)> ));
     auto shifted1 = value1 >> 31_ic;  //< smallest: -1 when source value is negative
@@ -1561,7 +1561,7 @@ TEST_F(SQTest_Shift, sq_shiftR__some_value_shifted_by_much__shifted_value_is_min
 
 TEST_F(SQTest_Shift, sq_shiftR__some_value_shifted_by_0__same_value) {
     using i32sq14_t = i32sq14<-10000., +10000.>;
-    auto value = i32sq14_t::fromReal<-5555.55>;
+    auto value = i32sq14_t::fromReal<-5555.55>();
 
     EXPECT_TRUE(( fpm::sq::detail::RightShiftable<i32sq14_t, decltype(0_ic)> ));
     auto shifted = value >> 0_ic;
@@ -1594,7 +1594,7 @@ protected:
 
 TEST_F(SQTest_Square, sq_square__positive_value__squared_value) {
     using i32sq12_t = i32sq12<-100., +60.>;
-    auto value = i32sq12_t::fromReal<23.4>;
+    auto value = i32sq12_t::fromReal<23.4>();
 
     EXPECT_TRUE(( fpm::sq::detail::Squarable<i32sq12_t> ));
     auto squared = square(value);
@@ -1606,7 +1606,7 @@ TEST_F(SQTest_Square, sq_square__positive_value__squared_value) {
 
 TEST_F(SQTest_Square, sq_square__positive_value_smaller_type_with_positive_range__squared_value_i32) {
     using i16sq10_t = i16sq10<6., +25.>;
-    auto value = i16sq10_t::fromReal<23.4>;
+    auto value = i16sq10_t::fromReal<23.4>();
 
     EXPECT_TRUE(( fpm::sq::detail::Squarable<i16sq10_t> ));
     auto squared = square(value);
@@ -1618,7 +1618,7 @@ TEST_F(SQTest_Square, sq_square__positive_value_smaller_type_with_positive_range
 
 TEST_F(SQTest_Square, sq_square__negative_value__squared_value) {
     using i32sq12_t = i32sq12<-50., +100.>;
-    auto value = i32sq12_t::fromReal<-45.999>;
+    auto value = i32sq12_t::fromReal<-45.999>();
 
     EXPECT_TRUE(( fpm::sq::detail::Squarable<i32sq12_t> ));
     auto squared = square(value);
@@ -1630,7 +1630,7 @@ TEST_F(SQTest_Square, sq_square__negative_value__squared_value) {
 
 TEST_F(SQTest_Square, sq_square__negative_value_smaller_type_with_negative_range__squared_value_i32) {
     using i16sq10_t = i16sq10<-25., -6.>;
-    auto value = i16sq10_t::fromReal<-18.9>;
+    auto value = i16sq10_t::fromReal<-18.9>();
 
     EXPECT_TRUE(( fpm::sq::detail::Squarable<i16sq10_t> ));
     auto squared = square(value);
@@ -1642,8 +1642,8 @@ TEST_F(SQTest_Square, sq_square__negative_value_smaller_type_with_negative_range
 
 TEST_F(SQTest_Square, sq_square__value_zero__value_squared_is_zero) {
     using i32sq12_t = i32sq12<-50., +100.>;
-    auto value1 = i32sq12_t::fromReal<-0.>;
-    auto value2 = i32sq12_t::fromReal<+0.>;
+    auto value1 = i32sq12_t::fromReal<-0.>();
+    auto value2 = i32sq12_t::fromReal<+0.>();
 
     EXPECT_TRUE(( fpm::sq::detail::Squarable<i32sq12_t> ));
     auto squared1 = square(value1);
@@ -1665,7 +1665,7 @@ TEST_F(SQTest_Square, sq_square__various_types__squareable_or_not) {
 
 TEST_F(SQTest_Square, sq_sqrt__some_positive_value__root_taken) {
     using u32sq12_t = i32sq12<0., +1000.>;
-    auto value = u32sq12_t::fromReal<900.>;
+    auto value = u32sq12_t::fromReal<900.>();
 
     EXPECT_TRUE(( fpm::sq::detail::SquareRootable<u32sq12_t> ));
     auto root = sqrt(value);
@@ -1677,7 +1677,7 @@ TEST_F(SQTest_Square, sq_sqrt__some_positive_value__root_taken) {
 
 TEST_F(SQTest_Square, sq_sqrt__maximum_u32_value__root_taken) {
     using u32sq12_t = u32sq12<>;
-    auto value = u32sq12_t::fromScaled< std::numeric_limits<uint32_t>::max() >;
+    auto value = u32sq12_t::fromScaled< std::numeric_limits<uint32_t>::max() >();
 
     EXPECT_TRUE(( fpm::sq::detail::SquareRootable<u32sq12_t> ));
     auto root = sqrt(value);
@@ -1689,7 +1689,7 @@ TEST_F(SQTest_Square, sq_sqrt__maximum_u32_value__root_taken) {
 
 TEST_F(SQTest_Square, sq_sqrt__zero_value__root_zero) {
     using i32sq12_t = i32sq12<0., +100.>;
-    auto value = i32sq12_t::fromReal<+0.>;
+    auto value = i32sq12_t::fromReal<+0.>();
 
     EXPECT_TRUE(( fpm::sq::detail::SquareRootable<i32sq12_t> ));
     auto root = sqrt(value);
@@ -1705,7 +1705,7 @@ TEST_F(SQTest_Square, sq_sqrt__various_types__not_rootable) {
 
 TEST_F(SQTest_Square, sq_rsqrt__some_positive_value__reciprocal_root_taken) {
     using i32sq20_t = i32sq20<10., 1500.>;
-    auto value = i32sq20_t::fromReal<25.0485>;
+    auto value = i32sq20_t::fromReal<25.0485>();
 
     EXPECT_TRUE(( fpm::sq::detail::SquareRootable<i32sq20_t> ));
     auto rRoot = rsqrt(value);
@@ -1717,7 +1717,7 @@ TEST_F(SQTest_Square, sq_rsqrt__some_positive_value__reciprocal_root_taken) {
 
 TEST_F(SQTest_Square, sq_rsqrt__maximum_positive_value__reciprocal_root_taken) {
     using u32sq30_t = u32sq30< 1.0, u32sq30<>::realVMax >;
-    auto value = u32sq30_t::fromScaled<std::numeric_limits<u32sq30_t::base_t>::max()>;
+    auto value = u32sq30_t::fromScaled<std::numeric_limits<u32sq30_t::base_t>::max()>();
 
     EXPECT_TRUE(( fpm::sq::detail::RSquareRootable<u32sq30_t> ));
     auto rRoot = rsqrt(value);
@@ -1729,7 +1729,7 @@ TEST_F(SQTest_Square, sq_rsqrt__maximum_positive_value__reciprocal_root_taken) {
 
 TEST_F(SQTest_Square, sq_rsqrt__minimum_value__maximum_value_returned) {
     using i32sq29_t = i32sq29< i32sq29<>::resolution, 1. >;
-    auto value = i32sq29_t::fromScaled<1>;
+    auto value = i32sq29_t::fromScaled<1>();
 
     EXPECT_TRUE(( fpm::sq::detail::RSquareRootable<i32sq29_t> ));
     auto rRoot = rsqrt(value);
@@ -1741,7 +1741,7 @@ TEST_F(SQTest_Square, sq_rsqrt__minimum_value__maximum_value_returned) {
 
 TEST_F(SQTest_Square, sq_rsqrt__minimum_value2__reciprocal_root_returned) {
     using i32sq20_t = i32sq20< i32sq20<>::resolution, 1000. >;
-    auto value = i32sq20_t::fromScaled<1>;
+    auto value = i32sq20_t::fromScaled<1>();
 
     EXPECT_TRUE(( fpm::sq::detail::RSquareRootable<i32sq20_t> ));
     auto rRoot = rsqrt(value);
@@ -1773,7 +1773,7 @@ protected:
 
 TEST_F(SQTest_Cube, sq_cube__positive_value__value_cubed) {
     using u32sq12_t = u32sq12<0., 80.>;
-    auto value = u32sq12_t::fromReal<55.999>;
+    auto value = u32sq12_t::fromReal<55.999>();
 
     EXPECT_TRUE(( fpm::sq::detail::Cubeable<u32sq12_t> ));
     auto cubed = cube(value);
@@ -1785,7 +1785,7 @@ TEST_F(SQTest_Cube, sq_cube__positive_value__value_cubed) {
 
 TEST_F(SQTest_Cube, sq_cube__positive_value_smaller_type__value_cubed_i32) {
     using u16sq4_t = u16sq4<0., 500.>;
-    auto value = u16sq4_t::fromReal<144.999>;
+    auto value = u16sq4_t::fromReal<144.999>();
 
     EXPECT_TRUE(( fpm::sq::detail::Cubeable<u16sq4_t> ));
     auto cubed = cube(value);
@@ -1797,8 +1797,8 @@ TEST_F(SQTest_Cube, sq_cube__positive_value_smaller_type__value_cubed_i32) {
 
 TEST_F(SQTest_Cube, sq_cube__zero_value__value_cubed_is_zero) {
     using i32sq12_t = i32sq12<-40., 40.>;
-    auto value1 = i32sq12_t::fromReal<-0.>;
-    auto value2 = i32sq12_t::fromReal<+0.>;
+    auto value1 = i32sq12_t::fromReal<-0.>();
+    auto value2 = i32sq12_t::fromReal<+0.>();
 
     EXPECT_TRUE(( fpm::sq::detail::Cubeable<i32sq12_t> ));
     auto cubed1 = cube(value1);
@@ -1813,7 +1813,7 @@ TEST_F(SQTest_Cube, sq_cube__zero_value__value_cubed_is_zero) {
 
 TEST_F(SQTest_Cube, sq_cube__negative_value__value_cubed) {
     using i32sq12_t = i32sq12<-40., 40.>;
-    auto value = i32sq12_t::fromReal<-35.999>;
+    auto value = i32sq12_t::fromReal<-35.999>();
 
     EXPECT_TRUE(( fpm::sq::detail::Cubeable<i32sq12_t> ));
     auto cubed = cube(value);
@@ -1825,7 +1825,7 @@ TEST_F(SQTest_Cube, sq_cube__negative_value__value_cubed) {
 
 TEST_F(SQTest_Cube, sq_cube__smallest_value__value_cubed_is_minimum_i32) {
     using i32sq7_t = i32sq7<-256., -0.>;
-    auto value = i32sq7_t::fromReal<-256.>;
+    auto value = i32sq7_t::fromReal<-256.>();
 
     EXPECT_TRUE(( fpm::sq::detail::Cubeable<i32sq7_t> ));
     auto cubed = cube(value);
@@ -1845,7 +1845,7 @@ TEST_F(SQTest_Square, sq_cube__various_types__cubeable_or_not) {
 
 TEST_F(SQTest_Cube, sq_cbrt__positive_value__cube_root_taken) {
     using u32sq8_t = u32sq8<0., 45000.>;
-    auto value = u32sq8_t::fromReal<41599.999>;
+    auto value = u32sq8_t::fromReal<41599.999>();
 
     EXPECT_TRUE(( fpm::sq::detail::CubeRootable<u32sq8_t> ));
     auto root = cbrt(value);
@@ -1857,7 +1857,7 @@ TEST_F(SQTest_Cube, sq_cbrt__positive_value__cube_root_taken) {
 
 TEST_F(SQTest_Cube, sq_cbrt__maximum_u32_value__cube_root_taken) {
     using u32sq16_t = u32sq16<>;
-    auto value = u32sq16_t::fromScaled< std::numeric_limits<uint32_t>::max() >;
+    auto value = u32sq16_t::fromScaled< std::numeric_limits<uint32_t>::max() >();
 
     EXPECT_TRUE(( fpm::sq::detail::CubeRootable<u32sq16_t> ));
     auto root = cbrt(value);
@@ -1869,7 +1869,7 @@ TEST_F(SQTest_Cube, sq_cbrt__maximum_u32_value__cube_root_taken) {
 
 TEST_F(SQTest_Cube, sq_cbrt__zero_value__cube_root_is_zero) {
     using i32sq12_t = i32sq12<0., 400.>;
-    auto value = i32sq12_t::fromReal<+0.>;
+    auto value = i32sq12_t::fromReal<+0.>();
 
     EXPECT_TRUE(( fpm::sq::detail::CubeRootable<i32sq12_t> ));
     auto root = cbrt(value);
@@ -1901,9 +1901,9 @@ protected:
 
 TEST_F(SQTest_Clamp, sq_clamp__some_value_in_same_range__same_value_same_type) {
     using u32sq10_t = u32sq10<50.0, 5000.0>;
-    auto a = u32sq10_t::fromReal<555.555>;
-    auto min = u32sq10_t::fromReal<u32sq10_t::realVMin>;
-    auto max = u32sq10_t::fromReal<u32sq10_t::realVMax>;
+    auto a = u32sq10_t::fromReal<555.555>();
+    auto min = u32sq10_t::fromReal<u32sq10_t::realVMin>();
+    auto max = u32sq10_t::fromReal<u32sq10_t::realVMax>();
 
     auto clamped = clamp(a, min, max);  // argument-dependent lookup (ADL)
     auto clamped2 = clamp<u32sq10_t::realVMin, u32sq10_t::realVMax>(a);
@@ -1917,9 +1917,9 @@ TEST_F(SQTest_Clamp, sq_clamp__some_value_in_same_range__same_value_same_type) {
 TEST_F(SQTest_Clamp, sq_clamp__some_value_in_narrower_range__same_value_new_type) {
     using value_t = u32sq10<50.0, 5000.0>;
     using limit_t = value_t::clamp_t<60., 600.>;
-    auto a = value_t::fromReal<555.555>;
-    auto min = limit_t::fromReal<61.>;
-    auto max = limit_t::fromReal<599.>;
+    auto a = value_t::fromReal<555.555>();
+    auto min = limit_t::fromReal<61.>();
+    auto max = limit_t::fromReal<599.>();
 
     auto clamped = clamp(a, min, max);
 
@@ -1935,9 +1935,9 @@ TEST_F(SQTest_Clamp, sq_clamp__some_value_in_narrower_range__same_value_new_type
 TEST_F(SQTest_Clamp, sq_clamp__some_value_larger_than_narrower_range__clamped_value_new_type) {
     using value_t = i32sq10<-50.0, 5000.0>;
     using limit_t = value_t::clamp_t<60., 500.>;
-    auto a = value_t::fromReal<555.555>;
-    auto min = limit_t::fromReal<61.>;
-    auto max = limit_t::fromReal<499.>;
+    auto a = value_t::fromReal<555.555>();
+    auto min = limit_t::fromReal<61.>();
+    auto max = limit_t::fromReal<499.>();
 
     auto clamped = clamp(a, min, max);
 
@@ -1953,9 +1953,9 @@ TEST_F(SQTest_Clamp, sq_clamp__some_value_larger_than_narrower_range__clamped_va
 TEST_F(SQTest_Clamp, sq_clamp__some_value_smaller_than_narrower_range__clamped_value_new_type) {
     using value_t = i32sq10<-50.0, 5000.0>;
     using limit_t = value_t::clamp_t<60., 500.>;
-    auto a = value_t::fromReal<-22.22>;
-    auto min = limit_t::fromReal<61.>;
-    auto max = limit_t::fromReal<499.>;
+    auto a = value_t::fromReal<-22.22>();
+    auto min = limit_t::fromReal<61.>();
+    auto max = limit_t::fromReal<499.>();
 
     auto clamped = clamp(a, min, max);
 
@@ -1972,9 +1972,9 @@ TEST_F(SQTest_Clamp, sq_clamp__some_value_in_narrower_range_with_different_f__sa
     using value_t = i32sq10<-50.0, 5000.0>;
     using min_t = i32sq15<60., 300.>;
     using max_t = i32sq20<80., 600.>;
-    auto a = value_t::fromReal<555.555>;
-    auto min = min_t::fromReal<61.>;
-    auto max = max_t::fromReal<599.>;
+    auto a = value_t::fromReal<555.555>();
+    auto min = min_t::fromReal<61.>();
+    auto max = max_t::fromReal<599.>();
 
     auto clamped = clamp(a, min, max);
 
@@ -1987,9 +1987,9 @@ TEST_F(SQTest_Clamp, sq_clamp__some_value_larger_than_narrower_range_with_differ
     using value_t = i32sq10<-50.0, 5000.0>;
     using min_t = i32sq15<60., 400.>;
     using max_t = i32sq20<80., 500.>;
-    auto a = value_t::fromReal<555.555>;
-    auto min = min_t::fromReal<61.>;
-    auto max = max_t::fromReal<499.>;
+    auto a = value_t::fromReal<555.555>();
+    auto min = min_t::fromReal<61.>();
+    auto max = max_t::fromReal<499.>();
 
     auto clamped = clamp(a, min, max);
 
@@ -2002,9 +2002,9 @@ TEST_F(SQTest_Clamp, sq_clamp__some_value_smaller_than_narrower_range_with_diffe
     using value_t = i32sq10<-50.0, 5000.0>;
     using min_t = i32sq15<60., 300.>;
     using max_t = i32sq20<80., 500.>;
-    auto a = value_t::fromReal<-22.22>;
-    auto min = min_t::fromReal<61.>;
-    auto max = max_t::fromReal<499.>;
+    auto a = value_t::fromReal<-22.22>();
+    auto min = min_t::fromReal<61.>();
+    auto max = max_t::fromReal<499.>();
 
     auto clamped = clamp(a, min, max);
 
@@ -2034,8 +2034,8 @@ TEST_F(SQTest_Clamp, sq_clamp__some_cases_not_clampable__does_not_compile) {
 
 TEST_F(SQTest_Clamp, sq_clampLower__some_value_in_same_range__same_value_same_type) {
     using u32sq10_t = u32sq10<50.0, 5000.0>;
-    auto a = u32sq10_t::fromReal<443.210>;
-    auto min = u32sq10_t::fromReal<u32sq10_t::realVMin>;
+    auto a = u32sq10_t::fromReal<443.210>();
+    auto min = u32sq10_t::fromReal<u32sq10_t::realVMin>();
 
     auto clamped = clampLower(a, min);
     auto clamped2 = clampLower<u32sq10_t::realVMin>(a);
@@ -2049,8 +2049,8 @@ TEST_F(SQTest_Clamp, sq_clampLower__some_value_in_same_range__same_value_same_ty
 TEST_F(SQTest_Clamp, sq_clampLower__some_value_in_narrower_range__same_value_new_type) {
     using value_t = u32sq10<50.0, 5000.0>;
     using min_t = value_t::clamp_t<60., 600.>;
-    auto a = value_t::fromReal<70.12>;
-    auto min = min_t::fromReal<66.67>;
+    auto a = value_t::fromReal<70.12>();
+    auto min = min_t::fromReal<66.67>();
 
     auto clamped = clampLower(a, min);
 
@@ -2067,8 +2067,8 @@ TEST_F(SQTest_Clamp, sq_clampLower__some_value_in_narrower_range__same_value_new
 TEST_F(SQTest_Clamp, sq_clampLower__some_value_smaller_than_min__clamped_value_new_type) {
     using value_t = i32sq10<-50.0, 5000.0>;
     using min_t = value_t::clamp_t<-10., 500.>;
-    auto a = value_t::fromReal<-12.22>;
-    auto min = min_t::fromReal<-8.498>;
+    auto a = value_t::fromReal<-12.22>();
+    auto min = min_t::fromReal<-8.498>();
 
     auto clamped = clampLower(a, min);
 
@@ -2085,8 +2085,8 @@ TEST_F(SQTest_Clamp, sq_clampLower__some_value_smaller_than_min__clamped_value_n
 TEST_F(SQTest_Clamp, sq_clampLower__some_value_in_narrower_range_with_different_f__same_value_new_type) {
     using value_t = i32sq10<-50.0, 5000.0>;
     using min_t = i32sq15<60., 300.>;
-    auto a = value_t::fromReal<68.555>;
-    auto min = min_t::fromReal<61.>;
+    auto a = value_t::fromReal<68.555>();
+    auto min = min_t::fromReal<61.>();
 
     auto clamped = clampLower(a, min);
 
@@ -2098,8 +2098,8 @@ TEST_F(SQTest_Clamp, sq_clampLower__some_value_in_narrower_range_with_different_
 TEST_F(SQTest_Clamp, sq_clampLower__some_value_smaller_than_min_with_different_f__clamped_value_new_type) {
     using value_t = i32sq10<-50.0, 5000.0>;
     using min_t = i32sq15<-20., 300.>;
-    auto a = value_t::fromReal<-22.22>;
-    auto min = min_t::fromReal<-18.98>;
+    auto a = value_t::fromReal<-22.22>();
+    auto min = min_t::fromReal<-18.98>();
 
     auto clamped = clampLower(a, min);
 
@@ -2111,8 +2111,8 @@ TEST_F(SQTest_Clamp, sq_clampLower__some_value_smaller_than_min_with_different_f
 
 TEST_F(SQTest_Clamp, sq_clampUpper__some_value_in_same_range__same_value_same_type) {
     using u32sq10_t = u32sq10<50.0, 5000.0>;
-    auto a = u32sq10_t::fromReal<543.21>;
-    auto max = u32sq10_t::fromReal<u32sq10_t::realVMax>;
+    auto a = u32sq10_t::fromReal<543.21>();
+    auto max = u32sq10_t::fromReal<u32sq10_t::realVMax>();
 
     auto clamped = clampUpper(a, max);
     auto clamped2 = clampUpper<u32sq10_t::realVMax>(a);
@@ -2126,8 +2126,8 @@ TEST_F(SQTest_Clamp, sq_clampUpper__some_value_in_same_range__same_value_same_ty
 TEST_F(SQTest_Clamp, sq_clampUpper__some_value_in_narrower_range__same_value_new_type) {
     using value_t = u32sq10<50.0, 5000.0>;
     using max_t = value_t::clamp_t<60., 600.>;
-    auto a = value_t::fromReal<521.09>;
-    auto max = max_t::fromReal<599.>;
+    auto a = value_t::fromReal<521.09>();
+    auto max = max_t::fromReal<599.>();
 
     auto clamped = clampUpper(a, max);
 
@@ -2144,8 +2144,8 @@ TEST_F(SQTest_Clamp, sq_clampUpper__some_value_in_narrower_range__same_value_new
 TEST_F(SQTest_Clamp, sq_clampUpper__some_value_larger_than_max__clamped_value_new_type) {
     using value_t = i32sq10<-50.0, 5000.0>;
     using max_t = value_t::clamp_t<60., 500.>;
-    auto a = value_t::fromReal<504.12>;
-    auto max = max_t::fromReal<487.65>;
+    auto a = value_t::fromReal<504.12>();
+    auto max = max_t::fromReal<487.65>();
 
     auto clamped = clampUpper(a, max);
 
@@ -2162,8 +2162,8 @@ TEST_F(SQTest_Clamp, sq_clampUpper__some_value_larger_than_max__clamped_value_ne
 TEST_F(SQTest_Clamp, sq_clampUpper__some_value_in_narrower_range_with_different_f__same_value_new_type) {
     using value_t = i32sq10<-50.0, 5000.0>;
     using max_t = i32sq20<80., 600.>;
-    auto a = value_t::fromReal<598.10>;
-    auto max = max_t::fromReal<598.99>;
+    auto a = value_t::fromReal<598.10>();
+    auto max = max_t::fromReal<598.99>();
 
     auto clamped = clampUpper(a, max);
 
@@ -2175,8 +2175,8 @@ TEST_F(SQTest_Clamp, sq_clampUpper__some_value_in_narrower_range_with_different_
 TEST_F(SQTest_Clamp, sq_clampUpper__some_value_larger_than_max_with_different_f__clamped_value_new_type) {
     using value_t = i32sq10<-50.0, 5000.0>;
     using max_t = i32sq20<80., 500.>;
-    auto a = value_t::fromReal<505.55>;
-    auto max = max_t::fromReal<494.22>;
+    auto a = value_t::fromReal<505.55>();
+    auto max = max_t::fromReal<494.22>();
 
     auto clamped = clampUpper(a, max);
 
@@ -2203,8 +2203,8 @@ protected:
 TEST_F(SQTest_MinMax, sq_min__two_positive_values__returns_smaller) {
     using value1_t = i32sq14<100., 12000.>;
     using value2_t = i32sq14<0., 1000.>;
-    auto a = value1_t::fromReal<568.47>;
-    auto b = value2_t::fromReal<570.55>;
+    auto a = value1_t::fromReal<568.47>();
+    auto b = value2_t::fromReal<570.55>();
 
     auto minimum1 = fpm::sq::min(a, b);
     auto minimum2 = min(a, b);
@@ -2219,8 +2219,8 @@ TEST_F(SQTest_MinMax, sq_min__two_positive_values__returns_smaller) {
 TEST_F(SQTest_MinMax, sq_min__two_negative_values__returns_smaller) {
     using value1_t = i32sq14<-12000., 12000.>;
     using value2_t = i32sq14<-2000., -0.>;
-    auto a = value1_t::fromReal<-568.47>;
-    auto b = value2_t::fromReal<-570.55>;
+    auto a = value1_t::fromReal<-568.47>();
+    auto b = value2_t::fromReal<-570.55>();
 
     auto minimum1 = fpm::sq::min(a, b);
     auto minimum2 = min(a, b);
@@ -2235,8 +2235,8 @@ TEST_F(SQTest_MinMax, sq_min__two_negative_values__returns_smaller) {
 TEST_F(SQTest_MinMax, sq_min__two_mixed_values__returns_smaller) {
     using value1_t = i32sq14<-12000., 12000.>;
     using value2_t = i32sq14<-2000., 5000.>;
-    auto a = value1_t::fromReal<-1689.47>;
-    auto b = value2_t::fromReal<+1572.78>;
+    auto a = value1_t::fromReal<-1689.47>();
+    auto b = value2_t::fromReal<+1572.78>();
 
     auto minimum1 = fpm::sq::min(a, b);
     auto minimum2 = min(a, b);
@@ -2250,8 +2250,8 @@ TEST_F(SQTest_MinMax, sq_min__two_mixed_values__returns_smaller) {
 
 TEST_F(SQTest_MinMax, sq_min__neg_zero_and_pos_zero__returns_positive_zero) {
     using value_t = i32sq14<-0., +0.>;
-    auto a = value_t::fromReal<-0.>;
-    auto b = value_t::fromReal<+0.>;
+    auto a = value_t::fromReal<-0.>();
+    auto b = value_t::fromReal<+0.>();
 
     auto minimum1 = fpm::sq::min(a, b);  // will give +0., no matter if it is the first or second value
     auto minimum2 = min(a, b);           // (because int-zero is always positive)
@@ -2265,8 +2265,8 @@ TEST_F(SQTest_MinMax, sq_min__neg_zero_and_pos_zero__returns_positive_zero) {
 TEST_F(SQTest_MinMax, sq_max__two_positive_values__returns_smaller) {
     using value1_t = i32sq14<100., 12000.>;
     using value2_t = i32sq14<0., 1000.>;
-    auto a = value1_t::fromReal<568.47>;
-    auto b = value2_t::fromReal<570.55>;
+    auto a = value1_t::fromReal<568.47>();
+    auto b = value2_t::fromReal<570.55>();
 
     auto maximum1 = fpm::sq::max(a, b);
     auto maximum2 = max(a, b);
@@ -2281,8 +2281,8 @@ TEST_F(SQTest_MinMax, sq_max__two_positive_values__returns_smaller) {
 TEST_F(SQTest_MinMax, sq_max__two_negative_values__returns_smaller) {
     using value1_t = i32sq14<-12000., 12000.>;
     using value2_t = i32sq14<-2000., -0.>;
-    auto a = value1_t::fromReal<-568.47>;
-    auto b = value2_t::fromReal<-570.55>;
+    auto a = value1_t::fromReal<-568.47>();
+    auto b = value2_t::fromReal<-570.55>();
 
     auto maximum1 = fpm::sq::max(a, b);
     auto maximum2 = max(a, b);
@@ -2297,8 +2297,8 @@ TEST_F(SQTest_MinMax, sq_max__two_negative_values__returns_smaller) {
 TEST_F(SQTest_MinMax, sq_max__two_mixed_values__returns_smaller) {
     using value1_t = i32sq14<-2000., 12000.>;
     using value2_t = i32sq14<0., 2000.>;
-    auto a = value1_t::fromReal<-1689.47>;
-    auto b = value2_t::fromReal<1572.78>;
+    auto a = value1_t::fromReal<-1689.47>();
+    auto b = value2_t::fromReal<1572.78>();
 
     auto maximum1 = fpm::sq::max(a, b);
     auto maximum2 = max(a, b);
@@ -2312,8 +2312,8 @@ TEST_F(SQTest_MinMax, sq_max__two_mixed_values__returns_smaller) {
 
 TEST_F(SQTest_MinMax, sq_max__neg_zero_and_pos_zero__returns_positive_zero) {
     using value_t = i32sq14<-0., +0.>;
-    auto a = value_t::fromReal<-0.>;
-    auto b = value_t::fromReal<+0.>;
+    auto a = value_t::fromReal<-0.>();
+    auto b = value_t::fromReal<+0.>();
 
     auto maximum1 = fpm::sq::max(a, b);  // will give +0., no matter if it is the first or second value
     auto maximum2 = max(a, b);           // (because int-zero is always positive)

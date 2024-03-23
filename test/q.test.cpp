@@ -13,13 +13,13 @@ using namespace fpm::types;
 /// Concept which checks whether a value with the given Q type can be constructed from the given real value.
 template< class Q, double realValue, fpm::Overflow ovfBxOverride = Q::ovfBx >
 concept CanConstructQFromReal = requires {
-    { Q::template fromReal<realValue, ovfBxOverride> } -> std::same_as<Q const &>;  // false if expression cannot be compiled
+    { Q::template fromReal<realValue, ovfBxOverride>() } -> std::same_as<Q>;  // false if expression cannot be compiled
 };
 
 /// Concept which checks whether a value with the given Q type can be constructed from the given scaled value.
 template< class Q, Q::base_t scaledValue, fpm::Overflow ovfBxOverride = Q::ovfBx >
 concept CanConstructQFromScaled = requires {
-    { Q::template fromScaled<scaledValue, ovfBxOverride> } -> std::same_as<Q const &>;  // false if expression cannot be compiled
+    { Q::template fromScaled<scaledValue, ovfBxOverride>() } -> std::same_as<Q>;  // false if expression cannot be compiled
 };
 
 /// Concept which checks whether an instance of a given Q type can be converted to an instance of a
@@ -72,8 +72,8 @@ protected:
 
 TEST_F(QTest_Construct, q_from_real__constexpr_int16_positiveF__expected_value) {
     constexpr double realValue = -495.1;
-    auto qValue = i16q6_t::fromReal<realValue>;  // this does not perform overflow checks
-    auto qValue2 = i16q6_clamp_t::fromRealNOvf<realValue>;  // overflow check is forbidden
+    auto qValue = i16q6_t::fromReal<realValue>();  // this does not perform overflow checks
+    auto qValue2 = i16q6_clamp_t::fromRealNOvf<realValue>();  // overflow check is forbidden
 
     EXPECT_TRUE((std::is_same_v<int16_t, decltype(qValue.reveal())>));
     EXPECT_TRUE((std::is_same_v<int, decltype(qValue.toReal<int>())>));
@@ -89,9 +89,9 @@ TEST_F(QTest_Construct, q_from_real__constexpr_int16_positiveF__expected_value) 
 
 TEST_F(QTest_Construct, q_from_real__constexpr_negative_int16_positiveF_clamp__expected_value) {
     constexpr double realValue = -511.;
-    auto qValue = i16q6_t::fromReal<realValue, fpm::Ovf::clamp>;
-    auto qValueClamp1 = i16q6_t::fromRealClamp<realValue>;
-    auto qValueClamp2 = i16q6_clamp_t::fromReal<realValue>;
+    auto qValue = i16q6_t::fromReal<realValue, fpm::Ovf::clamp>();
+    auto qValueClamp1 = i16q6_t::fromRealClamp<realValue>();
+    auto qValueClamp2 = i16q6_clamp_t::fromReal<realValue>();
 
     ASSERT_EQ(i16q6_t::vMin, qValue.reveal());
     ASSERT_NEAR(i16q6_t::realVMin, qValue.toReal(), i16q6_t::resolution);
@@ -103,9 +103,9 @@ TEST_F(QTest_Construct, q_from_real__constexpr_negative_int16_positiveF_clamp__e
 
 TEST_F(QTest_Construct, q_from_real__constexpr_positive_int16_positiveF_clamp__expected_value) {
     constexpr double realValue = +511.;
-    auto qValue = i16q6_t::fromReal<realValue, fpm::Ovf::clamp>;
-    auto qValueClamp1 = i16q6_t::fromRealClamp<realValue>;
-    auto qValueClamp2 = i16q6_clamp_t::fromReal<realValue>;
+    auto qValue = i16q6_t::fromReal<realValue, fpm::Ovf::clamp>();
+    auto qValueClamp1 = i16q6_t::fromRealClamp<realValue>();
+    auto qValueClamp2 = i16q6_clamp_t::fromReal<realValue>();
 
     ASSERT_EQ(i16q6_t::vMax, qValue.reveal());
     ASSERT_NEAR(i16q6_t::realVMax, qValue.toReal(), i16q6_t::resolution);
@@ -117,9 +117,9 @@ TEST_F(QTest_Construct, q_from_real__constexpr_positive_int16_positiveF_clamp__e
 
 TEST_F(QTest_Construct, q_from_real__constexpr_negative_int16_positiveF_overflow_allowed__expected_value) {
     constexpr double realValue = -511.;
-    auto qValue = i16q6_t::fromReal<realValue, fpm::Ovf::allowed>;
-    auto qValueOvf1 = i16q6_t::fromRealOvf<realValue>;
-    auto qValueOvf2 = i16q6_ovf_t::fromReal<realValue>;
+    auto qValue = i16q6_t::fromReal<realValue, fpm::Ovf::allowed>();
+    auto qValueOvf1 = i16q6_t::fromRealOvf<realValue>();
+    auto qValueOvf2 = i16q6_ovf_t::fromReal<realValue>();
 
     constexpr int16_t resultMemValue = -32704;
     ASSERT_EQ(resultMemValue, qValue.reveal());
@@ -132,9 +132,9 @@ TEST_F(QTest_Construct, q_from_real__constexpr_negative_int16_positiveF_overflow
 
 TEST_F(QTest_Construct, q_from_real__constexpr_positive_int16_positiveF_overflow_allowed__expected_value) {
     constexpr double realValue = +511.;
-    auto qValue = i16q6_t::fromReal<realValue, fpm::Ovf::allowed>;
-    auto qValueOvf1 = i16q6_t::fromRealOvf<realValue>;
-    auto qValueOvf2 = i16q6_ovf_t::fromReal<realValue>;
+    auto qValue = i16q6_t::fromReal<realValue, fpm::Ovf::allowed>();
+    auto qValueOvf1 = i16q6_t::fromRealOvf<realValue>();
+    auto qValueOvf2 = i16q6_ovf_t::fromReal<realValue>();
 
     constexpr int16_t resultMemValue = +32704;
     ASSERT_EQ(resultMemValue, qValue.reveal());
@@ -159,8 +159,8 @@ TEST_F(QTest_Construct, q_from_real__positive_value_out_of_range__construction_n
 
 TEST_F(QTest_Construct, q_from_scaled__constexpr_int16_positiveF__expected_value) {
     constexpr int16_t memValue = -31686;
-    auto qValue = i16q6_t::fromScaled<memValue>;  // this does not perform overflow checks
-    auto qValue2 = i16q6_clamp_t::fromScaledNOvf<memValue>;  // overflow check is forbidden
+    auto qValue = i16q6_t::fromScaled<memValue>();  // this does not perform overflow checks
+    auto qValue2 = i16q6_clamp_t::fromScaledNOvf<memValue>();  // overflow check is forbidden
 
     constexpr double resultRealValue = -495.1;
     ASSERT_EQ(memValue, qValue.reveal());
@@ -171,9 +171,9 @@ TEST_F(QTest_Construct, q_from_scaled__constexpr_int16_positiveF__expected_value
 
 TEST_F(QTest_Construct, q_from_scaled__constexpr_negative_int16_positiveF_clamp__expected_value) {
     constexpr int16_t memValue = -32704;
-    auto qValue = i16q6_t::fromScaled<memValue, fpm::Ovf::clamp>;
-    auto qValueClamp1 = i16q6_t::fromScaledClamp<memValue>;
-    auto qValueClamp2 = i16q6_clamp_t::fromScaled<memValue>;
+    auto qValue = i16q6_t::fromScaled<memValue, fpm::Ovf::clamp>();
+    auto qValueClamp1 = i16q6_t::fromScaledClamp<memValue>();
+    auto qValueClamp2 = i16q6_clamp_t::fromScaled<memValue>();
 
     ASSERT_EQ(i16q6_t::vMin, qValue.reveal());
     ASSERT_NEAR(i16q6_t::realVMin, qValue.toReal(), i16q6_t::resolution);
@@ -185,9 +185,9 @@ TEST_F(QTest_Construct, q_from_scaled__constexpr_negative_int16_positiveF_clamp_
 
 TEST_F(QTest_Construct, q_from_scaled__constexpr_positive_int16_positiveF_clamp__expected_value) {
     constexpr int16_t memValue = +32704;
-    auto qValue = i16q6_t::fromScaled<memValue, fpm::Ovf::clamp>;
-    auto qValueClamp1 = i16q6_t::fromScaledClamp<memValue>;
-    auto qValueClamp2 = i16q6_clamp_t::fromScaled<memValue>;
+    auto qValue = i16q6_t::fromScaled<memValue, fpm::Ovf::clamp>();
+    auto qValueClamp1 = i16q6_t::fromScaledClamp<memValue>();
+    auto qValueClamp2 = i16q6_clamp_t::fromScaled<memValue>();
 
     ASSERT_EQ(i16q6_t::vMax, qValue.reveal());
     ASSERT_NEAR(i16q6_t::realVMax, qValue.toReal(), i16q6_t::resolution);
@@ -199,9 +199,9 @@ TEST_F(QTest_Construct, q_from_scaled__constexpr_positive_int16_positiveF_clamp_
 
 TEST_F(QTest_Construct, q_from_scaled__constexpr_negative_int16_positiveF_overflow_allowed__expected_value) {
     constexpr int16_t memValue = -32704;
-    auto qValue = i16q6_t::fromScaled<memValue, fpm::Ovf::allowed>;
-    auto qValueOvf1 = i16q6_t::fromScaledOvf<memValue>;
-    auto qValueOvf2 = i16q6_ovf_t::fromScaled<memValue>;
+    auto qValue = i16q6_t::fromScaled<memValue, fpm::Ovf::allowed>();
+    auto qValueOvf1 = i16q6_t::fromScaledOvf<memValue>();
+    auto qValueOvf2 = i16q6_ovf_t::fromScaled<memValue>();
 
     constexpr double resultRealValue = -511.;
     ASSERT_EQ(memValue, qValue.reveal());
@@ -214,9 +214,9 @@ TEST_F(QTest_Construct, q_from_scaled__constexpr_negative_int16_positiveF_overfl
 
 TEST_F(QTest_Construct, q_from_scaled__constexpr_positive_int16_positiveF_overflow_allowed__expected_value) {
     constexpr int16_t memValue = +32704;
-    auto qValue = i16q6_t::fromScaled<memValue, fpm::Ovf::allowed>;
-    auto qValueOvf1 = i16q6_t::fromScaledOvf<memValue>;
-    auto qValueOvf2 = i16q6_ovf_t::fromScaled<memValue>;
+    auto qValue = i16q6_t::fromScaled<memValue, fpm::Ovf::allowed>();
+    auto qValueOvf1 = i16q6_t::fromScaledOvf<memValue>();
+    auto qValueOvf2 = i16q6_ovf_t::fromScaled<memValue>();
 
     constexpr double resultRealValue = +511.;
     ASSERT_EQ(memValue, qValue.reveal());
@@ -365,21 +365,21 @@ protected:
 
 TEST_F(QTest_Sq, q_embedded_sq__from_real__sq_value_is_correct) {
     constexpr double realSqValue = +356.;
-    auto sqValue = i32q20_t::Sq<>::fromReal<realSqValue>;
+    auto sqValue = i32q20_t::Sq<>::fromReal<realSqValue>();
 
     ASSERT_NEAR(realSqValue, sqValue.toReal(), i32q20_t::Sq<>::resolution);
 }
 
 TEST_F(QTest_Sq, q_embedded_sq__smaller_value_range_from_real__sq_value_is_correct) {
     constexpr double realSqValue = -400.;
-    auto sqValue = i32q20_t::Sq<-400., 400.>::fromReal<realSqValue>;
+    auto sqValue = i32q20_t::Sq<-400., 400.>::fromReal<realSqValue>();
 
     ASSERT_NEAR(realSqValue, sqValue.toReal(), i32q20_t::resolution);
 }
 
 TEST_F(QTest_Sq, q_to_sq__same_value_range__no_overflow_check_performed) {
     constexpr double realValue = -400.;
-    auto sqValue = i32q20_t::fromReal<realValue>.toSq();  // does not include a range check
+    auto sqValue = i32q20_t::fromReal<realValue>().toSq();  // does not include a range check
 
     ASSERT_NEAR(realValue, sqValue.toReal(), i32q20_t::resolution);
 }
@@ -394,16 +394,16 @@ TEST_F(QTest_Sq, q_to_sq__different_value_range_overflow_forbidden__does_not_com
 
 TEST_F(QTest_Sq, q_to_sq__different_value_range_overflow_asserted__does_not_compile) {
     // this should trigger an assertion trap at runtime
-    //auto sqValue = i32q20_t::fromReal<-410.>.toSq<-400., 400., fpm::Ovf::assert>();
+    //auto sqValue = i32q20_t::fromReal<-410.>().toSq<-400., 400., fpm::Ovf::assert>();
 }
 
 TEST_F(QTest_Sq, q_to_sq__different_value_range_overflow_clamped__value_is_clamped) {
     constexpr double realValue = 450.;
     constexpr double sqRangeN = -400., sqRangeP = +400.;
-    auto sqValueN = i32q20_t::fromReal<-realValue>.toSq<sqRangeN, sqRangeP, fpm::Ovf::clamp>();
-    auto sqValueP = i32q20_t::fromReal<+realValue>.toSq<sqRangeN, sqRangeP, fpm::Ovf::clamp>();
-    auto sqValueNClamp = i32q20_clamp_t::fromReal<-realValue>.toSq<sqRangeN, sqRangeP>();
-    auto sqValuePClamp = i32q20_clamp_t::fromReal<+realValue>.toSq<sqRangeN, sqRangeP>();
+    auto sqValueN = i32q20_t::fromReal<-realValue>().toSq<sqRangeN, sqRangeP, fpm::Ovf::clamp>();
+    auto sqValueP = i32q20_t::fromReal<+realValue>().toSq<sqRangeN, sqRangeP, fpm::Ovf::clamp>();
+    auto sqValueNClamp = i32q20_clamp_t::fromReal<-realValue>().toSq<sqRangeN, sqRangeP>();
+    auto sqValuePClamp = i32q20_clamp_t::fromReal<+realValue>().toSq<sqRangeN, sqRangeP>();
 
     ASSERT_NEAR(sqRangeN, sqValueN.toReal(), i32q20_t::resolution);
     ASSERT_NEAR(sqRangeP, sqValueP.toReal(), i32q20_t::resolution);
@@ -413,10 +413,10 @@ TEST_F(QTest_Sq, q_to_sq__different_value_range_overflow_clamped__value_is_clamp
 
 TEST_F(QTest_Sq, q_to_sq__different_value_range_overflow_allowed__value_can_overflow) {
     constexpr double realValue = 450.;
-    auto sqValueN = i32q20_t::fromReal<-realValue>.toSq<-400., +400., fpm::Ovf::allowed>();
-    auto sqValueP = i32q20_t::fromReal<+realValue>.toSq<-400., +400., fpm::Ovf::allowed>();
-    auto sqValueNOvf = i32q20_ovf_t::fromReal<-realValue>.toSq<-400., +400.>();
-    auto sqValuePOvf = i32q20_ovf_t::fromReal<+realValue>.toSq<-400., +400.>();
+    auto sqValueN = i32q20_t::fromReal<-realValue>().toSq<-400., +400., fpm::Ovf::allowed>();
+    auto sqValueP = i32q20_t::fromReal<+realValue>().toSq<-400., +400., fpm::Ovf::allowed>();
+    auto sqValueNOvf = i32q20_ovf_t::fromReal<-realValue>().toSq<-400., +400.>();
+    auto sqValuePOvf = i32q20_ovf_t::fromReal<+realValue>().toSq<-400., +400.>();
 
     ASSERT_NEAR(-realValue, sqValueN.toReal(), i32q20_t::resolution);
     ASSERT_NEAR(+realValue, sqValueP.toReal(), i32q20_t::resolution);
@@ -427,7 +427,7 @@ TEST_F(QTest_Sq, q_to_sq__different_value_range_overflow_allowed__value_can_over
 TEST_F(QTest_Sq, q_from_sq__from_narrower_value_range__q_value_equal_no_overflow_check) {
     constexpr double realValue = 234.5;
     using i32sq20_n_t = i32sq20< i32q20_t::realVMin + 100., i32q20_t::realVMax - 100. >;
-    auto sqValue = i32sq20_n_t::fromReal<realValue>;
+    auto sqValue = i32sq20_n_t::fromReal<realValue>();
     auto qValue = i32q20_t::fromSq(sqValue);
 
     EXPECT_TRUE(( CanConvertSqToQImplicitly< i32sq20_n_t, i32q20_t > ));
@@ -440,7 +440,7 @@ TEST_F(QTest_Sq, q_from_sq__from_narrower_value_range__q_value_equal_no_overflow
 TEST_F(QTest_Sq, q_from_sq__from_narrower_value_range_and_lower_f__q_value_upscaled_no_overflow_check) {
     constexpr double realValue = -234.5;
     using i32sq16_t = i32sq16< i32q20_t::realVMin + 100., i32q20_t::realVMax - 100. >;
-    auto sqValue = i32sq16_t::fromReal<realValue>;
+    auto sqValue = i32sq16_t::fromReal<realValue>();
     auto qValue = i32q20_t::fromSq(sqValue);
 
     EXPECT_TRUE(( CanConvertSqToQImplicitly< i32sq16_t, i32q20_t > ));
@@ -453,7 +453,7 @@ TEST_F(QTest_Sq, q_from_sq__from_narrower_value_range_and_lower_f__q_value_upsca
 TEST_F(QTest_Sq, q_from_sq__from_narrower_value_range_and_larger_f__q_value_downscaled_no_overflow_check) {
     constexpr double realValue = -94.5;
     using i32sq24_t = i32sq24< -100., +100. >;
-    auto sqValue = i32sq24_t::fromReal<realValue>;
+    auto sqValue = i32sq24_t::fromReal<realValue>();
     auto qValue = i32q20_t::fromSq(sqValue);
 
     EXPECT_TRUE(( CanConvertSqToQImplicitly< i32sq24_t, i32q20_t > ));
@@ -465,7 +465,7 @@ TEST_F(QTest_Sq, q_from_sq__from_narrower_value_range_and_larger_f__q_value_down
 
 TEST_F(QTest_Sq, q_from_sq__same_value_range_value_within_limits__q_value_equal_no_overflow_check) {
     constexpr double realValue = -234.5;
-    auto sqValue = i32q20_t::fromReal<realValue>.toSq();
+    auto sqValue = i32q20_t::fromReal<realValue>().toSq();
     auto qValue = i32q20_t::fromSq(sqValue);  // does not perform overflow checks in this case
 
     EXPECT_TRUE(( CanConvertSqToQImplicitly< i32q20_t::Sq<>, i32q20_t > ));
@@ -484,8 +484,8 @@ TEST_F(QTest_Sq, q_from_sq__from_larger_value_range__does_not_compile) {
 
 TEST_F(QTest_Sq, q_from_sq__different_value_range_clamp__q_value_is_clamped) {
     constexpr double realValue = 654.;
-    auto sqValueN = i32q20_l_t::fromReal<-realValue>.toSq();
-    auto sqValueP = i32q20_l_t::fromReal<+realValue>.toSq();
+    auto sqValueN = i32q20_l_t::fromReal<-realValue>().toSq();
+    auto sqValueP = i32q20_l_t::fromReal<+realValue>().toSq();
     auto qValueNClamp0 = i32q20_t::fromSq<fpm::Ovf::clamp>(sqValueN);
     auto qValuePClamp0 = i32q20_t::fromSq<fpm::Ovf::clamp>(sqValueP);
     auto qValueNClamp1 = i32q20_t::fromSqClamp(sqValueN);
@@ -503,8 +503,8 @@ TEST_F(QTest_Sq, q_from_sq__different_value_range_clamp__q_value_is_clamped) {
 
 TEST_F(QTest_Sq, q_from_sq__different_value_range_overflow_allowed__q_value_can_overflow) {
     constexpr double realValue = 654.;
-    auto sqValueN = i32q20_l_t::fromReal<-realValue>.toSq();
-    auto sqValueP = i32q20_l_t::fromReal<+realValue>.toSq();
+    auto sqValueN = i32q20_l_t::fromReal<-realValue>().toSq();
+    auto sqValueP = i32q20_l_t::fromReal<+realValue>().toSq();
     auto qValueNOvf0 = i32q20_t::fromSq<fpm::Ovf::allowed>(sqValueN);
     auto qValuePOvf0 = i32q20_t::fromSq<fpm::Ovf::allowed>(sqValueP);
     auto qValueNOvf1 = i32q20_t::fromSqOvf(sqValueN);
@@ -570,7 +570,7 @@ TEST_F(QTest_CopyScale, q_clamp_t__some_q_type__relimited_q_type) {
 
 TEST_F(QTest_CopyScale, q_copy_constructor__int16_someF__int16_sameF) {
     constexpr double realValueA = -1024.2;
-    auto a = i16q4_t::fromReal<realValueA>;
+    auto a = i16q4_t::fromReal<realValueA>();
     auto b = i16q4_t(a);  // explicit copy-constructor from same Q-type
     auto c = i16q4_t::fromQ(a);  // copy-construction via named constructor
     i16q4_t d = b;  // implicit copy-construction
@@ -582,7 +582,7 @@ TEST_F(QTest_CopyScale, q_copy_constructor__int16_someF__int16_sameF) {
 
 TEST_F(QTest_CopyScale, q_move_constructor__int16_someF__int16_sameF) {
     constexpr double realValueA = -1024.2;
-    auto a = i16q4_t::fromReal<realValueA>;
+    auto a = i16q4_t::fromReal<realValueA>();
     i16q4_t b = std::move(a);
 
     ASSERT_NEAR(realValueA, b.toReal(), i16q4_t::resolution);
@@ -590,7 +590,7 @@ TEST_F(QTest_CopyScale, q_move_constructor__int16_someF__int16_sameF) {
 
 TEST_F(QTest_CopyScale, q_upscale_copy_constructor__int16_someF__int16_largerF) {
     constexpr double realValueA = -1024.2;
-    auto a = i32q4_t::fromReal<realValueA>;
+    auto a = i32q4_t::fromReal<realValueA>();
     auto b = i32q8_t::fromQ(a);  // no overflow check needed here
     i32q8_t c = a;
 
@@ -602,7 +602,7 @@ TEST_F(QTest_CopyScale, q_upscale_copy_constructor__int16_someF__int16_largerF) 
 
 TEST_F(QTest_CopyScale, q_upscale_copy_constructor_clamp__int16_someF__int16_largerF) {
     constexpr double realValueA = -2060.;
-    auto a = i32q4_ovf_t::fromReal<realValueA>;
+    auto a = i32q4_ovf_t::fromReal<realValueA>();
     auto b = i32q8_t::fromQ<fpm::Ovf::clamp>(a);
     auto c = i32q8_clamp_t::fromQ(a);
     i32q8_clamp_t d = a;
@@ -614,7 +614,7 @@ TEST_F(QTest_CopyScale, q_upscale_copy_constructor_clamp__int16_someF__int16_lar
 
 TEST_F(QTest_CopyScale, q_upscale_copy_constructor_overflow_allowed__int16_someF__int16_largerF) {
     constexpr double realValueA = -2060.;
-    auto a = i32q4_ovf_t::fromReal<realValueA>;
+    auto a = i32q4_ovf_t::fromReal<realValueA>();
     auto b = i32q8_t::fromQ<fpm::Ovf::allowed>(a);
     auto c = i32q8_ovf_t::fromQ(a);
     i32q8_ovf_t d = a;
@@ -626,7 +626,7 @@ TEST_F(QTest_CopyScale, q_upscale_copy_constructor_overflow_allowed__int16_someF
 
 TEST_F(QTest_CopyScale, q_downscale_copy_constructor__int16_someF__int16_smallerF) {
     constexpr double realValueA = -1024.2;
-    auto a = i32q4_t::fromReal<realValueA>;
+    auto a = i32q4_t::fromReal<realValueA>();
     auto b = i32qm2_t::fromQ(a);  // no overflow check needed here
     i32qm2_t c = a;  // no overflow check needed here
 
@@ -638,7 +638,7 @@ TEST_F(QTest_CopyScale, q_downscale_copy_constructor__int16_someF__int16_smaller
 
 TEST_F(QTest_CopyScale, q_downscale_copy_constructor_clamp__int16_someF__int16_smallerF) {
     constexpr double realValueA = -2060.;
-    auto a = i32q4_ovf_t::fromReal<realValueA>;
+    auto a = i32q4_ovf_t::fromReal<realValueA>();
     auto b = i32qm2_t::fromQ<fpm::Ovf::clamp>(a);
     auto c = i32qm2_clamp_t::fromQ(a);
     i32qm2_clamp_t d = a;
@@ -650,7 +650,7 @@ TEST_F(QTest_CopyScale, q_downscale_copy_constructor_clamp__int16_someF__int16_s
 
 TEST_F(QTest_CopyScale, q_downscale_copy_constructor_overflow_allowed__int16_someF__int16_smallerF) {
     constexpr double realValueA = -2060.;
-    auto a = i32q4_ovf_t::fromReal<realValueA>;
+    auto a = i32q4_ovf_t::fromReal<realValueA>();
     auto b = i32qm2_t::fromQ<fpm::Ovf::allowed>(a);
     auto c = i32qm2_ovf_t::fromQ(a);
     i32qm2_ovf_t d = a;
@@ -662,8 +662,8 @@ TEST_F(QTest_CopyScale, q_downscale_copy_constructor_overflow_allowed__int16_som
 
 TEST_F(QTest_CopyScale, q_assignment__same_q_type__value_is_copied) {
     constexpr double realValueA = -1024.2;
-    auto a = i32q4_t::fromReal<realValueA>;
-    auto b = i32q4_t::fromScaled<0>;
+    auto a = i32q4_t::fromReal<realValueA>();
+    auto b = i32q4_t::fromScaled<0>();
     b = a;  // copy-assignment (no runtime checks needed here)
 
     ASSERT_NEAR(realValueA, b.toReal(), i32q4_t::resolution);
@@ -671,9 +671,9 @@ TEST_F(QTest_CopyScale, q_assignment__same_q_type__value_is_copied) {
 
 TEST_F(QTest_CopyScale, q_assignment__different_q_type__value_is_scaled_and_assigned_only_downscale) {
     constexpr double realValueA = -1024.2;
-    auto a = i32q4_t::fromReal<realValueA>;
-    auto b = i32qm2_t::fromScaled<0>;
-    auto c = i32q8_t::fromScaled<0>;
+    auto a = i32q4_t::fromReal<realValueA>();
+    auto b = i32qm2_t::fromScaled<0>();
+    auto c = i32q8_t::fromScaled<0>();
     b = a;  // downscale-assignment (no runtime checks needed here)
     c = a;  // upscale-assignment (no runtime checks needed here)
 
@@ -683,9 +683,9 @@ TEST_F(QTest_CopyScale, q_assignment__different_q_type__value_is_scaled_and_assi
 
 TEST_F(QTest_CopyScale, q_assignment_clamp__different_q_type__value_is_scaled_and_assigned) {
     constexpr double realValueA = -2060.;
-    auto a = i32q4_ovf_t::fromReal<realValueA>;
-    auto b = i32qm2_clamp_t::fromScaled<0>;
-    auto c = i32q8_clamp_t::fromScaled<0>;
+    auto a = i32q4_ovf_t::fromReal<realValueA>();
+    auto b = i32qm2_clamp_t::fromScaled<0>();
+    auto c = i32q8_clamp_t::fromScaled<0>();
     b = a;  // assignment from different type
     c = a;
 
@@ -695,9 +695,9 @@ TEST_F(QTest_CopyScale, q_assignment_clamp__different_q_type__value_is_scaled_an
 
 TEST_F(QTest_CopyScale, q_assignment_overflow__different_q_type__value_is_scaled_and_assigned) {
     constexpr double realValueA = -2060.;
-    auto a = i32q4_ovf_t::fromReal<realValueA>;
-    auto b = i32qm2_ovf_t::fromScaled<0>;
-    auto c = i32q8_ovf_t::fromScaled<0>;
+    auto a = i32q4_ovf_t::fromReal<realValueA>();
+    auto b = i32qm2_ovf_t::fromScaled<0>();
+    auto c = i32q8_ovf_t::fromScaled<0>();
     b = a;  // assignment from different type
     c = a;
 
@@ -782,15 +782,15 @@ TEST_F(QTest_CopyScale, q_downscale_copy_constructor_overflow_allowed__int16_som
 }
 
 TEST_F(QTest_CopyScale, q_assignment__same_q_type_literal__value_is_copied) {
-    auto a = i32q4_t::fromScaled<0>;
+    auto a = i32q4_t::fromScaled<0>();
     a = 1024_i32q4;  // copy-assignment (no runtime checks needed here)
 
     ASSERT_NEAR((1024_i32q4).toReal(), a.toReal(), i32q4_t::resolution);
 }
 
 TEST_F(QTest_CopyScale, q_assignment__different_q_type_literal__value_is_scaled_and_assigned_only_downscale) {
-    auto a = i32qm2_t::fromScaled<0>;
-    auto b = i32q8_t::fromScaled<0>;
+    auto a = i32qm2_t::fromScaled<0>();
+    auto b = i32q8_t::fromScaled<0>();
     a = 1024_i32q4;  // downscale-assignment (no runtime checks needed here)
     b = 1024_i32q4;  // upscale-assignment (no runtime checks needed here)
 
@@ -799,8 +799,8 @@ TEST_F(QTest_CopyScale, q_assignment__different_q_type_literal__value_is_scaled_
 }
 
 TEST_F(QTest_CopyScale, q_assignment_clamp__different_q_type_literal__value_is_scaled_and_assigned) {
-    auto a = i32qm2_clamp_t::fromScaled<0>;
-    auto b = i32q8_clamp_t::fromScaled<0>;
+    auto a = i32qm2_clamp_t::fromScaled<0>();
+    auto b = i32q8_clamp_t::fromScaled<0>();
     a = 2060_i32q4;  // assignment from different type
     b = 2060_i32q4;
 
@@ -809,8 +809,8 @@ TEST_F(QTest_CopyScale, q_assignment_clamp__different_q_type_literal__value_is_s
 }
 
 TEST_F(QTest_CopyScale, q_assignment_overflow__different_q_type_literal__value_is_scaled_and_assigned) {
-    auto a = i32qm2_ovf_t::fromScaled<0>;
-    auto b = i32q8_ovf_t::fromScaled<0>;
+    auto a = i32qm2_ovf_t::fromScaled<0>();
+    auto b = i32q8_ovf_t::fromScaled<0>();
     a = 2060_i32q4;  // assignment from different type
     b = 2060_i32q4;
 
@@ -853,7 +853,7 @@ protected:
 
 TEST_F(QTest_Casting, q_static_cast__positive_real_value_signed__unsigned_type_smallerF_same_value) {
     constexpr double realValueA = 1024.2;
-    auto a = i32q4_t::fromReal<realValueA>;
+    auto a = i32q4_t::fromReal<realValueA>();
     auto b = static_cast<u32qm2_clamp_t>(a);
     auto c = static_q_cast<u32qm2_t, fpm::Ovf::clamp>(a);
     auto d = static_q_cast<u32qm2_clamp_t>(a);
@@ -872,7 +872,7 @@ TEST_F(QTest_Casting, q_static_cast__positive_real_value_signed__unsigned_type_s
 
 TEST_F(QTest_Casting, q_static_cast__positive_real_value_unsigned__larger_signed_type_largerF_same_value) {
     constexpr double realValueA = 498.7;
-    auto a = u16q6_t::fromReal<realValueA>;
+    auto a = u16q6_t::fromReal<realValueA>();
     auto b = static_cast<i32q20_clamp_t>(a);
     auto c = static_q_cast<i32q20_t, fpm::Ovf::clamp>(a);
     auto d = static_q_cast<i32q20_clamp_t>(a);
@@ -892,7 +892,7 @@ TEST_F(QTest_Casting, q_static_cast__positive_real_value_unsigned__larger_signed
 
 TEST_F(QTest_Casting, q_static_cast__positive_real_value_unsigned__larger_signed_type_smallerF_same_value) {
     constexpr double realValueA = 498.7;
-    auto a = u16q6_t::fromReal<realValueA>;
+    auto a = u16q6_t::fromReal<realValueA>();
     auto b = static_cast<i32qm2_clamp_t>(a);
     auto c = static_q_cast<i32qm2_t, fpm::Ovf::clamp>(a);
     auto d = static_q_cast<i32qm2_clamp_t>(a);
@@ -910,7 +910,7 @@ TEST_F(QTest_Casting, q_static_cast__positive_real_value_unsigned__larger_signed
 
 TEST_F(QTest_Casting, q_static_cast__positive_real_value_signed__smaller_unsigned_type_largerF_same_value) {
     constexpr double realValueA = 498.7;
-    auto a = i32q4_t::fromReal<realValueA>;
+    auto a = i32q4_t::fromReal<realValueA>();
     auto b = static_cast<u16q6_clamp_t>(a);
     auto c = static_q_cast<u16q6_t, fpm::Ovf::clamp>(a);
     auto d = static_q_cast<u16q6_clamp_t>(a);
@@ -929,7 +929,7 @@ TEST_F(QTest_Casting, q_static_cast__positive_real_value_signed__smaller_unsigne
 
 TEST_F(QTest_Casting, q_static_cast__positive_real_value_signed_too_large__smaller_unsigned_type_largerF_value_clamped) {
     constexpr double realValueA = 512.5;
-    auto a = i32q4_t::fromReal<realValueA>;
+    auto a = i32q4_t::fromReal<realValueA>();
     auto b = static_cast<u16q6_clamp_t>(a);
     auto c = static_q_cast<u16q6_t, fpm::Ovf::clamp>(a);
     auto d = static_q_cast<u16q6_clamp_t>(a);
@@ -944,7 +944,7 @@ TEST_F(QTest_Casting, q_static_cast__positive_real_value_signed_too_large__small
 
 TEST_F(QTest_Casting, q_static_cast__negative_real_value__smaller_unsigned_type_largerF_clamped_value) {
     constexpr double realValueA = -498.7;
-    auto a = i32q4_t::fromReal<realValueA>;
+    auto a = i32q4_t::fromReal<realValueA>();
     auto b = static_cast<u16q6_clamp_t>(a);
     auto c = static_q_cast<u16q6_t, fpm::Ovf::clamp>(a);
     auto d = static_q_cast<u16q6_clamp_t>(a);
@@ -959,7 +959,7 @@ TEST_F(QTest_Casting, q_static_cast__negative_real_value__smaller_unsigned_type_
 
 TEST_F(QTest_Casting, q_static_cast__negative_real_value__smaller_unsigned_type_largerF_value_overflow) {
     constexpr double realValueA = -498.7;
-    auto a = i32q4_t::fromReal<realValueA>;
+    auto a = i32q4_t::fromReal<realValueA>();
     auto b = static_cast<u16q6_ovf_t>(a);  // this is possible, however hardly predictable if a is signed
     auto c = static_q_cast<u16q6_t, fpm::Ovf::allowed>(a);
     auto d = static_q_cast<u16q6_ovf_t>(a);
@@ -989,13 +989,13 @@ TEST_F(QTest_Casting, q_static_cast__signed_user_range__unsigned_different_range
 
     using i16qm3_t = i16qm3<-100000., 100000.>;  // i16 -> u32, max delta f is 17
     using u32q14_t = u32q14<80000., 160000.>;
-    auto a = i16qm3_t::fromRealOvf<-110000.>;
-    auto b = i16qm3_t::fromReal<i16qm3_t::realVMin>;
-    auto c = i16qm3_t::fromReal<50000.>;
-    auto d = i16qm3_t::fromReal<90000.>;
-    auto e = i16qm3_t::fromReal<i16qm3_t::realVMax>;
-    auto f = i16qm3_t::fromRealOvf<110000.>;
-    auto g = i16qm3_t::fromRealOvf<200000.>;
+    auto a = i16qm3_t::fromRealOvf<-110000.>();
+    auto b = i16qm3_t::fromReal<i16qm3_t::realVMin>();
+    auto c = i16qm3_t::fromReal<50000.>();
+    auto d = i16qm3_t::fromReal<90000.>();
+    auto e = i16qm3_t::fromReal<i16qm3_t::realVMax>();
+    auto f = i16qm3_t::fromRealOvf<110000.>();
+    auto g = i16qm3_t::fromRealOvf<200000.>();
     auto ac = static_q_cast<u32q14_t, fpm::Ovf::clamp>(a);
     auto bc = static_q_cast<u32q14_t, fpm::Ovf::clamp>(b);
     auto bc_ovf = static_q_cast<u32q14_t, fpm::Ovf::allowed>(b);
@@ -1033,11 +1033,11 @@ TEST_F(QTest_Casting, q_static_cast__unsigned_user_range__signed_different_range
 
     using u16qm3_t = u16qm3<0., 400000.>;  // u16 -> i32, max delta f is 15
     using i32q12_t = i32q12<-80000., 500000.>;
-    auto a = u16qm3_t::fromReal<u16qm3_t::realVMin>;
-    auto b = u16qm3_t::fromReal<50000.>;
-    auto c = u16qm3_t::fromReal<u16qm3_t::realVMax>;
-    auto d = u16qm3_t::fromRealOvf<410000.>;
-    auto e = u16qm3_t::fromRealOvf<520000.>;
+    auto a = u16qm3_t::fromReal<u16qm3_t::realVMin>();
+    auto b = u16qm3_t::fromReal<50000.>();
+    auto c = u16qm3_t::fromReal<u16qm3_t::realVMax>();
+    auto d = u16qm3_t::fromRealOvf<410000.>();
+    auto e = u16qm3_t::fromRealOvf<520000.>();
     auto ac = static_q_cast<i32q12_t, fpm::Ovf::clamp>(a);
     auto bc = static_q_cast<i32q12_t, fpm::Ovf::clamp>(b);
     auto cc = static_q_cast<i32q12_t, fpm::Ovf::clamp>(c);
@@ -1069,11 +1069,11 @@ TEST_F(QTest_Casting, q_static_cast__signed_user_range__signed_different_range__
 
     using i16qm4_t = i16qm4<-400000., 400000.>;  // i16 -> i32, max delta f is 16
     using i32q12_t = i32q12<-80000., 500000.>;
-    auto a = i16qm4_t::fromReal<i16qm4_t::realVMin>;
-    auto b = i16qm4_t::fromReal<-50000.>;
-    auto c = i16qm4_t::fromReal<i16qm4_t::realVMax>;
-    auto d = i16qm4_t::fromRealOvf<410000.>;
-    auto e = i16qm4_t::fromRealOvf<520000.>;
+    auto a = i16qm4_t::fromReal<i16qm4_t::realVMin>();
+    auto b = i16qm4_t::fromReal<-50000.>();
+    auto c = i16qm4_t::fromReal<i16qm4_t::realVMax>();
+    auto d = i16qm4_t::fromRealOvf<410000.>();
+    auto e = i16qm4_t::fromRealOvf<520000.>();
     auto ac = static_q_cast<i32q12_t, fpm::Ovf::clamp>(a);
     auto ac_ovf = static_q_cast<i32q12_t, fpm::Ovf::allowed>(a);
     auto bc = static_q_cast<i32q12_t, fpm::Ovf::clamp>(b);
@@ -1107,12 +1107,12 @@ TEST_F(QTest_Casting, q_static_cast__unsigned_user_range__unsigned_different_ran
 
     using u16qm2_t = u16qm2<10000., 100000.>;  // u16 -> u32, max delta f is 16
     using u32q14_t = u32q14<80000., 160000.>;
-    auto a = u16qm2_t::fromRealOvf<0.>;
-    auto b = u16qm2_t::fromReal<u16qm2_t::realVMin>;
-    auto c = u16qm2_t::fromReal<50000.>;
-    auto d = u16qm2_t::fromReal<90000.>;
-    auto e = u16qm2_t::fromReal<u16qm2_t::realVMax>;
-    auto f = u16qm2_t::fromRealOvf<210000.>;
+    auto a = u16qm2_t::fromRealOvf<0.>();
+    auto b = u16qm2_t::fromReal<u16qm2_t::realVMin>();
+    auto c = u16qm2_t::fromReal<50000.>();
+    auto d = u16qm2_t::fromReal<90000.>();
+    auto e = u16qm2_t::fromReal<u16qm2_t::realVMax>();
+    auto f = u16qm2_t::fromRealOvf<210000.>();
     auto ac = static_q_cast<u32q14_t, fpm::Ovf::clamp>(a);
     auto bc = static_q_cast<u32q14_t, fpm::Ovf::clamp>(b);
     auto cc = static_q_cast<u32q14_t, fpm::Ovf::clamp>(c);
@@ -1132,7 +1132,7 @@ TEST_F(QTest_Casting, q_static_cast__unsigned_user_range__unsigned_different_ran
 
 TEST_F(QTest_Casting, q_safe_cast__positive_real_value_signed__unsigned_type_smallerF_same_value) {
     constexpr double realValueA = 1024.2;
-    auto a = i32q4_t::fromReal<realValueA>;
+    auto a = i32q4_t::fromReal<realValueA>();
     auto b = safe_q_cast<u32qm2_clamp_t>(a);  // this would not compile if u32qm2 was used
     auto c = safe_q_cast<u32qm2_t, fpm::Ovf::clamp>(a);
 
@@ -1144,7 +1144,7 @@ TEST_F(QTest_Casting, q_safe_cast__positive_real_value_signed__unsigned_type_sma
 
 TEST_F(QTest_Casting, q_safe_cast__positive_real_value_unsigned__larger_signed_type_largerF_same_value) {
     constexpr double realValueA = 498.7;
-    auto a = u16q6_t::fromReal<realValueA>;
+    auto a = u16q6_t::fromReal<realValueA>();
     auto b = safe_q_cast<i32q20_clamp_t>(a);  // no clamping needed
     auto c = safe_q_cast<i32q20_t, fpm::Ovf::clamp>(a);  // no clamping needed
 
@@ -1158,7 +1158,7 @@ TEST_F(QTest_Casting, q_safe_cast__positive_real_value_unsigned__larger_signed_t
 
 TEST_F(QTest_Casting, q_safe_cast__positive_real_value_unsigned__larger_signed_type_smallerF_same_value) {
     constexpr double realValueA = 498.7;
-    auto a = u16q6_t::fromReal<realValueA>;
+    auto a = u16q6_t::fromReal<realValueA>();
     auto b = safe_q_cast<i32qm2_clamp_t>(a);  // no clamping needed
     auto c = safe_q_cast<i32qm2_t, fpm::Ovf::clamp>(a);  // no clamping needed
 
@@ -1170,7 +1170,7 @@ TEST_F(QTest_Casting, q_safe_cast__positive_real_value_unsigned__larger_signed_t
 
 TEST_F(QTest_Casting, q_safe_cast__positive_real_value_signed__smaller_unsigned_type_largerF_same_value) {
     constexpr double realValueA = 498.7;
-    auto a = i32q4_t::fromReal<realValueA>;
+    auto a = i32q4_t::fromReal<realValueA>();
     auto b = safe_q_cast<u16q6_clamp_t>(a);  // this would not compile if u16q6 was used
     auto c = safe_q_cast<u16q6_t, fpm::Ovf::clamp>(a);
 
@@ -1182,7 +1182,7 @@ TEST_F(QTest_Casting, q_safe_cast__positive_real_value_signed__smaller_unsigned_
 
 TEST_F(QTest_Casting, q_safe_cast__positive_real_value_signed_too_large__smaller_unsigned_type_largerF_value_clamped) {
     constexpr double realValueA = 512.5;
-    auto a = i32q4_t::fromReal<realValueA>;
+    auto a = i32q4_t::fromReal<realValueA>();
     auto b = safe_q_cast<u16q6_clamp_t>(a);  // this would not compile if u16q6 was used
     auto c = safe_q_cast<u16q6_t, fpm::Ovf::clamp>(a);
 
@@ -1194,7 +1194,7 @@ TEST_F(QTest_Casting, q_safe_cast__positive_real_value_signed_too_large__smaller
 
 TEST_F(QTest_Casting, q_safe_cast__negative_real_value__smaller_unsigned_type_largerF_clamped_value) {
     constexpr double realValueA = -498.7;
-    auto a = i32q4_t::fromReal<realValueA>;
+    auto a = i32q4_t::fromReal<realValueA>();
     auto b = safe_q_cast<u16q6_clamp_t>(a);  // this would not compile if u16q6 was used
     auto c = safe_q_cast<u16q6_t, fpm::Ovf::clamp>(a);
 
@@ -1220,12 +1220,12 @@ TEST_F(QTest_Casting, q_safe_cast__signed_user_range__unsigned_different_range__
 
     using i16qm3_t = i16qm3<-100000., 100000.>;  // i16 -> u32, max delta f is 17
     using u32q14_t = u32q14<80000., 160000.>;
-    auto a = i16qm3_t::fromRealOvf<-110000.>;
-    auto b = i16qm3_t::fromReal<i16qm3_t::realVMin>;
-    auto c = i16qm3_t::fromReal<50000.>;
-    auto d = i16qm3_t::fromReal<90000.>;
-    auto e = i16qm3_t::fromReal<i16qm3_t::realVMax>;
-    auto f = i16qm3_t::fromRealOvf<110000.>;
+    auto a = i16qm3_t::fromRealOvf<-110000.>();
+    auto b = i16qm3_t::fromReal<i16qm3_t::realVMin>();
+    auto c = i16qm3_t::fromReal<50000.>();
+    auto d = i16qm3_t::fromReal<90000.>();
+    auto e = i16qm3_t::fromReal<i16qm3_t::realVMax>();
+    auto f = i16qm3_t::fromRealOvf<110000.>();
     auto ac = safe_q_cast<u32q14_t, fpm::Ovf::clamp>(a);
     auto bc = safe_q_cast<u32q14_t, fpm::Ovf::clamp>(b);
     auto cc = safe_q_cast<u32q14_t, fpm::Ovf::clamp>(c);
@@ -1257,11 +1257,11 @@ TEST_F(QTest_Casting, q_safe_cast__unsigned_user_range__signed_different_range__
 
     using u16qm3_t = u16qm3<0., 400000.>;  // u16 -> i32, max delta f is 15
     using i32q12_t = i32q12<-80000., 500000.>;
-    auto a = u16qm3_t::fromReal<u16qm3_t::realVMin>;
-    auto b = u16qm3_t::fromReal<50000.>;
-    auto c = u16qm3_t::fromReal<u16qm3_t::realVMax>;
-    auto d = u16qm3_t::fromRealOvf<410000.>;
-    auto e = u16qm3_t::fromRealOvf<520000.>;
+    auto a = u16qm3_t::fromReal<u16qm3_t::realVMin>();
+    auto b = u16qm3_t::fromReal<50000.>();
+    auto c = u16qm3_t::fromReal<u16qm3_t::realVMax>();
+    auto d = u16qm3_t::fromRealOvf<410000.>();
+    auto e = u16qm3_t::fromRealOvf<520000.>();
     auto ac = safe_q_cast<i32q12_t, fpm::Ovf::clamp>(a);
     auto bc = safe_q_cast<i32q12_t, fpm::Ovf::clamp>(b);
     auto cc = safe_q_cast<i32q12_t, fpm::Ovf::clamp>(c);
@@ -1291,11 +1291,11 @@ TEST_F(QTest_Casting, q_safe_cast__signed_user_range__signed_different_range__cl
 
     using i16qm4_t = i16qm4<-400000., 400000.>;  // i16 -> i32, max delta f is 16
     using i32q12_t = i32q12<-80000., 500000.>;
-    auto a = i16qm4_t::fromReal<i16qm4_t::realVMin>;
-    auto b = i16qm4_t::fromReal<-50000.>;
-    auto c = i16qm4_t::fromReal<i16qm4_t::realVMax>;
-    auto d = i16qm4_t::fromRealOvf<410000.>;
-    auto e = i16qm4_t::fromRealOvf<520000.>;
+    auto a = i16qm4_t::fromReal<i16qm4_t::realVMin>();
+    auto b = i16qm4_t::fromReal<-50000.>();
+    auto c = i16qm4_t::fromReal<i16qm4_t::realVMax>();
+    auto d = i16qm4_t::fromRealOvf<410000.>();
+    auto e = i16qm4_t::fromRealOvf<520000.>();
     auto ac = safe_q_cast<i32q12_t, fpm::Ovf::clamp>(a);
     auto bc = safe_q_cast<i32q12_t, fpm::Ovf::clamp>(b);
     auto cc = safe_q_cast<i32q12_t, fpm::Ovf::clamp>(c);
@@ -1325,12 +1325,12 @@ TEST_F(QTest_Casting, q_safe_cast__unsigned_user_range__unsigned_different_range
 
     using u16qm2_t = u16qm2<10000., 100000.>;  // u16 -> u32, max delta f is 16
     using u32q14_t = u32q14<80000., 160000.>;
-    auto a = u16qm2_t::fromRealOvf<0.>;
-    auto b = u16qm2_t::fromReal<u16qm2_t::realVMin>;
-    auto c = u16qm2_t::fromReal<50000.>;
-    auto d = u16qm2_t::fromReal<90000.>;
-    auto e = u16qm2_t::fromReal<u16qm2_t::realVMax>;
-    auto f = u16qm2_t::fromRealOvf<110000.>;
+    auto a = u16qm2_t::fromRealOvf<0.>();
+    auto b = u16qm2_t::fromReal<u16qm2_t::realVMin>();
+    auto c = u16qm2_t::fromReal<50000.>();
+    auto d = u16qm2_t::fromReal<90000.>();
+    auto e = u16qm2_t::fromReal<u16qm2_t::realVMax>();
+    auto f = u16qm2_t::fromRealOvf<110000.>();
     auto ac = safe_q_cast<u32q14_t, fpm::Ovf::clamp>(a);
     auto bc = safe_q_cast<u32q14_t, fpm::Ovf::clamp>(b);
     auto cc = safe_q_cast<u32q14_t, fpm::Ovf::clamp>(c);
@@ -1348,7 +1348,7 @@ TEST_F(QTest_Casting, q_safe_cast__unsigned_user_range__unsigned_different_range
 
 TEST_F(QTest_Casting, q_force_cast__positive_scaled_value_signed__unsigned_type_smallerF_same_value) {
     constexpr int32_t scaledValueA = 1024;
-    auto a = i32q4_t::fromScaled<scaledValueA>;
+    auto a = i32q4_t::fromScaled<scaledValueA>();
     auto b = force_q_cast<u32qm2_t>(a);
 
     ASSERT_EQ(static_cast<u32qm2_t::base_t>(scaledValueA), b.reveal());
@@ -1357,7 +1357,7 @@ TEST_F(QTest_Casting, q_force_cast__positive_scaled_value_signed__unsigned_type_
 
 TEST_F(QTest_Casting, q_force_cast__positive_scaled_value_unsigned__larger_signed_type_largerF_same_value) {
     constexpr uint16_t scaledValueA = 498u;
-    auto a = u16q6_t::fromScaled<scaledValueA>;
+    auto a = u16q6_t::fromScaled<scaledValueA>();
     auto b = force_q_cast<i32q20_t>(a);
 
     ASSERT_EQ(static_cast<i32q20_t::base_t>(scaledValueA), b.reveal());
@@ -1366,7 +1366,7 @@ TEST_F(QTest_Casting, q_force_cast__positive_scaled_value_unsigned__larger_signe
 
 TEST_F(QTest_Casting, q_force_cast__positive_scaled_value_unsigned__larger_signed_type_smallerF_same_value) {
     constexpr uint16_t scaledValueA = 498u;
-    auto a = u16q6_t::fromScaled<scaledValueA>;
+    auto a = u16q6_t::fromScaled<scaledValueA>();
     auto b = force_q_cast<i32qm2_t>(a);
 
     ASSERT_EQ(static_cast<i32qm2_t::base_t>(scaledValueA), b.reveal());
@@ -1375,7 +1375,7 @@ TEST_F(QTest_Casting, q_force_cast__positive_scaled_value_unsigned__larger_signe
 
 TEST_F(QTest_Casting, q_force_cast__positive_scaled_value_signed__smaller_unsigned_type_largerF_same_value) {
     constexpr int32_t scaledValueA = 498;
-    auto a = i32q4_t::fromScaled<scaledValueA>;
+    auto a = i32q4_t::fromScaled<scaledValueA>();
     auto b = force_q_cast<u16q6_t>(a);
 
     ASSERT_EQ(static_cast<u16q6_t::base_t>(scaledValueA), b.reveal());  // expect: 498u
@@ -1384,7 +1384,7 @@ TEST_F(QTest_Casting, q_force_cast__positive_scaled_value_signed__smaller_unsign
 
 TEST_F(QTest_Casting, q_force_cast__negative_scaled_value__smaller_unsigned_type_largerF_same_value_clamp_ignored) {
     constexpr int32_t scaledValueA = -498;
-    auto a = i32q4_t::fromScaled<scaledValueA>;
+    auto a = i32q4_t::fromScaled<scaledValueA>();
     auto b = force_q_cast<u16q6_clamp_t>(a);
 
     ASSERT_EQ(static_cast<u16q6_clamp_t::base_t>(scaledValueA), b.reveal());  // expect: 65038u
@@ -1393,7 +1393,7 @@ TEST_F(QTest_Casting, q_force_cast__negative_scaled_value__smaller_unsigned_type
 
 TEST_F(QTest_Casting, q_force_cast__negative_scaled_value__smaller_unsigned_type_largerF_same_value_overflow_ignored) {
     constexpr int32_t scaledValueA = -498;
-    auto a = i32q4_t::fromScaled<scaledValueA>;
+    auto a = i32q4_t::fromScaled<scaledValueA>();
     auto b = force_q_cast<u16q6_ovf_t>(a);
 
     ASSERT_EQ(static_cast<u16q6_t::base_t>(scaledValueA), b.reveal());  // expect: 65038u

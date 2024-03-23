@@ -35,10 +35,10 @@ set(Include
 )
 
 # GCC options
-add_compile_options(-Wall -Wextra -pedantic -fconcepts-diagnostics-depth=2)
+#add_compile_options(-Wall -Wextra -pedantic -fconcepts-diagnostics-depth=2)
 
 # Clang options
-#add_compile_options(-Wall -Wextra -pedantic)
+add_compile_options(-Wall -Wextra -pedantic -static -v)
 
 add_library(${ThisShortLib} STATIC ${Headers})
 set_target_properties(${ThisShortLib} PROPERTIES LINKER_LANGUAGE CXX)
@@ -47,7 +47,7 @@ target_compile_options(${ThisShortLib} PRIVATE -g -Og)  # optimize for debug
 add_executable(${Playground} ${Headers} ${Sources})
 set_target_properties(${Playground} PROPERTIES LINKER_LANGUAGE CXX)
 target_include_directories(${Playground} PRIVATE ${Include})
-target_link_options(${Playground} PUBLIC LINKER:-Map=${Playground}.map)
+target_link_options(${Playground} PUBLIC LINKER:-Map=${Playground}.map -static -v)
 target_compile_options(${Playground} PRIVATE -Os)  # optimize for size
 
 set(CPACK_PROJECT_NAME ${PROJECT_NAME})

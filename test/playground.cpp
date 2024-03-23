@@ -2,7 +2,11 @@
  * Main compilation unit of the fpm library.
  */
 
+#include <cstddef>
+#include <cstdint>
 #include <iostream>
+#include <stdexcept>
+#include <type_traits>
 
 #include <fpm.hpp>
 
