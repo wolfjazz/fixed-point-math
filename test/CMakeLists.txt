@@ -18,12 +18,12 @@ set(Headers
 #add_compile_options(-Wall -Wextra -pedantic -fconcepts-diagnostics-depth=2)
 
 # Clang options
-add_compile_options(-Wall -Wextra -pedantic -static -v)
+add_compile_options(-Wall -Wextra -pedantic -static)  # -v for verbose
 
 add_executable(${This} ${Sources} ${Headers})
 target_link_libraries(${This} PUBLIC ${CMAKE_THREAD_LIBS_INIT}
     gtest_main
 )
-target_link_options(${This} PUBLIC LINKER:-Map=${This}.map -static -v)
+target_link_options(${This} PUBLIC LINKER:-Map=${This}.map -static)  # -v for verbose
 
 target_include_directories(${This} PUBLIC ../src ../googletest/googletest/include)
