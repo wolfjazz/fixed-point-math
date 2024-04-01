@@ -610,7 +610,7 @@ public:
     /// to its base type and scaling. This can be significantly smaller that the actual user minimum.
     template< typename T = double >
     static constexpr T min() noexcept {
-        return fpm::v2s<T, -QT::f>( numeric_limits<typename QT::base_t>::min() );
+        return v2s<T, -QT::f>( numeric_limits<typename QT::base_t>::min() );
     }
 
     /// \returns the maximum real value that can be represented by the Q type.
@@ -619,7 +619,7 @@ public:
     /// to its base type and scaling. This can be significantly larger that the actual user maximum.
     template< typename T = double >
     static constexpr T max() noexcept {
-        return fpm::v2s<T, -QT::f>( numeric_limits<typename QT::base_t>::max() );
+        return v2s<T, -QT::f>( numeric_limits<typename QT::base_t>::max() );
     }
 
     constexpr static bool is_specialized = true;

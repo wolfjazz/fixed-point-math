@@ -203,7 +203,7 @@ namespace detail {
 
     /** \returns +1 if the given value is positive, -1 if it is negative and 0 if the value is 0. */
     template <typename T>
-    constexpr int signum(T const x) {
+    constexpr int signum(T const x) noexcept {
         if constexpr (std::is_signed_v<T>) { return (T(0) < x) - (x < T(0)); }
         else { return T(0) < x; }
     }
@@ -212,28 +212,26 @@ namespace detail {
     // when they are not yet defined constexpr/consteval in C++20.
     inline namespace lib {
 
-        /** \returns the absolute value of the given input value. */
-        template< typename ValueT >
-        consteval ValueT abs(ValueT const input) noexcept {
+        /** \returns the absolute value of the given integral input value. */
+        consteval auto abs(std::integral auto const input) noexcept {
+            return input >= 0 ? input : -input;
+        }
+
+        /** \returns the absolute value of the given floating-point input value. */
+        consteval auto abs(std::floating_point auto const input) noexcept {
             return input >= 0 ? input : -input;
         }
 
         /** \returns the largest integer value not greater than the given input number, as double. */
-        consteval double floor(double number) {
+        consteval double floor(double number) noexcept {
             int64_t i = static_cast<int64_t>(number);
             return static_cast<double>(number < i ? i - 1 : i);
         }
 
         /** \returns the least integer value not less than the given input number, as double. */
-        consteval double ceil(double number) {
+        consteval double ceil(double number) noexcept {
             int64_t i = static_cast<int64_t>(number);
             return static_cast<double>(number > i ? i + 1 : i);
-        }
-
-        /** \returns the given number, clamped to the given range. */
-        template< double min, double max >
-        consteval double clamp(double number) {
-            return (number < min ? min : number > max ? max : number);
         }
 
         /** Famous fast reciprocal square root algorithm (Quake III) adapted for double precision and
@@ -252,13 +250,13 @@ namespace detail {
 
         /** \returns the approximated square root of the given double. If the number is negative,
          * 0 is returned. */
-        constexpr double sqrt(double number) {
+        constexpr double sqrt(double number) noexcept {
             return number <= 0. ? 0. : 1. / detail::rsqrt(number);
         }
 
         /** \returns the approximated cube root of the given number. If the number is positive,
          * the cube root is positive, if the number is negative, the cube root is negative. */
-        constexpr double cbrt(double number) {
+        constexpr double cbrt(double number) noexcept {
             // Algorithm according to https://www.geeksforgeeks.org/find-cubic-root-of-a-number/
             // set start and end for binary search
             double start = 0., end = number, mid = 0.;
@@ -344,7 +342,7 @@ namespace detail {
 
     /** Calculates the given integer power of the given number.
      * Inspired by: https://prosepoetrycode.potterpcs.net/2015/07/a-simple-constexpr-power-function-c/ */
-    consteval double dpowi(double num, int pow) {
+    consteval double dpowi(double num, int pow) noexcept {
         if (detail::abs(pow) > std::numeric_limits<double>::max_exponent10) return 0.;
         if (pow == 0) return 1.;
         return (pow > 0) ? num * dpowi(num, pow-1) : dpowi(num, pow+1) / num;
@@ -352,7 +350,7 @@ namespace detail {
 
     /// Converts a given character array from a template literal operator into a double value.
     template< char ...charArray >
-    consteval double doubleFromLiteral() {
+    consteval double doubleFromLiteral() noexcept {
         constexpr std::size_t length = sizeof...(charArray);
         constexpr char chars[length]{ charArray... };
         static_assert(length > 0u && length <= std::numeric_limits<double>::digits10
@@ -378,7 +376,7 @@ namespace detail {
 
     /// Converts a given character array into an unsigned integer value that can be used as constexpr.
     template< char ...charArray >
-    consteval unsigned int intFromLiteral() {
+    consteval unsigned int intFromLiteral() noexcept {
         constexpr std::size_t length = sizeof...(charArray);
         constexpr char chars[length]{ charArray... };
         static_assert(length > 0u && length <= std::numeric_limits<unsigned int>::digits10
@@ -424,14 +422,14 @@ namespace detail {
      * (i.e. 0u for unsigned, INT_MIN + 1 for signed).
      * \note Internal. Use Q<>::realVMin in applications. */
     template< std::integral T, scaling_t f >
-    consteval double lowestRealVMin() {
+    consteval double lowestRealVMin() noexcept {
         return v2s<double, -f>( std::is_unsigned_v<T> ? static_cast<T>(0) : std::numeric_limits<T>::min() + 1 );
     }
 
     /** \returns the real maximum value for the given integral type and scaling.
      * \note Internal. Use Q<>::realVMax in applications. */
     template< std::integral T, scaling_t f >
-    consteval double highestRealVMax() {
+    consteval double highestRealVMax() noexcept {
         return v2s<double, -f>( std::numeric_limits<T>::max() );
     }
 
@@ -560,6 +558,17 @@ namespace detail {
         && realVMin <= realVMax
     );
 
+    /** Concept of an implementation type that gives a valid Q or Sq type. Used to check an
+     * implementation type before a Sq or Q type is constructed.
+     * \note If this fails, the real value limits exceed the value range of the base type when scaled
+     * with the desired scaling factor. Double-check the desired type properties and limits! */
+    template< typename ImplType >
+    concept ValidImplType = (
+        RealValueScaledFitsBaseType<typename ImplType::base_t, ImplType::f, ImplType::realVMin>
+        && RealValueScaledFitsBaseType<typename ImplType::base_t, ImplType::f, ImplType::realVMax>
+        && ImplType::realVMin <= ImplType::realVMax
+    );
+
     /** Concept of a base type that can overflow when allowed. Typically used in the context of casting.
      * \note In C++23, signed int overflow (i.e. the value does not fit in the type) is still undefined.
      * \note If this fails, a signed base type is used in the context of a potential overflow. This is
@@ -620,6 +629,36 @@ namespace detail {
         T::realVMax <= -T::resolution || T::resolution <= T::realVMin
     );
 
+    /** Concept: Checks whether the given (S)Q-Type can be passed to the sqrt function. This is
+     * possible as long as the size of the base type does not exceed 4 bytes, the scaling is not too
+     * large and the value range is positive. */
+    template< typename T >
+    concept CanBePassedToSqrt = (
+        sizeof(typename T::base_t) <= sizeof(uint32_t)
+        && T::f <= 30  //< ceil of upper q31 limit would round up to 2.0 which is out of value range
+        && T::realVMin >= 0.
+    );
+
+    /** Concept: Checks whether the given (S)Q-Type can be passed to the rsqrt function. This is
+     * possible as long as the size of the base type does not exceed 4 bytes, the scaling is not too
+     * large and the value range is larger than zero. */
+    template< typename T >
+    concept CanBePassedToRSqrt = (
+        sizeof(typename T::base_t) <= sizeof(int32_t)
+        && T::f <= 30  //< ceil of upper q31 limit would round up to 2.0 which is out of value range
+        && T::realVMin > 0.
+    );
+
+    /** Concept: Checks whether the given (S)Q-Type can be passed to the cbrt function. This is
+     * possible as long as the size of the base type does not exceed 4 bytes, the scaling is not too
+     * large and the value range is positive. */
+    template< typename T >
+    concept CanBePassedToCbrt = (
+        sizeof(typename T::base_t) <= sizeof(int32_t)
+        && T::f <= 16  // limit scaling to prevent overflow
+        && T::realVMin >= 0.
+    );
+
     /** Concept: Checks whether the two given base types can be compared.
      * Comparison is possible if both types have the same signedness, or if the size of the lhs type
      * is larger than the size of the rhs type if the signedness is different. */
@@ -661,7 +700,7 @@ namespace detail {
 
 /** Static assertion of the base type of the given sq (or q) type. */
 template< std::integral TExpected, detail::SqOrQType QSq >
-consteval void static_assert_basetype() {
+consteval void static_assert_basetype() noexcept {
     static_assert(std::is_same_v<TExpected, typename QSq::base_t>,
         "The given q or sq type does not comply with the expected base type.");
 }
@@ -669,7 +708,7 @@ consteval void static_assert_basetype() {
 
 /** Static assertion of the scaling of the given sq (or q) type. */
 template< scaling_t expectedF, detail::SqOrQType QSq >
-consteval void static_assert_scaling() {
+consteval void static_assert_scaling() noexcept {
     static_assert(QSq::f == expectedF,
         "The given q or sq type does not comply with the expected scaling.");
 }
@@ -677,35 +716,39 @@ consteval void static_assert_scaling() {
 
 /** Static assertion of the real value range of the given sq (or q) type. */
 template< double expectedMin, double expectedMax, detail::SqOrQType QSq >
-consteval void static_assert_range() {
-    static_assert(QSq::realVMin == expectedMin && QSq::realVMax == expectedMax,
+consteval void static_assert_range() noexcept {
+    static_assert(
+           detail::lib::abs(QSq::realVMin - expectedMin) < QSq::resolution
+        && detail::lib::abs(QSq::realVMax - expectedMax) < QSq::resolution,
         "The given q or sq type does not comply with the expected value range.");
 }
 
 
 /** Static assertion of the core properties of the given sq (or q) type. */
 template< std::integral TExpected, scaling_t expectedF, double expectedMin, double expectedMax, detail::SqOrQType QSq >
-consteval void static_assert_properties() {
+consteval void static_assert_properties() noexcept {
     static_assert(
         std::is_same_v<TExpected, typename QSq::base_t>
         && QSq::f == expectedF
-        && QSq::realVMin == expectedMin && QSq::realVMax == expectedMax,
+        && detail::lib::abs(QSq::realVMax - expectedMax) < QSq::resolution
+        && detail::lib::abs(QSq::realVMin - expectedMin) < QSq::resolution,
         "The given q or sq type does not comply with the expected properties.");
 }
 
 
 /** Converts a given character array into an integral constant. */
 template< char ...charArray >
-consteval auto operator ""_ic() {
+consteval auto operator ""_ic() noexcept {
     constexpr unsigned int value = detail::intFromLiteral<charArray...>();
     return std::integral_constant<unsigned int, value>{};
 }
 
 /** Negation operator for an integral constant. */
 template< /* deduced: */ std::integral T, T ic >
-consteval auto operator -(std::integral_constant<T, ic>) {
-    using RT = std::conditional_t< std::is_signed_v<T>, std::make_unsigned_t<T>, std::make_signed_t<T> >;
+consteval auto operator -(std::integral_constant<T, ic>) noexcept {
+#   define RT std::conditional_t< std::is_signed_v<T>, std::make_unsigned_t<T>, std::make_signed_t<T> >
     return std::integral_constant< RT, static_cast<RT>(-ic) >{};
+#   undef RT
 }
 
 
