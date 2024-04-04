@@ -85,7 +85,8 @@ constexpr scaling_t MAX_F = 53;
  * \warning Floating-point types are possible, however quite expensive at runtime!
  *          Use carefully! */
 template< typename TargetT, scaling_t from, scaling_t to, /* deduced: */ typename ValueT >
-constexpr TargetT s2smd(ValueT value) noexcept {
+[[nodiscard]] constexpr
+TargetT s2smd(ValueT value) noexcept {
     // use common type for calculation to avoid loss of precision
     using CommonT = typename std::common_type<ValueT, TargetT>::type;
     using ScalingT = typename std::conditional_t<sizeof(CommonT) <= 4u,
@@ -112,7 +113,8 @@ constexpr TargetT s2smd(ValueT value) noexcept {
  *          is not symmetric for the same value with a different sign
  *          (e.g. -514 >> 4u is -33 but +514 >> 4u is +32). */
 template< std::integral TargetT, scaling_t from, scaling_t to, /* deduced: */ std::integral ValueT >
-constexpr TargetT s2sh(ValueT value) noexcept {
+[[nodiscard]] constexpr
+TargetT s2sh(ValueT value) noexcept {
     // use common type for shift to avoid loss of precision
     using CommonT = typename std::common_type<ValueT, TargetT>::type;
 
@@ -133,10 +135,12 @@ constexpr TargetT s2sh(ValueT value) noexcept {
  * \note constexpr implies inline. */
 #if !defined FPM_USE_SH
 template< typename TargetT, scaling_t from, scaling_t to, /* deduced: */ typename ValueT >
-constexpr TargetT s2s(ValueT value) noexcept { return s2smd<TargetT, from, to>(value); }
+[[nodiscard]] constexpr
+TargetT s2s(ValueT value) noexcept { return s2smd<TargetT, from, to>(value); }
 #else
 template< std::integral TargetT, scaling_t from, scaling_t to, /* deduced: */ std::integral ValueT >
-constexpr TargetT s2s(ValueT value) noexcept { return s2sh<TargetT, from, to>(value); }
+[[nodiscard]] constexpr
+TargetT s2s(ValueT value) noexcept { return s2sh<TargetT, from, to>(value); }
 #endif
 
 
@@ -145,7 +149,8 @@ constexpr TargetT s2s(ValueT value) noexcept { return s2sh<TargetT, from, to>(va
  * \warning Floating-point target types are possible, however quite expensive at runtime!
  *          Use carefully! */
 template< typename TargetT, scaling_t to, /* deduced: */ typename ValueT >
-constexpr TargetT v2smd(ValueT value) noexcept {
+[[nodiscard]] constexpr
+TargetT v2smd(ValueT value) noexcept {
     // use common type for shift to avoid loss of precision
     using CommonT = typename std::common_type<ValueT, TargetT>::type;
     using ScalingT = typename std::conditional_t<sizeof(CommonT) <= 4u,
@@ -170,7 +175,8 @@ constexpr TargetT v2smd(ValueT value) noexcept {
  *          is not symmetric for the same value with a different sign
  *          (e.g. -514 >> 4u is -33 but +514 >> 4u is +32). */
 template< std::integral TargetT, scaling_t to, /* deduced: */ std::integral ValueT >
-constexpr TargetT v2sh(ValueT value) noexcept {
+[[nodiscard]] constexpr
+TargetT v2sh(ValueT value) noexcept {
     // use common type for calculation to avoid loss of precision
     using CommonT = typename std::common_type<ValueT, TargetT>::type;
 
@@ -191,10 +197,12 @@ constexpr TargetT v2sh(ValueT value) noexcept {
  * \note constexpr implies inline. */
 #if !defined FPM_USE_SH
 template< typename TargetT, scaling_t to, /* deduced: */ typename ValueT >
-constexpr TargetT v2s(ValueT value) noexcept { return v2smd<TargetT, to>(value); }
+[[nodiscard]] constexpr
+TargetT v2s(ValueT value) noexcept { return v2smd<TargetT, to>(value); }
 #else
 template< std::integral TargetT, scaling_t to, /* deduced: */ std::integral ValueT >
-constexpr TargetT v2s(ValueT value) noexcept { return v2sh<TargetT, to>(value); }
+[[nodiscard]] constexpr
+TargetT v2s(ValueT value) noexcept { return v2sh<TargetT, to>(value); }
 #endif
 
 
@@ -203,7 +211,8 @@ namespace detail {
 
     /** \returns +1 if the given value is positive, -1 if it is negative and 0 if the value is 0. */
     template <typename T>
-    constexpr int signum(T const x) noexcept {
+    constexpr
+    int signum(T const x) noexcept {
         if constexpr (std::is_signed_v<T>) { return (T(0) < x) - (x < T(0)); }
         else { return T(0) < x; }
     }
@@ -213,30 +222,35 @@ namespace detail {
     inline namespace lib {
 
         /** \returns the absolute value of the given integral input value. */
-        consteval auto abs(std::integral auto const input) noexcept {
+        consteval
+        auto abs(std::integral auto const input) noexcept {
             return input >= 0 ? input : -input;
         }
 
         /** \returns the absolute value of the given floating-point input value. */
-        consteval auto abs(std::floating_point auto const input) noexcept {
+        consteval
+        auto abs(std::floating_point auto const input) noexcept {
             return input >= 0 ? input : -input;
         }
 
         /** \returns the largest integer value not greater than the given input number, as double. */
-        consteval double floor(double number) noexcept {
+        consteval
+        double floor(double number) noexcept {
             int64_t i = static_cast<int64_t>(number);
             return static_cast<double>(number < i ? i - 1 : i);
         }
 
         /** \returns the least integer value not less than the given input number, as double. */
-        consteval double ceil(double number) noexcept {
+        consteval
+        double ceil(double number) noexcept {
             int64_t i = static_cast<int64_t>(number);
             return static_cast<double>(number > i ? i + 1 : i);
         }
 
         /** Famous fast reciprocal square root algorithm (Quake III) adapted for double precision and
          * constant expression context. */
-        constexpr double rsqrt(double number) noexcept {
+        constexpr
+        double rsqrt(double number) noexcept {
             static_assert(std::numeric_limits<double>::is_iec559); // (enable only on IEEE 754)
 
             // initial guess with magic number (see Wikipedia for details)
@@ -250,13 +264,15 @@ namespace detail {
 
         /** \returns the approximated square root of the given double. If the number is negative,
          * 0 is returned. */
-        constexpr double sqrt(double number) noexcept {
+        constexpr
+        double sqrt(double number) noexcept {
             return number <= 0. ? 0. : 1. / detail::rsqrt(number);
         }
 
         /** \returns the approximated cube root of the given number. If the number is positive,
          * the cube root is positive, if the number is negative, the cube root is negative. */
-        constexpr double cbrt(double number) noexcept {
+        constexpr
+        double cbrt(double number) noexcept {
             // Algorithm according to https://www.geeksforgeeks.org/find-cubic-root-of-a-number/
             // set start and end for binary search
             double start = 0., end = number, mid = 0.;
@@ -283,7 +299,8 @@ namespace detail {
         Overflow ovfBx,   ///< overflow behavior
         std::integral ValueT,  ///< type of the value to check (after a scaling/casting operation)
         std::integral SrcValueT = ValueT >  ///< type of the value before scaling/casting operation; required if different
-    constexpr void checkOverflow(ValueT &value, ValueT const min, ValueT const max) noexcept {
+    constexpr
+    void checkOverflow(ValueT &value, ValueT const min, ValueT const max) noexcept {
         // Overflow check types.
         enum checktype : uint8_t {
             CHECKTYPE_SIGN_UNCHANGED = 0u,  ///< default overflow check
@@ -342,7 +359,8 @@ namespace detail {
 
     /** Calculates the given integer power of the given number.
      * Inspired by: https://prosepoetrycode.potterpcs.net/2015/07/a-simple-constexpr-power-function-c/ */
-    consteval double dpowi(double num, int pow) noexcept {
+    consteval
+    double dpowi(double num, int pow) noexcept {
         if (detail::abs(pow) > std::numeric_limits<double>::max_exponent10) return 0.;
         if (pow == 0) return 1.;
         return (pow > 0) ? num * dpowi(num, pow-1) : dpowi(num, pow+1) / num;
@@ -350,7 +368,8 @@ namespace detail {
 
     /// Converts a given character array from a template literal operator into a double value.
     template< char ...charArray >
-    consteval double doubleFromLiteral() noexcept {
+    consteval
+    double doubleFromLiteral() noexcept {
         constexpr std::size_t length = sizeof...(charArray);
         constexpr char chars[length]{ charArray... };
         static_assert(length > 0u && length <= std::numeric_limits<double>::digits10
@@ -376,7 +395,8 @@ namespace detail {
 
     /// Converts a given character array into an unsigned integer value that can be used as constexpr.
     template< char ...charArray >
-    consteval unsigned int intFromLiteral() noexcept {
+    consteval
+    unsigned int intFromLiteral() noexcept {
         constexpr std::size_t length = sizeof...(charArray);
         constexpr char chars[length]{ charArray... };
         static_assert(length > 0u && length <= std::numeric_limits<unsigned int>::digits10
@@ -422,20 +442,23 @@ namespace detail {
      * (i.e. 0u for unsigned, INT_MIN + 1 for signed).
      * \note Internal. Use Q<>::realVMin in applications. */
     template< std::integral T, scaling_t f >
-    consteval double lowestRealVMin() noexcept {
+    consteval
+    double lowestRealVMin() noexcept {
         return v2s<double, -f>( std::is_unsigned_v<T> ? static_cast<T>(0) : std::numeric_limits<T>::min() + 1 );
     }
 
     /** \returns the real maximum value for the given integral type and scaling.
      * \note Internal. Use Q<>::realVMax in applications. */
     template< std::integral T, scaling_t f >
-    consteval double highestRealVMax() noexcept {
+    consteval
+    double highestRealVMax() noexcept {
         return v2s<double, -f>( std::numeric_limits<T>::max() );
     }
 
     /** Calculates the square root of a given unsigned 64-bit integer, rounded down.
      * Uses a integer square root binary search algorithm based on Hacker's Delight, 2nd ed. */
-    constexpr uint32_t isqrt(uint64_t const value) noexcept {
+    constexpr
+    uint32_t isqrt(uint64_t const value) noexcept {
         uint64_t x = value,
                  b = (1u << (65u - std::countl_zero(x)) / 2u) - 1u,
                  a = (b + 3u) / 2u;
@@ -450,7 +473,8 @@ namespace detail {
     /** Calculates the cube root of a given unsigned 64-bit integer, rounded down.
      * Uses a hardware algorithm based on Hacker's Delight, 2nd ed.
      * and https://gist.github.com/anonymous/729557. */
-    constexpr uint32_t icbrt(uint64_t const value) noexcept {
+    constexpr
+    uint32_t icbrt(uint64_t const value) noexcept {
         uint64_t x = value;
         uint32_t y = 0u;
         for (int_fast32_t s = 63; s >= 0; s -= 3) {  // 22 iterations
@@ -704,35 +728,52 @@ namespace detail {
 }  // end of detail
 
 
+/** \returns the scaled value for a Sq- or Q-Type that corresponds to a given real double value. */
+template< detail::SqOrQType T >
+[[nodiscard]] constexpr
+typename T::base_t scaled(double real) noexcept { return v2s<typename T::base_t, T::f>(real); }
+
+/** \returns the real value that corresponds to the given scaled integral value from a Sq- or Q-Type. */
+template< detail::SqOrQType T, typename TargetT = double >
+[[nodiscard]] constexpr
+TargetT real(typename T::base_t scaled) noexcept { return v2s<TargetT, -T::f>(scaled); }
+
+/** \returns the resolution of the given scaling. */
+template< scaling_t f >
+[[nodiscard]] constexpr
+double resolution() noexcept { return v2s<double, -f>(1); }
+
+
 /** Static assertion of the base type of the given sq (or q) type. */
 template< std::integral TExpected, detail::SqOrQType QSq >
-consteval void static_assert_basetype() noexcept {
+consteval
+void static_assert_basetype() noexcept {
     static_assert(std::is_same_v<TExpected, typename QSq::base_t>,
         "The given q or sq type does not comply with the expected base type.");
 }
 
-
 /** Static assertion of the scaling of the given sq (or q) type. */
 template< scaling_t expectedF, detail::SqOrQType QSq >
-consteval void static_assert_scaling() noexcept {
+consteval
+void static_assert_scaling() noexcept {
     static_assert(QSq::f == expectedF,
         "The given q or sq type does not comply with the expected scaling.");
 }
 
-
 /** Static assertion of the real value range of the given sq (or q) type. */
 template< double expectedMin, double expectedMax, detail::SqOrQType QSq >
-consteval void static_assert_range() noexcept {
+consteval
+void static_assert_range() noexcept {
     static_assert(
            detail::lib::abs(QSq::realVMin - expectedMin) < QSq::resolution
         && detail::lib::abs(QSq::realVMax - expectedMax) < QSq::resolution,
         "The given q or sq type does not comply with the expected value range.");
 }
 
-
 /** Static assertion of the core properties of the given sq (or q) type. */
 template< std::integral TExpected, scaling_t expectedF, double expectedMin, double expectedMax, detail::SqOrQType QSq >
-consteval void static_assert_properties() noexcept {
+consteval
+void static_assert_properties() noexcept {
     static_assert(
         std::is_same_v<TExpected, typename QSq::base_t>
         && QSq::f == expectedF
@@ -744,14 +785,16 @@ consteval void static_assert_properties() noexcept {
 
 /** Converts a given character array into an integral constant. */
 template< char ...charArray >
-consteval auto operator ""_ic() noexcept {
+consteval
+auto operator ""_ic() noexcept {
     constexpr unsigned int value = detail::intFromLiteral<charArray...>();
     return std::integral_constant<unsigned int, value>{};
 }
 
 /** Negation operator for an integral constant. */
 template< /* deduced: */ std::integral T, T ic >
-consteval auto operator -(std::integral_constant<T, ic>) noexcept {
+consteval
+auto operator -(std::integral_constant<T, ic>) noexcept {
 #   define RT std::conditional_t< std::is_signed_v<T>, std::make_unsigned_t<T>, std::make_signed_t<T> >
     return std::integral_constant< RT, static_cast<RT>(-ic) >{};
 #   undef RT
