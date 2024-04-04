@@ -2295,14 +2295,11 @@ TEST_F(SQTest_MinMax, sq_min__two_positive_values__returns_smaller) {
     auto a = value1_t::fromReal<568.47>();
     auto b = value2_t::fromReal<570.55>();
 
-    auto minimum1 = fpm::sq::min(a, b);
-    auto minimum2 = min(a, b);
+    auto minimum1 = min(a, b);
 
     using expected_t = value1_t::clamp_t<0., 1000.>;
     ASSERT_TRUE(( std::is_same_v<expected_t, decltype(minimum1)> ));
-    ASSERT_TRUE(( std::is_same_v<expected_t, decltype(minimum2)> ));
     ASSERT_NEAR(std::min(a.toReal(), b.toReal()), minimum1.toReal(), expected_t::resolution);
-    ASSERT_NEAR(std::min(a.toReal(), b.toReal()), minimum2.toReal(), expected_t::resolution);
 }
 
 TEST_F(SQTest_MinMax, sq_min__two_negative_values__returns_smaller) {
@@ -2311,14 +2308,11 @@ TEST_F(SQTest_MinMax, sq_min__two_negative_values__returns_smaller) {
     auto a = value1_t::fromReal<-568.47>();
     auto b = value2_t::fromReal<-570.55>();
 
-    auto minimum1 = fpm::sq::min(a, b);
-    auto minimum2 = min(a, b);
+    auto minimum1 = min(a, b);
 
     using expected_t = value1_t::clamp_t<-12000., -0.>;
     ASSERT_TRUE(( std::is_same_v<expected_t, decltype(minimum1)> ));
-    ASSERT_TRUE(( std::is_same_v<expected_t, decltype(minimum2)> ));
     ASSERT_NEAR(std::min(a.toReal(), b.toReal()), minimum1.toReal(), expected_t::resolution);
-    ASSERT_NEAR(std::min(a.toReal(), b.toReal()), minimum2.toReal(), expected_t::resolution);
 }
 
 TEST_F(SQTest_MinMax, sq_min__two_mixed_values__returns_smaller) {
@@ -2327,14 +2321,11 @@ TEST_F(SQTest_MinMax, sq_min__two_mixed_values__returns_smaller) {
     auto a = value1_t::fromReal<-1689.47>();
     auto b = value2_t::fromReal<+1572.78>();
 
-    auto minimum1 = fpm::sq::min(a, b);
-    auto minimum2 = min(a, b);
+    auto minimum1 = min(a, b);
 
     using expected_t = value1_t::clamp_t<-12000., 5000.>;
     ASSERT_TRUE(( std::is_same_v<expected_t, decltype(minimum1)> ));
-    ASSERT_TRUE(( std::is_same_v<expected_t, decltype(minimum2)> ));
     ASSERT_NEAR(std::min(a.toReal(), b.toReal()), minimum1.toReal(), expected_t::resolution);
-    ASSERT_NEAR(std::min(a.toReal(), b.toReal()), minimum2.toReal(), expected_t::resolution);
 }
 
 TEST_F(SQTest_MinMax, sq_min__neg_zero_and_pos_zero__returns_positive_zero) {
@@ -2342,13 +2333,10 @@ TEST_F(SQTest_MinMax, sq_min__neg_zero_and_pos_zero__returns_positive_zero) {
     auto a = value_t::fromReal<-0.>();
     auto b = value_t::fromReal<+0.>();
 
-    auto minimum1 = fpm::sq::min(a, b);  // will give +0., no matter if it is the first or second value
-    auto minimum2 = min(a, b);           // (because int-zero is always positive)
+    auto minimum1 = min(a, b);  // will give +0., no matter if it is the first or second value (because int-zero is always positive)
 
     ASSERT_TRUE(( std::is_same_v<value_t, decltype(minimum1)> ));
-    ASSERT_TRUE(( std::is_same_v<value_t, decltype(minimum2)> ));
     ASSERT_NEAR(+0., minimum1.toReal(), value_t::resolution);
-    ASSERT_NEAR(+0., minimum2.toReal(), value_t::resolution);
 }
 
 TEST_F(SQTest_MinMax, sq_max__two_positive_values__returns_smaller) {
@@ -2357,14 +2345,11 @@ TEST_F(SQTest_MinMax, sq_max__two_positive_values__returns_smaller) {
     auto a = value1_t::fromReal<568.47>();
     auto b = value2_t::fromReal<570.55>();
 
-    auto maximum1 = fpm::sq::max(a, b);
-    auto maximum2 = max(a, b);
+    auto maximum1 = max(a, b);
 
     using expected_t = value1_t::clamp_t<100., 12000.>;
     ASSERT_TRUE(( std::is_same_v<expected_t, decltype(maximum1)> ));
-    ASSERT_TRUE(( std::is_same_v<expected_t, decltype(maximum2)> ));
     ASSERT_NEAR(std::max(a.toReal(), b.toReal()), maximum1.toReal(), expected_t::resolution);
-    ASSERT_NEAR(std::max(a.toReal(), b.toReal()), maximum2.toReal(), expected_t::resolution);
 }
 
 TEST_F(SQTest_MinMax, sq_max__two_negative_values__returns_smaller) {
@@ -2373,14 +2358,11 @@ TEST_F(SQTest_MinMax, sq_max__two_negative_values__returns_smaller) {
     auto a = value1_t::fromReal<-568.47>();
     auto b = value2_t::fromReal<-570.55>();
 
-    auto maximum1 = fpm::sq::max(a, b);
-    auto maximum2 = max(a, b);
+    auto maximum1 = max(a, b);
 
     using expected_t = value1_t::clamp_t<-2000., 12000.>;
     ASSERT_TRUE(( std::is_same_v<expected_t, decltype(maximum1)> ));
-    ASSERT_TRUE(( std::is_same_v<expected_t, decltype(maximum2)> ));
     ASSERT_NEAR(std::max(a.toReal(), b.toReal()), maximum1.toReal(), expected_t::resolution);
-    ASSERT_NEAR(std::max(a.toReal(), b.toReal()), maximum2.toReal(), expected_t::resolution);
 }
 
 TEST_F(SQTest_MinMax, sq_max__two_mixed_values__returns_smaller) {
@@ -2389,14 +2371,11 @@ TEST_F(SQTest_MinMax, sq_max__two_mixed_values__returns_smaller) {
     auto a = value1_t::fromReal<-1689.47>();
     auto b = value2_t::fromReal<1572.78>();
 
-    auto maximum1 = fpm::sq::max(a, b);
-    auto maximum2 = max(a, b);
+    auto maximum1 = max(a, b);
 
     using expected_t = value1_t::clamp_t<0., 12000.>;
     ASSERT_TRUE(( std::is_same_v<expected_t, decltype(maximum1)> ));
-    ASSERT_TRUE(( std::is_same_v<expected_t, decltype(maximum2)> ));
     ASSERT_NEAR(std::max(a.toReal(), b.toReal()), maximum1.toReal(), expected_t::resolution);
-    ASSERT_NEAR(std::max(a.toReal(), b.toReal()), maximum2.toReal(), expected_t::resolution);
 }
 
 TEST_F(SQTest_MinMax, sq_max__neg_zero_and_pos_zero__returns_positive_zero) {
@@ -2404,13 +2383,10 @@ TEST_F(SQTest_MinMax, sq_max__neg_zero_and_pos_zero__returns_positive_zero) {
     auto a = value_t::fromReal<-0.>();
     auto b = value_t::fromReal<+0.>();
 
-    auto maximum1 = fpm::sq::max(a, b);  // will give +0., no matter if it is the first or second value
-    auto maximum2 = max(a, b);           // (because int-zero is always positive)
+    auto maximum1 = max(a, b);  // will give +0., no matter if it is the first or second value (because int-zero is always positive)
 
     ASSERT_TRUE(( std::is_same_v<value_t, decltype(maximum1)> ));
-    ASSERT_TRUE(( std::is_same_v<value_t, decltype(maximum2)> ));
     ASSERT_NEAR(+0., maximum1.toReal(), value_t::resolution);
-    ASSERT_NEAR(+0., maximum2.toReal(), value_t::resolution);
 }
 
 // EOF

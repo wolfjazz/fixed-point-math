@@ -26,27 +26,7 @@ using fpm::detail::SqType;
 
 namespace detail {
 
-template< /* deduced: */ SqType Sq1, SqType Sq2,
-    double realVMinMin = std::min(Sq1::realVMin, Sq2::realVMin),
-    double realVMaxMin = std::min(Sq1::realVMax, Sq2::realVMax) >
-requires ( fpm::detail::Similar<Sq1, Sq2>
-           && fpm::detail::RealLimitsInRangeOfBaseType<typename Sq1::base_t, Sq1::f, realVMinMin, realVMaxMin> )
-constexpr
-auto min(Sq1 const &first, Sq2 const &second) noexcept {
-    using SqR = typename Sq1::template clamp_t<realVMinMin, realVMaxMin>;
-    return (first.value > second.value) ? SqR(second.value) : SqR(first.value);
-}
 
-template< /* deduced: */ SqType Sq1, SqType Sq2,
-    double realVMinMax = std::max(Sq1::realVMin, Sq2::realVMin),
-    double realVMaxMax = std::max(Sq1::realVMax, Sq2::realVMax) >
-requires ( fpm::detail::Similar<Sq1, Sq2>
-           && fpm::detail::RealLimitsInRangeOfBaseType<typename Sq1::base_t, Sq1::f, realVMinMax, realVMaxMax> )
-constexpr
-auto max(Sq1 const &first, Sq2 const &second) noexcept {
-    using SqR = typename Sq1::template clamp_t<realVMinMax, realVMaxMax>;
-    return (first.value < second.value) ? SqR(second.value) : SqR(first.value);
-}
 
 };
 
@@ -497,6 +477,32 @@ private:
         };
     };
 
+    /// Implements the min function.
+    template< SqType Sq2 >
+    requires fpm::detail::Similar<Sq, Sq2>
+    struct Min {
+        using base_t = typename Sq::base_t;
+        static constexpr scaling_t f = Sq::f;
+        static constexpr double realVMin = std::min(Sq::realVMin, Sq2::realVMin);
+        static constexpr double realVMax = std::min(Sq::realVMax, Sq2::realVMax);
+        static constexpr base_t min(typename Sq::base_t v1, typename Sq2::base_t v2) noexcept {
+            return (v1 > v2) ? v2 : v1;
+        }
+    };
+
+    /// Implements the max function.
+    template< SqType Sq2 >
+    requires fpm::detail::Similar<Sq, Sq2>
+    struct Max {
+        using base_t = typename Sq::base_t;
+        static constexpr scaling_t f = Sq::f;
+        static constexpr double realVMin = std::max(Sq::realVMin, Sq2::realVMin);
+        static constexpr double realVMax = std::max(Sq::realVMax, Sq2::realVMax);
+        static constexpr base_t max(typename Sq::base_t v1, typename Sq2::base_t v2) noexcept {
+            return (v1 < v2) ? v2 : v1;
+        }
+    };
+
 public:
     /// Explicit static and safe cast to a different Sq type with a different base type.
     /// Only possible if the value can be cast safely without any potential overflow, i.e. if the
@@ -865,6 +871,26 @@ public:
         return Sq<typename ClmpT::base_t, ClmpT::f, ClmpT::realVMin, ClmpT::realVMax>( ClmpT::upper(v.value) );
     }
 
+    /// \returns the minimum value of the two given values, wrapped into a new Sq type with the minimum
+    /// of the limits. If both values are equivalent, the first value is returned.
+    template< /* deduced: */ SqType Sq2 >
+    requires ( fpm::detail::Similar<Sq, Sq2> && fpm::detail::ValidImplType< Min<Sq2> > )
+    friend constexpr
+    auto min(Sq const &v, Sq2 const &v2) noexcept {
+        using MinT = Min<Sq2>;
+        return Sq<typename MinT::base_t, MinT::f, MinT::realVMin, MinT::realVMax>( MinT::min(v.value, v2.value) );
+    }
+
+    /// \returns the maximum value of the two given values, wrapped into a new Sq type with the maximum
+    /// of the limits. If both values are equivalent, the first value is returned.
+    template< /* deduced: */ SqType Sq2 >
+    requires ( fpm::detail::Similar<Sq, Sq2> && fpm::detail::ValidImplType< Max<Sq2> > )
+    friend constexpr
+    auto max(Sq const &v, Sq2 const &v2) noexcept {
+        using MaxT = Max<Sq2>;
+        return Sq<typename MaxT::base_t, MaxT::f, MaxT::realVMin, MaxT::realVMax>( MaxT::max(v.value, v2.value) );
+    }
+
 private:
     // delete undesired special members
     Sq() = delete;  // default constructor
@@ -886,40 +912,12 @@ private:
     friend class q::Q;
 
     //
-    // implementations of friend functions which have to be outside of the class; still, they are friends
-    //
-
-    template< /* deduced: */ SqType Sq1, SqType Sq2, double realVMinMin, double realVMaxMin >
-    requires ( fpm::detail::Similar<Sq1, Sq2>
-               && fpm::detail::RealLimitsInRangeOfBaseType<typename Sq1::base_t, Sq1::f, realVMinMin, realVMaxMin> )
-    friend constexpr
-    auto detail::min(Sq1 const &first, Sq2 const &second) noexcept;
-
-    template< /* deduced: */ SqType Sq1, SqType Sq2, double realVMinMax, double realVMaxMax >
-    requires ( fpm::detail::Similar<Sq1, Sq2>
-               && fpm::detail::RealLimitsInRangeOfBaseType<typename Sq1::base_t, Sq1::f, realVMinMax, realVMaxMax> )
-    friend constexpr
-    auto detail::max(Sq1 const &first, Sq2 const &second) noexcept;
-
-    //
     // memory
     //
 
     /// scaled integer value that represents a fixed-point value; stored in memory
     base_t const value;
 };
-
-/// \returns the minimum value of the two given values, wrapped into a new Sq type with the minimum
-/// of the limits. If both values are equivalent, the first value is returned.
-template< /* deduced: */ SqType Sq1, SqType Sq2 >
-constexpr
-auto min(Sq1 const &first, Sq2 const &second) noexcept { return detail::min(first, second); }
-
-/// \returns the maximum value of the two given values, wrapped into a new Sq type with the maximum
-/// of the limits. If both values are equivalent, the first value is returned.
-template< /* deduced: */ SqType Sq1, SqType Sq2 >
-constexpr
-auto max(Sq1 const &first, Sq2 const &second) noexcept { return detail::max(first, second); }
 
 /// Converts a literal number into the corresponding best-fit sq type.
 /// Best-fit means that the literal number represents both limits and the value.
