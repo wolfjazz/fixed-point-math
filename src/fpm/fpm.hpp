@@ -545,7 +545,13 @@ namespace detail {
 
     /** Concept of a valid scaled value that fits the specified base type. */
     template< typename BaseT, scaling_t f, double realValue >
-    concept RealValueScaledFitsBaseType = ( std::in_range<BaseT>(v2s<interm_t<BaseT>, f>(realValue)) );
+    concept RealValueScaledFitsBaseType = (
+        // check if double is too large for 64-bit intermediate type
+        ((realValue < 0. && realValue >= std::numeric_limits<interm_t<BaseT>>::min() / v2s<double, f>(1))
+         || (realValue >= 0. && realValue <= std::numeric_limits<interm_t<BaseT>>::max() / v2s<double, f>(1)))
+        // check whether scaled double fits base type
+        && std::in_range<BaseT>(v2s<interm_t<BaseT>, f>(realValue))
+    );
 
     /** Concept of a valid (s)q type value range that fits the specified base type.
      * \note If this fails, the specified real value limits exceed the value range of the selected

@@ -161,8 +161,8 @@ public:
     constexpr
     TargetT toReal() const noexcept { return v2s<TargetT, -f>(this->value); }
 
-    /// Implicit conversion of a Sq value back into its double representation. Allows using a
-    /// value+unit literal where a double is expected. Compile-time only!
+    /// Implicit conversion of a Sq value back into its double representation at compile-time.
+    /// Allows using a value+unit literal where a double is expected.
     consteval
     operator double() const noexcept { return toReal<double>(); }
 

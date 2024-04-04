@@ -37,13 +37,13 @@ concept ModDividable = requires(SqL &lhs, SqR &rhs) {
 
 template< class SqL, class SqR >
 concept EqComparable = requires(SqL &lhs, SqR &rhs) {
-    requires fpm::detail::Comparable<typename SqL::base_t, typename SqR::base_t>;  // avoid fallback to double()
+    requires fpm::detail::Comparable<typename SqL::base_t, typename SqR::base_t>;  // avoid fallback to standard library
     { lhs == rhs } -> std::convertible_to<bool>;
 };
 
 template< class SqL, class SqR >
 concept ThreewayComparable = requires(SqL &lhs, SqR &rhs) {
-    requires fpm::detail::Comparable<typename SqL::base_t, typename SqR::base_t>;  // avoid fallback to double()
+    requires fpm::detail::Comparable<typename SqL::base_t, typename SqR::base_t>;  // avoid fallback to standard library
     { lhs <=> rhs } -> std::convertible_to<std::strong_ordering>;
 };
 
@@ -89,19 +89,19 @@ concept CubeRootable = requires(SqT &sq) {
 
 template< class SqT, class SqL, class SqH >
 concept Clampable = requires(SqT &sq, SqL &lo, SqH &hi) {
-    requires fpm::detail::Clampable<SqT, SqL, SqH>;  // avoid fallback to double()
+    requires fpm::detail::Clampable<SqT, SqL, SqH>;  // avoid fallback to standard library
     { clamp(sq, lo, hi) } -> fpm::detail::SqType;
 };
 
 template< class SqT, class SqL >
 concept ClampableLower = requires(SqT &sq, SqL &lo) {
-    requires fpm::detail::ImplicitlyConvertible<SqL, SqT>;  // avoid fallback to double()
+    requires fpm::detail::ImplicitlyConvertible<SqL, SqT>;  // avoid fallback to standard library
     { clampLower(sq, lo) } -> fpm::detail::SqType;
 };
 
 template< class SqT, class SqH >
 concept ClampableUpper = requires(SqT &sq, SqH &hi) {
-    requires fpm::detail::ImplicitlyConvertible<SqH, SqT>;  // avoid fallback to double()
+    requires fpm::detail::ImplicitlyConvertible<SqH, SqT>;  // avoid fallback to standard library
     { clampUpper(sq, hi) } -> fpm::detail::SqType;
 };
 
