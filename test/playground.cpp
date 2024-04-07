@@ -28,7 +28,7 @@ void accel(pos_t &position, speed_t &velocity, accel_t const acceleration, mtime
         auto dv = +acceleration * dt;
         auto ds = velocity * dt;
         velocity = speed_t::fromSq<Ovf::clamp>(velocity + dv);
-        position = pos_t::fromSqClamp(position + ds);
+        position = pos_t::fromSq<Ovf::clamp>(position + ds);
     }
 }
 

@@ -34,22 +34,32 @@ set(Include
     src
 )
 
-# GCC options
-#add_compile_options(-Wall -Wextra -pedantic -fconcepts-diagnostics-depth=2)
-
-# Clang options
-add_compile_options(-Wall -Wextra -pedantic -static)  # -v for verbose
+add_compile_options(-Wall -Wextra -pedantic -ffunction-sections -fdata-sections)  # -v for verbose
+#add_link_options(-Wl,-static -Wl,--gc-sections -Wl,-s)  # no debug info
+add_link_options(-Wl,-static)  # with debug info
 
 add_library(${ThisShortLib} STATIC ${Headers})
 set_target_properties(${ThisShortLib} PROPERTIES LINKER_LANGUAGE CXX)
-target_compile_options(${ThisShortLib} PRIVATE -g -Og)  # optimize for debug
+target_compile_options(${ThisShortLib} PRIVATE -g -Oz)  # optimize for size
 
 add_executable(${Playground} ${Headers} ${Sources})
 set_target_properties(${Playground} PROPERTIES LINKER_LANGUAGE CXX)
 target_include_directories(${Playground} PRIVATE ${Include})
-target_link_options(${Playground} PUBLIC LINKER:-Map=${Playground}.map -static)  # -v for verbose
-target_compile_options(${Playground} PRIVATE -Os)  # optimize for size
+target_link_options(${Playground} PUBLIC LINKER:-Map=${Playground}.map)
+target_compile_options(${Playground} PRIVATE -Oz)
 
 set(CPACK_PROJECT_NAME ${PROJECT_NAME})
 set(CPACK_PROJECT_VERSION ${PROJECT_VERSION})
 include(CPack)
+
+# size analysis
+if (CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
+list(TRANSFORM Sources PREPEND $(CMAKE_BINARY_DIR)/CMakeFiles/${Playground}.dir/ OUTPUT_VARIABLE PgOut)
+list(TRANSFORM PgOut APPEND .obj OUTPUT_VARIABLE PgOutObj)
+# add_custom_command(TARGET ${Playground} POST_BUILD
+#                    COMMAND llvm-size --radix=10 --format=sysv ${PgOutObj}
+#                    COMMENT "Running llvm-size on ${Playground}")
+add_custom_command(TARGET ${Playground} POST_BUILD
+                   COMMAND llvm-size --radix=10 --format=berkeley ${PgOutObj}
+                   COMMENT "Running llvm-size on ${Playground}")
+endif()

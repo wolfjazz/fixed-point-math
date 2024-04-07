@@ -10,7 +10,6 @@
             "request": "launch",
             "program": "${command:cmake.launchTargetPath}",
             "args": [],
-            "stopAtEntry": false,
             "cwd": "${workspaceFolder}",
             "environment": [
                 { "name": "PATH", "value": "${env:PATH}:${command:cmake.getLaunchTargetDirectory}" },
@@ -18,6 +17,7 @@
                 { "name": "GTEST_BREAK_ON_FAILURE", "value": "1" },
             ],
             "externalConsole": false,
+            "stopAtEntry": false,
             "MIMode": "gdb",
             "setupCommands": [
                 {
@@ -26,7 +26,19 @@
                     "ignoreFailures": true
                 }
             ]
+        },
+        {
+            "name": "(lldb) Launch",
+            "type": "lldb",
+            "request": "launch",
+            "program": "${command:cmake.launchTargetPath}",
+            "args": [],
+            "cwd": "${workspaceFolder}",
+            "env": {
+                "PATH": "${env:PATH}:${command:cmake.getLaunchTargetDirectory}",
+                "GTEST_SHUFFLE": "1",
+                "GTEST_BREAK_ON": "1"
+            }
         }
-
     ]
 }
