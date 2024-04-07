@@ -62,11 +62,11 @@ static constexpr bool is_ovf_stricter_v = is_ovf_stricter<a, b>::value;
 /// Scaling factor type.
 using scaling_t = int;
 
-/// Intermediate type used for compile-time and runtime calculations with (s)q values.
+/// Intermediate type used for compile-time and runtime calculations with (S)Q values.
 template< std::integral BaseT >
 using interm_t = typename std::conditional_t<std::is_signed_v<BaseT>, int64_t, uint64_t>;
 
-/// Maximal supported size of a (s)q-type's base type.
+/// Maximal supported size of a (S)Q type's base type.
 /// TODO: Support uint64_t.
 constexpr size_t MAX_BASETYPE_SIZE = sizeof(uint32_t);
 
@@ -129,7 +129,7 @@ TargetT s2sh(ValueT value) noexcept {
     }
 }
 
-/** Scale-To-Scale function used in the implementations of the (s)q types.
+/** Scale-To-Scale function used in the implementations of the (S)Q types.
  * Proxy for the s2sx function pre-selected by the user.
  * \note FPM_USE_SH can be predefined before this header is included into a source file.
  * \note constexpr implies inline. */
@@ -191,7 +191,7 @@ TargetT v2sh(ValueT value) noexcept {
     }
 }
 
-/** Value-To-Scale function used in the implementations of the (s)q types.
+/** Value-To-Scale function used in the implementations of the (S)Q types.
  * Proxy for the v2sx function pre-selected by the user.
  * \note FPM_USE_SH can be predefined before this header is included into a source file.
  * \note constexpr implies inline. */
@@ -416,44 +416,26 @@ namespace detail {
      * otherwise the result will be an unsigned type.
      * For example, if the input types are int8_t and uint8_t and the scaled value range is 50..550,
      * the resulting type will be int16_t. */
-    template< std::integral T1, std::integral T2, scaling_t f, double realVMin, double realVMax >
+    template< std::integral T1, std::integral T2, scaling_t f, double realMin, double realMax >
     struct common_q_base {
     private:
         static constexpr bool isSigned = std::is_signed_v<T1> || std::is_signed_v<T2>;
         static constexpr size_t minSize = std::min(sizeof(T1), sizeof(T2));
         using interm_type = interm_t< typename std::conditional_t<isSigned, int, unsigned> >;
-        static constexpr auto vMin = v2s<interm_type, f>(realVMin);
-        static constexpr auto vMax = v2s<interm_type, f>(realVMax);
+        static constexpr auto scaledMin = v2s<interm_type, f>(realMin);
+        static constexpr auto scaledMax = v2s<interm_type, f>(realMax);
     public:
         using type =
-            std::conditional_t< isSigned && sizeof( int8_t ) >= minSize && std::in_range< int8_t >(vMin) && std::in_range< int8_t >(vMax),  int8_t,
-            std::conditional_t<!isSigned && sizeof(uint8_t ) >= minSize && std::in_range<uint8_t >(vMin) && std::in_range<uint8_t >(vMax), uint8_t,
-            std::conditional_t< isSigned && sizeof( int16_t) >= minSize && std::in_range< int16_t>(vMin) && std::in_range< int16_t>(vMax),  int16_t,
-            std::conditional_t<!isSigned && sizeof(uint16_t) >= minSize && std::in_range<uint16_t>(vMin) && std::in_range<uint16_t>(vMax), uint16_t,
-            std::conditional_t< isSigned && sizeof( int32_t) >= minSize && std::in_range< int32_t>(vMin) && std::in_range< int32_t>(vMax),  int32_t,
-            std::conditional_t<!isSigned && sizeof(uint32_t) >= minSize && std::in_range<uint32_t>(vMin) && std::in_range<uint32_t>(vMax), uint32_t, interm_type>>>>>>;
+            std::conditional_t< isSigned && sizeof( int8_t ) >= minSize && std::in_range< int8_t >(scaledMin) && std::in_range< int8_t >(scaledMax),  int8_t,
+            std::conditional_t<!isSigned && sizeof(uint8_t ) >= minSize && std::in_range<uint8_t >(scaledMin) && std::in_range<uint8_t >(scaledMax), uint8_t,
+            std::conditional_t< isSigned && sizeof( int16_t) >= minSize && std::in_range< int16_t>(scaledMin) && std::in_range< int16_t>(scaledMax),  int16_t,
+            std::conditional_t<!isSigned && sizeof(uint16_t) >= minSize && std::in_range<uint16_t>(scaledMin) && std::in_range<uint16_t>(scaledMax), uint16_t,
+            std::conditional_t< isSigned && sizeof( int32_t) >= minSize && std::in_range< int32_t>(scaledMin) && std::in_range< int32_t>(scaledMax),  int32_t,
+            std::conditional_t<!isSigned && sizeof(uint32_t) >= minSize && std::in_range<uint32_t>(scaledMin) && std::in_range<uint32_t>(scaledMax), uint32_t, interm_type>>>>>>;
     };
     /// Alias for common_q_base<>::type.
-    template< std::integral T1, std::integral T2, scaling_t f, double realVMin, double realVMax >
-    using common_q_base_t = typename common_q_base<T1, T2, f, realVMin, realVMax>::type;
-
-    /** \returns the real minimum value for the given integral type and scaling that can safely be
-     * used in operations like negation or taking the absolute value
-     * (i.e. 0u for unsigned, INT_MIN + 1 for signed).
-     * \note Internal. Use Q<>::realVMin in applications. */
-    template< std::integral T, scaling_t f >
-    consteval
-    double lowestRealVMin() noexcept {
-        return v2s<double, -f>( std::is_unsigned_v<T> ? static_cast<T>(0) : std::numeric_limits<T>::min() + 1 );
-    }
-
-    /** \returns the real maximum value for the given integral type and scaling.
-     * \note Internal. Use Q<>::realVMax in applications. */
-    template< std::integral T, scaling_t f >
-    consteval
-    double highestRealVMax() noexcept {
-        return v2s<double, -f>( std::numeric_limits<T>::max() );
-    }
+    template< std::integral T1, std::integral T2, scaling_t f, double realMin, double realMax >
+    using common_q_base_t = typename common_q_base<T1, T2, f, realMin, realMax>::type;
 
     /** Calculates the square root of a given unsigned 64-bit integer, rounded down.
      * Uses a integer square root binary search algorithm based on Hacker's Delight, 2nd ed. */
@@ -497,13 +479,13 @@ namespace detail {
         std::is_integral_v<typename T::base_t>;
         std::is_same_v<std::remove_cv_t<typename T::base_t>, typename T::base_t>;
         std::is_same_v<scaling_t, decltype(T::f)>;
-        std::is_same_v<double, decltype(T::realVMin)>;
-        std::is_same_v<double, decltype(T::realVMax)>;
-        std::is_same_v<typename T::base_t, decltype(T::vMin)>;
-        std::is_same_v<typename T::base_t, decltype(T::vMax)>;
+        std::is_same_v<double, decltype(T::realMin)>;
+        std::is_same_v<double, decltype(T::realMax)>;
+        std::is_same_v<typename T::base_t, decltype(T::scaledMin)>;
+        std::is_same_v<typename T::base_t, decltype(T::scaledMax)>;
         std::is_same_v<double, decltype(T::resolution)>;
         std::is_same_v<Overflow, decltype(T::ovfBx)>;
-        { t.reveal() } -> std::same_as<typename T::base_t>;
+        { t.scaled() } -> std::same_as<typename T::base_t>;
     };
 
     /** Concept of a Sq-like type.
@@ -515,19 +497,19 @@ namespace detail {
         std::is_integral_v<typename T::base_t>;
         std::is_same_v<std::remove_cv_t<typename T::base_t>, typename T::base_t>;
         std::is_same_v<scaling_t, decltype(T::f)>;
-        std::is_same_v<double, decltype(T::realVMin)>;
-        std::is_same_v<double, decltype(T::realVMax)>;
-        std::is_same_v<typename T::base_t, decltype(T::vMin)>;
-        std::is_same_v<typename T::base_t, decltype(T::vMax)>;
+        std::is_same_v<double, decltype(T::realMin)>;
+        std::is_same_v<double, decltype(T::realMax)>;
+        std::is_same_v<typename T::base_t, decltype(T::scaledMin)>;
+        std::is_same_v<typename T::base_t, decltype(T::scaledMax)>;
         std::is_same_v<double, decltype(T::resolution)>;
-        { t.reveal() } -> std::same_as<typename T::base_t>;
+        { t.scaled() } -> std::same_as<typename T::base_t>;
     };
 
     /** Concept of a Q-like or a Sq-like type. */
     template< class T >
     concept SqOrQType = SqType<T> || QType<T>;
 
-    /** Concept of a valid (s)q base-type. The base type has to be a reasonably sized integral. */
+    /** Concept of a valid (S)Q base type. The base type has to be a reasonably sized integral. */
     template< typename BaseT >
     concept ValidBaseType = (
         std::is_integral_v<BaseT>
@@ -535,13 +517,69 @@ namespace detail {
         && sizeof(BaseT) <= MAX_BASETYPE_SIZE
     );
 
-    /** Concept of a valid (s)q scaling value.
+    /** Concept of a valid (S)Q scaling value.
      * Types can be scaled by maximal the number of bits in the base type minus one bit, limited by the
      * size of double's mantissa. */
     template< typename BaseT, scaling_t f >
     concept ValidScaling = (
         f <= std::numeric_limits<std::make_signed_t<BaseT>>::digits  // CHAR_BIT * sizeof(BaseT) - 1
         && f <= MAX_F
+    );
+
+    /** Concept of similar Q or Sq types, i.e. they have the same base type and scaling. */
+    template< class T1, class T2 >
+    concept Similar = (
+        ((SqType<T1> && SqType<T2>) || (QType<T1> && QType<T2>))
+        && std::is_same_v<typename T1::base_t, typename T2::base_t>
+        && T1::f == T2::f
+    );
+
+    /** Concept of a valid scaled value that fits the specified base type. */
+    template< typename BaseT, scaling_t f, double real >
+    concept ScaledFitsBaseType = (
+        // check if double is too large for 64-bit intermediate type
+        ((real < 0. && real >= std::numeric_limits<interm_t<BaseT>>::min() / v2s<double, f>(1))
+         || (real >= 0. && real <= std::numeric_limits<interm_t<BaseT>>::max() / v2s<double, f>(1)))
+        // check whether scaled double fits base type
+        && std::in_range<BaseT>(v2s<interm_t<BaseT>, f>(real))
+    );
+
+    /** Concept of a valid (S)Q type value range that fits the specified base type.
+     * \note If this fails, the specified real value limits exceed the value range of the selected
+     * base type when scaled with the desired scaling factor. Double-check the sign and value of your
+     * selected real limits! */
+    template< typename BaseT, scaling_t f, double realMin, double realMax >
+    concept RealLimitsInRangeOfBaseType = (
+        ScaledFitsBaseType<BaseT, f, realMin>
+        && ScaledFitsBaseType<BaseT, f, realMax>
+        && realMin <= realMax
+    );
+
+    /** Concept of an implementation type that gives a valid Q or Sq type. Used to check an
+     * implementation type before a Sq or Q type is constructed.
+     * \note If this fails, the ImplType does not exist, or the real value limits exceed the value
+     * range of the base type when scaled with the desired scaling factor. Double-check the constraints
+     * and the desired type properties and limits! */
+    template< typename ImplType >
+    concept ValidImplType = (
+        ScaledFitsBaseType<typename ImplType::base_t, ImplType::f, ImplType::realMin>
+        && ScaledFitsBaseType<typename ImplType::base_t, ImplType::f, ImplType::realMax>
+        && ImplType::realMin <= ImplType::realMax
+    );
+
+    /** Concept: Runtime overflow check is allowed when needed.
+     * \note If this fails, a runtime overflow check is needed but not allowed for the desired Q type.
+     *       Allow for type, or specify the overflow-override template argument (to be preferred)! */
+    template< Overflow ovfBx, bool checkNeeded >
+    concept OvfCheckAllowedWhenNeeded = ( !checkNeeded || Overflow::forbidden != ovfBx );
+
+    /** Concept: Compile-time construction of a Q type is allowed.
+     * \note If this fails, a compile-time overflow check is needed but not allowed for the desired Q type.
+     *       Allow for type, or specify the overflow-override template argument (to be preferred)! */
+    template< Overflow ovfBx >
+    concept CompileTimeConstructionAllowed = (
+        ovfBx != Overflow::assert  // assert() is runtime, not compile-time
+        && ovfBx != Overflow::forbidden
     );
 
     /** Concept of a valid difference between two integral types and two scaling factors to support
@@ -559,58 +597,14 @@ namespace detail {
         || ( std::is_same_v<from_t, to_t> && detail::abs(fTo - fFrom) <= sizeof(to_t) * CHAR_BIT )
     );
 
-    /** Concept of similar Q or Sq types, i.e. they have the same base type and scaling. */
-    template< class T1, class T2 >
-    concept Similar = (
-        ((SqType<T1> && SqType<T2>) || (QType<T1> && QType<T2>))
-        && std::is_same_v<typename T1::base_t, typename T2::base_t>
-        && T1::f == T2::f
+    /** Concept: Checks whether the two given base types can be compared.
+     * Comparison is possible if both types have the same signedness, or if the size of the lhs type
+     * is larger than the size of the rhs type if the signedness is different. */
+    template< typename LhsT, typename RhsT >
+    concept Comparable = (
+        std::is_integral_v<LhsT> && std::is_integral_v<RhsT>
+        && (std::is_signed_v<LhsT> == std::is_signed_v<RhsT> || sizeof(LhsT) > sizeof(RhsT))
     );
-
-    /** Concept of a valid scaled value that fits the specified base type. */
-    template< typename BaseT, scaling_t f, double realValue >
-    concept RealValueScaledFitsBaseType = (
-        // check if double is too large for 64-bit intermediate type
-        ((realValue < 0. && realValue >= std::numeric_limits<interm_t<BaseT>>::min() / v2s<double, f>(1))
-         || (realValue >= 0. && realValue <= std::numeric_limits<interm_t<BaseT>>::max() / v2s<double, f>(1)))
-        // check whether scaled double fits base type
-        && std::in_range<BaseT>(v2s<interm_t<BaseT>, f>(realValue))
-    );
-
-    /** Concept of a valid (s)q type value range that fits the specified base type.
-     * \note If this fails, the specified real value limits exceed the value range of the selected
-     * base type when scaled with the desired scaling factor. Double-check the sign and value of your
-     * selected real limits! */
-    template< typename BaseT, scaling_t f, double realVMin, double realVMax >
-    concept RealLimitsInRangeOfBaseType = (
-        RealValueScaledFitsBaseType<BaseT, f, realVMin>
-        && RealValueScaledFitsBaseType<BaseT, f, realVMax>
-        && realVMin <= realVMax
-    );
-
-    /** Concept of an implementation type that gives a valid Q or Sq type. Used to check an
-     * implementation type before a Sq or Q type is constructed.
-     * \note If this fails, the real value limits exceed the value range of the base type when scaled
-     * with the desired scaling factor. Double-check the desired type properties and limits! */
-    template< typename ImplType >
-    concept ValidImplType = (
-        RealValueScaledFitsBaseType<typename ImplType::base_t, ImplType::f, ImplType::realVMin>
-        && RealValueScaledFitsBaseType<typename ImplType::base_t, ImplType::f, ImplType::realVMax>
-        && ImplType::realVMin <= ImplType::realVMax
-    );
-
-    /** Concept of a base type that can overflow when allowed. Typically used in the context of casting.
-     * \note In C++23, signed int overflow (i.e. the value does not fit in the type) is still undefined.
-     * \note If this fails, a signed base type is used in the context of a potential overflow. This is
-     *       not allowed. Use an unsigned target base type! */
-    template< typename BaseT, Overflow ovfBx >
-    concept BaseTypeCanOverflowWhenAllowed = ( std::is_unsigned_v<BaseT> && ovfBx == Overflow::allowed );
-
-    /** Concept: Runtime overflow check is allowed when needed.
-     * \note If this fails, a runtime overflow check is needed but not allowed for the desired q type.
-     *       Allow for type, or specify the overflow-override template argument (to be preferred)! */
-    template< Overflow ovfBx, bool checkNeeded = true >
-    concept RuntimeOverflowCheckAllowedWhenNeeded = ( !checkNeeded || Overflow::forbidden != ovfBx );
 
     /** Concept: Checks whether From can be converted implicitly to To. This is possible when the
      * base type is the same, scaling is possible and the value range of From is fully within the
@@ -621,7 +615,18 @@ namespace detail {
         && std::is_same_v<typename From::base_t, typename To::base_t>
         && Scalable<typename From::base_t, From::f, typename To::base_t, To::f>
         && ((QType<To> && !is_ovf_stricter_v<To::ovfBx, Ovf::noCheck>)
-            || (To::realVMin <= From::realVMin && From::realVMax <= To::realVMax))
+            || (To::realMin <= From::realMin && From::realMax <= To::realMax))
+    );
+
+    /** Concept: Checks whether a value of the given type SqV can be clamped to a value range between
+     * a value of the given type SqLo and a value of the given type SqHi.
+     * \note In order to avoid overflow, both types SqLo and SqHi have to be implicitly-convertible
+     * to SqV and the minimum of SqLo must be lower minimum than the maximum of SqHi. */
+    template< class SqV, class SqLo, class SqHi >
+    concept Clampable = (
+        SqType<SqV> && SqType<SqLo> && SqType<SqHi>
+        && ImplicitlyConvertible<SqLo, SqV> && ImplicitlyConvertible<SqHi, SqV>
+        && SqLo::realMin <= SqHi::realMax
     );
 
     /** Concept: Checks whether casting of From to To is possible without an overflow check. This is
@@ -631,112 +636,107 @@ namespace detail {
     concept CastableWithoutChecks = (
         SqOrQType<From> && SqOrQType<To>
         && Scalable<typename From::base_t, From::f, typename To::base_t, To::f>
-        && To::realVMin <= From::realVMin && From::realVMax <= To::realVMax
+        && To::realMin <= From::realMin && From::realMax <= To::realMax
     );
 
     /** Concept: Checks whether the absolute value can be taken for a value of the given base type.
      * This is possible if the base type is integral and unsigned, or signed but without INT_MIN in
      * its value range. */
-    template< typename BaseT, BaseT vMin >
+    template< typename BaseT, BaseT scaledMin >
     concept Absolutizable = (
         std::is_integral_v<BaseT>
-        && (std::is_unsigned_v<BaseT> || (std::is_signed_v<BaseT> && vMin != std::numeric_limits<BaseT>::min()))
+        && (std::is_unsigned_v<BaseT> || (std::is_signed_v<BaseT> && scaledMin != std::numeric_limits<BaseT>::min()))
     );
 
-    /** Concept: Checks whether the given (S)Q-Type can be used as divisor in a division. This is
+    /** Concept: Checks whether the given (S)Q type can be used as divisor in a division. This is
      * possible if the given type doesn't have parts of -1 > x < +1 in its range. This is not allowed
      * in order to prevent an uncontrollable explosion of the limits. */
     template< typename T >
     concept CanBeUsedAsDivisor = (
-        T::realVMax <= -1. || +1. <= T::realVMin
+        T::realMax <= -1. || +1. <= T::realMin
     );
 
-    /** Concept: Checks whether the given (S)Q-Type can be used as divisor in a remainder-division
+    /** Concept: Checks whether the given (S)Q type can be used as divisor in a remainder-division
      * (modulus). This is possible as long as the given type doesn't have parts of
      * -resolution > x < +resolution in its range to prevent a modulo zero. */
     template< typename T >
     concept CanBeUsedAsModulusDivisor = (
-        T::realVMax <= -T::resolution || T::resolution <= T::realVMin
+        T::realMax <= -T::resolution || T::resolution <= T::realMin
     );
 
-    /** Concept: Checks whether the given (S)Q-Type can be passed to the sqrt function. This is
+    /** Concept: Checks whether the given (S)Q type can be passed to the sqrt function. This is
      * possible as long as the size of the base type does not exceed 4 bytes, the scaling is not too
      * large and the value range is positive. */
     template< typename T >
     concept CanBePassedToSqrt = (
         sizeof(typename T::base_t) <= sizeof(uint32_t)
         && T::f <= 30  //< ceil of upper q31 limit would round up to 2.0 which is out of value range
-        && T::realVMin >= 0.
+        && T::realMin >= 0.
     );
 
-    /** Concept: Checks whether the given (S)Q-Type can be passed to the rsqrt function. This is
+    /** Concept: Checks whether the given (S)Q type can be passed to the rsqrt function. This is
      * possible as long as the size of the base type does not exceed 4 bytes, the scaling is not too
      * large and the value range is larger than zero. */
     template< typename T >
     concept CanBePassedToRSqrt = (
         sizeof(typename T::base_t) <= sizeof(int32_t)
         && T::f <= 30  //< ceil of upper q31 limit would round up to 2.0 which is out of value range
-        && T::realVMin > 0.
+        && T::realMin > 0.
     );
 
-    /** Concept: Checks whether the given (S)Q-Type can be passed to the cbrt function. This is
+    /** Concept: Checks whether the given (S)Q type can be passed to the cbrt function. This is
      * possible as long as the size of the base type does not exceed 4 bytes, the scaling is not too
      * large and the value range is positive. */
     template< typename T >
     concept CanBePassedToCbrt = (
         sizeof(typename T::base_t) <= sizeof(int32_t)
         && T::f <= 16  // limit scaling to prevent overflow
-        && T::realVMin >= 0.
-    );
-
-    /** Concept: Checks whether the two given base types can be compared.
-     * Comparison is possible if both types have the same signedness, or if the size of the lhs type
-     * is larger than the size of the rhs type if the signedness is different. */
-    template< typename LhsT, typename RhsT >
-    concept Comparable = (
-        std::is_integral_v<LhsT> && std::is_integral_v<RhsT>
-        && (std::is_signed_v<LhsT> == std::is_signed_v<RhsT> || sizeof(LhsT) > sizeof(RhsT))
-    );
-
-    /** Concept: Checks whether a value of the given type SqV can be clamped to a value range between
-     * a value of the given type SqLo and a value of the given type SqHi.
-     * \note In order to avoid overflow, both types SqLo and SqHi have to be implicitly-convertible
-     * to SqV and SqLo must have a lower minimum than SqHi, which in turn must have the larger maximum. */
-    template< class SqV, class SqLo, class SqHi >
-    concept Clampable = (
-        SqType<SqV> && SqType<SqLo> && SqType<SqHi>
-        && ImplicitlyConvertible<SqLo, SqV> && ImplicitlyConvertible<SqHi, SqV>
-        && SqLo::realVMin <= SqHi::realVMin && SqLo::realVMax <= SqHi::realVMax
+        && T::realMin >= 0.
     );
 
     /** Concept that defines the requirements for a valid Q type. */
-    template< typename BaseT, scaling_t f, double realVMin, double realVMax, Overflow ovfBx >
+    template< typename BaseT, scaling_t f, double realMin, double realMax, Overflow ovfBx >
     concept QRequirements = (
         ValidBaseType<BaseT>
         && ValidScaling<BaseT, f>
-        && RealLimitsInRangeOfBaseType<BaseT, f, realVMin, realVMax>
+        && RealLimitsInRangeOfBaseType<BaseT, f, realMin, realMax>
     );
 
     /** Concept that defines the requirements for a valid Sq type. */
-    template< typename BaseT, scaling_t f, double realVMin, double realVMax >
+    template< typename BaseT, scaling_t f, double realMin, double realMax >
     concept SqRequirements = (
         ValidBaseType<BaseT>
         && ValidScaling<BaseT, f>
-        && RealLimitsInRangeOfBaseType<BaseT, f, realVMin, realVMax>
+        && RealLimitsInRangeOfBaseType<BaseT, f, realMin, realMax>
     );
 
 }  // end of detail
 
 
-/** \returns the scaled value for a Sq- or Q-Type that corresponds to a given real double value. */
+/** \returns the scaled value for a Sq- or Q type that corresponds to a given real double value. */
 template< detail::SqOrQType T >
 [[nodiscard]] constexpr
 typename T::base_t scaled(double real) noexcept { return v2s<typename T::base_t, T::f>(real); }
 
-/** \returns the real value that corresponds to the given scaled integral value from a Sq- or Q-Type. */
+/** \returns the real value that corresponds to the given scaled integral value from a Sq- or Q type. */
 template< detail::SqOrQType T, typename TargetT = double >
 [[nodiscard]] constexpr
 TargetT real(typename T::base_t scaled) noexcept { return v2s<TargetT, -T::f>(scaled); }
+
+/** \returns the real minimum value for the given integral type and scaling that can safely be
+ * used in operations like negation or taking the absolute value (i.e. 0u for unsigned, INT_MIN + 1 for signed).
+ * \note Prefer Q<>::realMin and Sq<>::realMin on concrete Q or Sq types. */
+template< std::integral T, scaling_t f >
+consteval
+double realMin() noexcept {
+    return v2s<double, -f>( std::is_unsigned_v<T> ? static_cast<T>(0) : std::numeric_limits<T>::min() + 1 );
+}
+
+/** \returns the real maximum value for the given integral type and scaling.
+ * \note Prefer Q<>::realMax and Sq<>::realMax on concrete Q or Sq types. */
+template< std::integral T, scaling_t f >
+consteval
+double realMax() noexcept { return v2s<double, -f>( std::numeric_limits<T>::max() ); }
 
 /** \returns the resolution of the given scaling. */
 template< scaling_t f >
@@ -744,42 +744,42 @@ template< scaling_t f >
 double resolution() noexcept { return v2s<double, -f>(1); }
 
 
-/** Static assertion of the base type of the given sq (or q) type. */
+/** Static assertion of the base type of the given Sq (or Q) type. */
 template< std::integral TExpected, detail::SqOrQType QSq >
 consteval
 void static_assert_basetype() noexcept {
     static_assert(std::is_same_v<TExpected, typename QSq::base_t>,
-        "The given q or sq type does not comply with the expected base type.");
+        "The given Q or Sq type does not comply with the expected base type.");
 }
 
-/** Static assertion of the scaling of the given sq (or q) type. */
+/** Static assertion of the scaling of the given Sq (or Q) type. */
 template< scaling_t expectedF, detail::SqOrQType QSq >
 consteval
 void static_assert_scaling() noexcept {
     static_assert(QSq::f == expectedF,
-        "The given q or sq type does not comply with the expected scaling.");
+        "The given Q or Sq type does not comply with the expected scaling.");
 }
 
-/** Static assertion of the real value range of the given sq (or q) type. */
+/** Static assertion of the real value range of the given Sq (or Q) type. */
 template< double expectedMin, double expectedMax, detail::SqOrQType QSq >
 consteval
 void static_assert_range() noexcept {
     static_assert(
-           detail::lib::abs(QSq::realVMin - expectedMin) < QSq::resolution
-        && detail::lib::abs(QSq::realVMax - expectedMax) < QSq::resolution,
-        "The given q or sq type does not comply with the expected value range.");
+           detail::lib::abs(QSq::realMin - expectedMin) < QSq::resolution
+        && detail::lib::abs(QSq::realMax - expectedMax) < QSq::resolution,
+        "The given Q or Sq type does not comply with the expected value range.");
 }
 
-/** Static assertion of the core properties of the given sq (or q) type. */
+/** Static assertion of the core properties of the given Sq (or Q) type. */
 template< std::integral TExpected, scaling_t expectedF, double expectedMin, double expectedMax, detail::SqOrQType QSq >
 consteval
 void static_assert_properties() noexcept {
     static_assert(
         std::is_same_v<TExpected, typename QSq::base_t>
         && QSq::f == expectedF
-        && detail::lib::abs(QSq::realVMax - expectedMax) < QSq::resolution
-        && detail::lib::abs(QSq::realVMin - expectedMin) < QSq::resolution,
-        "The given q or sq type does not comply with the expected properties.");
+        && detail::lib::abs(QSq::realMax - expectedMax) < QSq::resolution
+        && detail::lib::abs(QSq::realMin - expectedMin) < QSq::resolution,
+        "The given Q or Sq type does not comply with the expected properties.");
 }
 
 

@@ -10,14 +10,14 @@
 using namespace fpm::types;
 
 
-template< class SqT, double realValue >
+template< class SqT, double real >
 concept ConstructibleFromReal = requires {
-    { SqT::template fromReal<realValue>() } -> std::same_as<SqT>;
+    { SqT::template fromReal<real>() } -> std::same_as<SqT>;
 };
 
-template< class SqT, typename SqT::base_t scaledValue >
+template< class SqT, typename SqT::base_t scaled >
 concept ConstructibleFromScaled = requires {
-    { SqT::template fromScaled<scaledValue>() } -> std::same_as<SqT>;
+    { SqT::template fromScaled<scaled>() } -> std::same_as<SqT>;
 };
 
 template< class SqT >
@@ -127,10 +127,10 @@ concept CTClampableUpper = requires(SqT &sq) {
 
 class SQTest_Construct : public ::testing::Test {
 protected:
-    using i16sq4_2k  =  i16sq4<-2048., 2047.9>;
-    using i32sq4_2k  =  i32sq4<-2048., 2048.>;
-    using i32sqm2_2k = i32sqm2<-2048., 2048.>;
-    using i32sq8_2k  =  i32sq8<-2048.1, 2048.1>;
+    using i16sq4_2k_t  = i16sq4<-2048., 2047.9>;
+    using i32sq4_2k_t  = i32sq4<-2048., 2048.>;
+    using i32sqm2_2k_t = i32sqm2<-2048., 2048.>;
+    using i32sq8_2k_t  = i32sq8<-2048.1, 2048.1>;
 
     void SetUp() override
     {
@@ -141,39 +141,39 @@ protected:
 };
 
 TEST_F(SQTest_Construct, sq_relimit__some_sq_type__relimited_sq_type) {
-    constexpr double restrictedLimit = i32sq4_2k::realVMax/2;
-    constexpr double extendedLimit = i32sq4_2k::realVMax*2;
-    using restricted_sq_t   = i32sq4_2k::clamp_t<-restrictedLimit,    +restrictedLimit>;
-    using restricted_l_sq_t = i32sq4_2k::clamp_t<-restrictedLimit,    i32sq4_2k::realVMax>;
-    using restricted_r_sq_t = i32sq4_2k::clamp_t<i32sq4_2k::realVMin, +restrictedLimit>;
-    using extended_sq_t     = i32sq4_2k::clamp_t<-extendedLimit,      +extendedLimit>;
-    using extended_l_sq_t   = i32sq4_2k::clamp_t<-extendedLimit,      i32sq4_2k::realVMax>;
-    using extended_r_sq_t   = i32sq4_2k::clamp_t<i32sq4_2k::realVMin, +extendedLimit>;
-    using shifted_sq_l_t    = i32sq4_2k::clamp_t<-extendedLimit,      +restrictedLimit>;
-    using shifted_sq_r_t    = i32sq4_2k::clamp_t<-restrictedLimit,    +extendedLimit>;
+    constexpr double restrictedLimit = i32sq4_2k_t::realMax/2;
+    constexpr double extendedLimit = i32sq4_2k_t::realMax*2;
+    using restricted_sq_t   = i32sq4_2k_t::clamp_t<-restrictedLimit,      +restrictedLimit>;
+    using restricted_l_sq_t = i32sq4_2k_t::clamp_t<-restrictedLimit,       i32sq4_2k_t::realMax>;
+    using restricted_r_sq_t = i32sq4_2k_t::clamp_t< i32sq4_2k_t::realMin, +restrictedLimit>;
+    using extended_sq_t     = i32sq4_2k_t::clamp_t<-extendedLimit,        +extendedLimit>;
+    using extended_l_sq_t   = i32sq4_2k_t::clamp_t<-extendedLimit,         i32sq4_2k_t::realMax>;
+    using extended_r_sq_t   = i32sq4_2k_t::clamp_t< i32sq4_2k_t::realMin, +extendedLimit>;
+    using shifted_sq_l_t    = i32sq4_2k_t::clamp_t<-extendedLimit,        +restrictedLimit>;
+    using shifted_sq_r_t    = i32sq4_2k_t::clamp_t<-restrictedLimit,      +extendedLimit>;
 
-    ASSERT_TRUE((std::is_same_v< i32sq4<-restrictedLimit,    +restrictedLimit >,   restricted_sq_t >));
-    ASSERT_TRUE((std::is_same_v< i32sq4<-restrictedLimit,    i32sq4_2k::realVMax>, restricted_l_sq_t >));
-    ASSERT_TRUE((std::is_same_v< i32sq4<i32sq4_2k::realVMin, +restrictedLimit >,   restricted_r_sq_t >));
-    ASSERT_TRUE((std::is_same_v< i32sq4<-extendedLimit,      +extendedLimit   >,   extended_sq_t >));
-    ASSERT_TRUE((std::is_same_v< i32sq4<-extendedLimit,      i32sq4_2k::realVMax>, extended_l_sq_t >));
-    ASSERT_TRUE((std::is_same_v< i32sq4<i32sq4_2k::realVMin, +extendedLimit   >,   extended_r_sq_t >));
-    ASSERT_TRUE((std::is_same_v< i32sq4<-extendedLimit,      +restrictedLimit >,   shifted_sq_l_t >));
-    ASSERT_TRUE((std::is_same_v< i32sq4<-restrictedLimit,    +extendedLimit   >,   shifted_sq_r_t >));
+    ASSERT_TRUE((std::is_same_v< i32sq4<-restrictedLimit,      +restrictedLimit >,     restricted_sq_t >));
+    ASSERT_TRUE((std::is_same_v< i32sq4<-restrictedLimit,       i32sq4_2k_t::realMax>, restricted_l_sq_t >));
+    ASSERT_TRUE((std::is_same_v< i32sq4< i32sq4_2k_t::realMin, +restrictedLimit >,     restricted_r_sq_t >));
+    ASSERT_TRUE((std::is_same_v< i32sq4<-extendedLimit,        +extendedLimit   >,     extended_sq_t >));
+    ASSERT_TRUE((std::is_same_v< i32sq4<-extendedLimit,         i32sq4_2k_t::realMax>, extended_l_sq_t >));
+    ASSERT_TRUE((std::is_same_v< i32sq4< i32sq4_2k_t::realMin, +extendedLimit   >,     extended_r_sq_t >));
+    ASSERT_TRUE((std::is_same_v< i32sq4<-extendedLimit,        +restrictedLimit >,     shifted_sq_l_t >));
+    ASSERT_TRUE((std::is_same_v< i32sq4<-restrictedLimit,      +extendedLimit   >,     shifted_sq_r_t >));
 }
 
 TEST_F(SQTest_Construct, sq_from_real__constexpr_int16_positiveF__expected_value) {
-    constexpr double realValue = -2047.6;
-    auto sqValue = i16sq4_2k::fromReal<realValue>();
+    constexpr double real = -2047.6;
+    auto sqValue = i16sq4_2k_t::fromReal<real>();
 
-    EXPECT_TRUE((std::is_same_v<int16_t, decltype(sqValue.reveal())>));
-    EXPECT_TRUE((std::is_same_v<int, decltype(sqValue.toReal<int>())>));
-    EXPECT_TRUE((std::is_same_v<double, decltype(sqValue.toReal())>));
+    EXPECT_TRUE((std::is_same_v<int16_t, decltype(sqValue.scaled())>));
+    EXPECT_TRUE((std::is_same_v<int, decltype(sqValue.real<int>())>));
+    EXPECT_TRUE((std::is_same_v<double, decltype(sqValue.real())>));
 
     constexpr int16_t resultMemValue = -32761;
-    ASSERT_EQ(resultMemValue, sqValue.reveal());
-    ASSERT_EQ(-2047, sqValue.toReal<int>());
-    ASSERT_NEAR(realValue, sqValue.toReal(), i16sq4_2k::resolution);
+    ASSERT_EQ(resultMemValue, sqValue.scaled());
+    ASSERT_EQ(-2047, sqValue.real<int>());
+    ASSERT_NEAR(real, sqValue.real(), i16sq4_2k_t::resolution);
 }
 
 TEST_F(SQTest_Construct, sq_from_real__negative_value_out_of_range__construction_not_possible) {
@@ -190,14 +190,14 @@ TEST_F(SQTest_Construct, sq_from_real__positive_value_out_of_range__construction
 
 TEST_F(SQTest_Construct, sq_from_scaled__constexpr_int16_positiveF__expected_value) {
     constexpr int16_t memValue = 31686;
-    auto a = i16sq4_2k::fromScaled<+memValue>();
-    auto b = i16sq4_2k::fromScaled<-memValue>();
+    auto a = i16sq4_2k_t::fromScaled<+memValue>();
+    auto b = i16sq4_2k_t::fromScaled<-memValue>();
 
     constexpr double RESULT_REAL_VALUE = 1980.375;
-    ASSERT_EQ(+memValue, a.reveal());
-    ASSERT_EQ(-memValue, b.reveal());
-    ASSERT_NEAR(+RESULT_REAL_VALUE, a.toReal(), i16sq4_2k::resolution);
-    ASSERT_NEAR(-RESULT_REAL_VALUE, b.toReal(), i16sq4_2k::resolution);
+    ASSERT_EQ(+memValue, a.scaled());
+    ASSERT_EQ(-memValue, b.scaled());
+    ASSERT_NEAR(+RESULT_REAL_VALUE, a.real(), i16sq4_2k_t::resolution);
+    ASSERT_NEAR(-RESULT_REAL_VALUE, b.real(), i16sq4_2k_t::resolution);
 }
 
 TEST_F(SQTest_Construct, sq_from_scaled__negative_value_out_of_range__construction_not_possible) {
@@ -213,79 +213,79 @@ TEST_F(SQTest_Construct, sq_from_scaled__positive_value_out_of_range__constructi
 }
 
 TEST_F(SQTest_Construct, sq_copy_constructor__int16_someF__int16_sameF) {
-    constexpr double realValueA = -1024.2;
-    auto a = i16sq4_2k::fromReal<realValueA>();
-    auto b = i16sq4_2k::fromSq(a);
-    i16sq4_2k c = a;
+    constexpr double realA = -1024.2;
+    auto a = i16sq4_2k_t::fromReal<realA>();
+    auto b = i16sq4_2k_t::fromSq(a);
+    i16sq4_2k_t c = a;
 
-    ASSERT_NEAR(realValueA, b.toReal(), i16sq4_2k::resolution);
-    ASSERT_NEAR(realValueA, c.toReal(), i16sq4_2k::resolution);
+    ASSERT_NEAR(realA, b.real(), i16sq4_2k_t::resolution);
+    ASSERT_NEAR(realA, c.real(), i16sq4_2k_t::resolution);
 }
 
 TEST_F(SQTest_Construct, sq_move_constructor__int16_someF__int16_sameF) {
-    constexpr double realValueA = -1024.2;
-    auto a = i16sq4_2k::fromReal<realValueA>();
-    i16sq4_2k b = std::move(a);
+    constexpr double realA = -1024.2;
+    auto a = i16sq4_2k_t::fromReal<realA>();
+    i16sq4_2k_t b = std::move(a);
 
-    ASSERT_NEAR(realValueA, b.toReal(), i16sq4_2k::resolution);
+    ASSERT_NEAR(realA, b.real(), i16sq4_2k_t::resolution);
 }
 
 TEST_F(SQTest_Construct, sq_upscale_copy_constructor__int16_someF__int16_largerF) {
-    constexpr double realValueA = -1024.2;
-    auto a = i32sq4_2k::fromReal<realValueA>();
-    auto b = i32sq8_2k::fromSq(a);
-    i32sq8_2k c = a;
+    constexpr double realA = -1024.2;
+    auto a = i32sq4_2k_t::fromReal<realA>();
+    auto b = i32sq8_2k_t::fromSq(a);
+    i32sq8_2k_t c = a;
 
     // note: the representation error due to rounding is determined by the resolution of the initial
     //       sq4 type and does not change if the value is up-scaled to another Sq type
-    ASSERT_NEAR(realValueA, b.toReal(), i32sq4_2k::resolution);
-    ASSERT_NEAR(realValueA, c.toReal(), i32sq4_2k::resolution);
+    ASSERT_NEAR(realA, b.real(), i32sq4_2k_t::resolution);
+    ASSERT_NEAR(realA, c.real(), i32sq4_2k_t::resolution);
 }
 
 TEST_F(SQTest_Construct, sq_downscale_copy_constructor__int16_someF__int16_smallerF) {
-    constexpr double realValueA = -1024.2;
-    auto a = i32sq4_2k::fromReal<realValueA>();
-    auto b = i32sqm2_2k::fromSq(a);
-    i32sqm2_2k c = a;
+    constexpr double realA = -1024.2;
+    auto a = i32sq4_2k_t::fromReal<realA>();
+    auto b = i32sqm2_2k_t::fromSq(a);
+    i32sqm2_2k_t c = a;
 
     // note: for down-scaling, the representation error is at most the sum of the two resolutions
     //       before and after the scaling operation
-    ASSERT_NEAR(realValueA, b.toReal(), i32sq4_2k::resolution + i32sqm2_2k::resolution);
-    ASSERT_NEAR(realValueA, c.toReal(), i32sq4_2k::resolution + i32sqm2_2k::resolution);
+    ASSERT_NEAR(realA, b.real(), i32sq4_2k_t::resolution + i32sqm2_2k_t::resolution);
+    ASSERT_NEAR(realA, c.real(), i32sq4_2k_t::resolution + i32sqm2_2k_t::resolution);
 }
 
 TEST_F(SQTest_Construct, sq_copy_constructor__int16_someF_literal__int16_sameF) {
-    auto a = i16sq4_2k::fromSq(1024.12_i16sq4);
-    i16sq4_2k b = 1024.12_i16sq4;
+    auto a = i16sq4_2k_t::fromSq(1024.12_i16sq4);
+    i16sq4_2k_t b = 1024.12_i16sq4;
 
-    ASSERT_NEAR((1024.12_i16sq4).toReal(), a.toReal(), i16sq4_2k::resolution);
-    ASSERT_NEAR((1024.12_i16sq4).toReal(), b.toReal(), i16sq4_2k::resolution);
+    ASSERT_NEAR((1024.12_i16sq4).real(), a.real(), i16sq4_2k_t::resolution);
+    ASSERT_NEAR((1024.12_i16sq4).real(), b.real(), i16sq4_2k_t::resolution);
 }
 
 TEST_F(SQTest_Construct, sq_move_constructor__int16_someF_literal__int16_sameF) {
-    i16sq4_2k a = std::move(1024.12_i16sq4);
+    i16sq4_2k_t a = std::move(1024.12_i16sq4);
 
-    ASSERT_NEAR((1024.12_i16sq4).toReal(), a.toReal(), i16sq4_2k::resolution);
+    ASSERT_NEAR((1024.12_i16sq4).real(), a.real(), i16sq4_2k_t::resolution);
 }
 
 TEST_F(SQTest_Construct, sq_upscale_copy_constructor__int16_someF_literal__int16_largerF) {
-    auto a = i32sq8_2k::fromSq(1024_i32sq4);
-    i32sq8_2k b = 1024_i32sq4;
+    auto a = i32sq8_2k_t::fromSq(1024_i32sq4);
+    i32sq8_2k_t b = 1024_i32sq4;
 
     // note: the representation error due to rounding is determined by the resolution of the initial
     //       sq4 type and does not change if the value is up-scaled to another Sq type
-    ASSERT_NEAR((1024_i32sq4).toReal(), a.toReal(), i32sq4_2k::resolution);
-    ASSERT_NEAR((1024_i32sq4).toReal(), b.toReal(), i32sq4_2k::resolution);
+    ASSERT_NEAR((1024_i32sq4).real(), a.real(), i32sq4_2k_t::resolution);
+    ASSERT_NEAR((1024_i32sq4).real(), b.real(), i32sq4_2k_t::resolution);
 }
 
 TEST_F(SQTest_Construct, sq_downscale_copy_constructor__int16_someF_literal__int16_smallerF) {
-    auto a = i32sqm2_2k::fromSq(1024_i32sq4);
-    i32sqm2_2k b = 1024_i32sq4;
+    auto a = i32sqm2_2k_t::fromSq(1024_i32sq4);
+    i32sqm2_2k_t b = 1024_i32sq4;
 
     // note: for down-scaling, the representation error is at most the sum of the two resolutions
     //       before and after the scaling operation
-    ASSERT_NEAR((1024_i32sq4).toReal(), a.toReal(), i32sq4_2k::resolution + i32sqm2_2k::resolution);
-    ASSERT_NEAR((1024_i32sq4).toReal(), b.toReal(), i32sq4_2k::resolution + i32sqm2_2k::resolution);
+    ASSERT_NEAR((1024_i32sq4).real(), a.real(), i32sq4_2k_t::resolution + i32sqm2_2k_t::resolution);
+    ASSERT_NEAR((1024_i32sq4).real(), b.real(), i32sq4_2k_t::resolution + i32sqm2_2k_t::resolution);
 }
 
 
@@ -317,9 +317,9 @@ TEST_F(SQTest_Casting, sq_static_cast__signed_user_range__unsigned_larger_range_
 
     using i16sqm3_t = i16sqm3<10000., 100000.>;  // i16 -> u32, max delta f is 17
     using u32sq14_t = u32sq14<10000., 160000.>;
-    auto a = i16sqm3_t::fromReal<i16sqm3_t::realVMin>();
+    auto a = i16sqm3_t::fromReal<i16sqm3_t::realMin>();
     auto b = i16sqm3_t::fromReal<70000.>();
-    auto c = i16sqm3_t::fromReal<i16sqm3_t::realVMax>();
+    auto c = i16sqm3_t::fromReal<i16sqm3_t::realMax>();
     auto ac = static_cast<u32sq14_t>(a);
     auto ac2 = static_sq_cast<u32sq14_t>(a);
     auto ac3 = safe_sq_cast<u32sq14_t>(a);
@@ -330,15 +330,15 @@ TEST_F(SQTest_Casting, sq_static_cast__signed_user_range__unsigned_larger_range_
     auto cc2 = static_sq_cast<u32sq14_t>(c);
     auto cc3 = safe_sq_cast<u32sq14_t>(c);
 
-    ASSERT_NEAR(i16sqm3_t::realVMin, ac.toReal(), i16sqm3_t::resolution);
-    ASSERT_NEAR(i16sqm3_t::realVMin, ac2.toReal(), i16sqm3_t::resolution);
-    ASSERT_NEAR(i16sqm3_t::realVMin, ac3.toReal(), i16sqm3_t::resolution);
-    ASSERT_NEAR(70000., bc.toReal(), i16sqm3_t::resolution);
-    ASSERT_NEAR(70000., bc2.toReal(), i16sqm3_t::resolution);
-    ASSERT_NEAR(70000., bc3.toReal(), i16sqm3_t::resolution);
-    ASSERT_NEAR(i16sqm3_t::realVMax, cc.toReal(), i16sqm3_t::resolution);
-    ASSERT_NEAR(i16sqm3_t::realVMax, cc2.toReal(), i16sqm3_t::resolution);
-    ASSERT_NEAR(i16sqm3_t::realVMax, cc3.toReal(), i16sqm3_t::resolution);
+    ASSERT_NEAR(i16sqm3_t::realMin, ac.real(), i16sqm3_t::resolution);
+    ASSERT_NEAR(i16sqm3_t::realMin, ac2.real(), i16sqm3_t::resolution);
+    ASSERT_NEAR(i16sqm3_t::realMin, ac3.real(), i16sqm3_t::resolution);
+    ASSERT_NEAR(70000., bc.real(), i16sqm3_t::resolution);
+    ASSERT_NEAR(70000., bc2.real(), i16sqm3_t::resolution);
+    ASSERT_NEAR(70000., bc3.real(), i16sqm3_t::resolution);
+    ASSERT_NEAR(i16sqm3_t::realMax, cc.real(), i16sqm3_t::resolution);
+    ASSERT_NEAR(i16sqm3_t::realMax, cc2.real(), i16sqm3_t::resolution);
+    ASSERT_NEAR(i16sqm3_t::realMax, cc3.real(), i16sqm3_t::resolution);
 }
 
 TEST_F(SQTest_Casting, sq_static_cast__unsigned_user_range__signed_larger_range__same_real_value) {
@@ -355,9 +355,9 @@ TEST_F(SQTest_Casting, sq_static_cast__unsigned_user_range__signed_larger_range_
 
     using u16sqm3_t = u16sqm3<10000., 400000.>;  // u16 -> i32, max delta f is 15
     using i32sq12_t = i32sq12<-80000., 500000.>;
-    auto a = u16sqm3_t::fromReal<u16sqm3_t::realVMin>();
+    auto a = u16sqm3_t::fromReal<u16sqm3_t::realMin>();
     auto b = u16sqm3_t::fromReal<50000.>();
-    auto c = u16sqm3_t::fromReal<u16sqm3_t::realVMax>();
+    auto c = u16sqm3_t::fromReal<u16sqm3_t::realMax>();
     auto ac = static_cast<i32sq12_t>(a);
     auto ac2 = static_sq_cast<i32sq12_t>(a);
     auto ac3 = safe_sq_cast<i32sq12_t>(a);
@@ -368,15 +368,15 @@ TEST_F(SQTest_Casting, sq_static_cast__unsigned_user_range__signed_larger_range_
     auto cc2 = static_sq_cast<i32sq12_t>(c);
     auto cc3 = safe_sq_cast<i32sq12_t>(c);
 
-    ASSERT_NEAR(u16sqm3_t::realVMin, ac.toReal(), u16sqm3_t::resolution);
-    ASSERT_NEAR(u16sqm3_t::realVMin, ac2.toReal(), u16sqm3_t::resolution);
-    ASSERT_NEAR(u16sqm3_t::realVMin, ac3.toReal(), u16sqm3_t::resolution);
-    ASSERT_NEAR(50000., bc.toReal(), u16sqm3_t::resolution);
-    ASSERT_NEAR(50000., bc2.toReal(), u16sqm3_t::resolution);
-    ASSERT_NEAR(50000., bc3.toReal(), u16sqm3_t::resolution);
-    ASSERT_NEAR(u16sqm3_t::realVMax, cc.toReal(), u16sqm3_t::resolution);
-    ASSERT_NEAR(u16sqm3_t::realVMax, cc2.toReal(), u16sqm3_t::resolution);
-    ASSERT_NEAR(u16sqm3_t::realVMax, cc3.toReal(), u16sqm3_t::resolution);
+    ASSERT_NEAR(u16sqm3_t::realMin, ac.real(), u16sqm3_t::resolution);
+    ASSERT_NEAR(u16sqm3_t::realMin, ac2.real(), u16sqm3_t::resolution);
+    ASSERT_NEAR(u16sqm3_t::realMin, ac3.real(), u16sqm3_t::resolution);
+    ASSERT_NEAR(50000., bc.real(), u16sqm3_t::resolution);
+    ASSERT_NEAR(50000., bc2.real(), u16sqm3_t::resolution);
+    ASSERT_NEAR(50000., bc3.real(), u16sqm3_t::resolution);
+    ASSERT_NEAR(u16sqm3_t::realMax, cc.real(), u16sqm3_t::resolution);
+    ASSERT_NEAR(u16sqm3_t::realMax, cc2.real(), u16sqm3_t::resolution);
+    ASSERT_NEAR(u16sqm3_t::realMax, cc3.real(), u16sqm3_t::resolution);
 }
 
 TEST_F(SQTest_Casting, sq_static_cast__signed_user_range__signed_larger_range__same_real_value) {
@@ -393,9 +393,9 @@ TEST_F(SQTest_Casting, sq_static_cast__signed_user_range__signed_larger_range__s
 
     using i16sqm4_t = i16sqm4<-100000., 400000.>;  // i16 -> i32, max delta f is 16
     using i32sq12_t = i32sq12<-120000., 500000.>;
-    auto a = i16sqm4_t::fromReal<i16sqm4_t::realVMin>();
+    auto a = i16sqm4_t::fromReal<i16sqm4_t::realMin>();
     auto b = i16sqm4_t::fromReal<-50000.>();
-    auto c = i16sqm4_t::fromReal<i16sqm4_t::realVMax>();
+    auto c = i16sqm4_t::fromReal<i16sqm4_t::realMax>();
     auto ac = static_cast<i32sq12_t>(a);
     auto ac2 = static_sq_cast<i32sq12_t>(a);
     auto ac3 = safe_sq_cast<i32sq12_t>(a);
@@ -406,15 +406,15 @@ TEST_F(SQTest_Casting, sq_static_cast__signed_user_range__signed_larger_range__s
     auto cc2 = static_sq_cast<i32sq12_t>(c);
     auto cc3 = safe_sq_cast<i32sq12_t>(c);
 
-    ASSERT_NEAR(i16sqm4_t::realVMin, ac.toReal(), i16sqm4_t::resolution);
-    ASSERT_NEAR(i16sqm4_t::realVMin, ac2.toReal(), i16sqm4_t::resolution);
-    ASSERT_NEAR(i16sqm4_t::realVMin, ac3.toReal(), i16sqm4_t::resolution);
-    ASSERT_NEAR(-50000., bc.toReal(), i16sqm4_t::resolution);
-    ASSERT_NEAR(-50000., bc2.toReal(), i16sqm4_t::resolution);
-    ASSERT_NEAR(-50000., bc3.toReal(), i16sqm4_t::resolution);
-    ASSERT_NEAR(i16sqm4_t::realVMax, cc.toReal(), i16sqm4_t::resolution);
-    ASSERT_NEAR(i16sqm4_t::realVMax, cc2.toReal(), i16sqm4_t::resolution);
-    ASSERT_NEAR(i16sqm4_t::realVMax, cc3.toReal(), i16sqm4_t::resolution);
+    ASSERT_NEAR(i16sqm4_t::realMin, ac.real(), i16sqm4_t::resolution);
+    ASSERT_NEAR(i16sqm4_t::realMin, ac2.real(), i16sqm4_t::resolution);
+    ASSERT_NEAR(i16sqm4_t::realMin, ac3.real(), i16sqm4_t::resolution);
+    ASSERT_NEAR(-50000., bc.real(), i16sqm4_t::resolution);
+    ASSERT_NEAR(-50000., bc2.real(), i16sqm4_t::resolution);
+    ASSERT_NEAR(-50000., bc3.real(), i16sqm4_t::resolution);
+    ASSERT_NEAR(i16sqm4_t::realMax, cc.real(), i16sqm4_t::resolution);
+    ASSERT_NEAR(i16sqm4_t::realMax, cc2.real(), i16sqm4_t::resolution);
+    ASSERT_NEAR(i16sqm4_t::realMax, cc3.real(), i16sqm4_t::resolution);
 }
 
 TEST_F(SQTest_Casting, q_static_cast__unsigned_user_range__unsigned_larger_range__same_real_value) {
@@ -431,9 +431,9 @@ TEST_F(SQTest_Casting, q_static_cast__unsigned_user_range__unsigned_larger_range
 
     using u16sqm2_t = u16sqm2<10000., 100000.>;  // u16 -> u32, max delta f is 16
     using u32sq14_t = u32sq14<0., 160000.>;
-    auto a = u16sqm2_t::fromReal<u16sqm2_t::realVMin>();
+    auto a = u16sqm2_t::fromReal<u16sqm2_t::realMin>();
     auto b = u16sqm2_t::fromReal<50000.>();
-    auto c = u16sqm2_t::fromReal<u16sqm2_t::realVMax>();
+    auto c = u16sqm2_t::fromReal<u16sqm2_t::realMax>();
     auto ac = static_cast<u32sq14_t>(a);
     auto ac2 = static_sq_cast<u32sq14_t>(a);
     auto ac3 = safe_sq_cast<u32sq14_t>(a);
@@ -444,15 +444,15 @@ TEST_F(SQTest_Casting, q_static_cast__unsigned_user_range__unsigned_larger_range
     auto cc2 = static_sq_cast<u32sq14_t>(c);
     auto cc3 = safe_sq_cast<u32sq14_t>(c);
 
-    ASSERT_NEAR(u16sqm2_t::realVMin, ac.toReal(), u16sqm2_t::resolution);
-    ASSERT_NEAR(u16sqm2_t::realVMin, ac2.toReal(), u16sqm2_t::resolution);
-    ASSERT_NEAR(u16sqm2_t::realVMin, ac3.toReal(), u16sqm2_t::resolution);
-    ASSERT_NEAR(50000., bc.toReal(), u16sqm2_t::resolution);
-    ASSERT_NEAR(50000., bc2.toReal(), u16sqm2_t::resolution);
-    ASSERT_NEAR(50000., bc3.toReal(), u16sqm2_t::resolution);
-    ASSERT_NEAR(u16sqm2_t::realVMax, cc.toReal(), u16sqm2_t::resolution);
-    ASSERT_NEAR(u16sqm2_t::realVMax, cc2.toReal(), u16sqm2_t::resolution);
-    ASSERT_NEAR(u16sqm2_t::realVMax, cc3.toReal(), u16sqm2_t::resolution);
+    ASSERT_NEAR(u16sqm2_t::realMin, ac.real(), u16sqm2_t::resolution);
+    ASSERT_NEAR(u16sqm2_t::realMin, ac2.real(), u16sqm2_t::resolution);
+    ASSERT_NEAR(u16sqm2_t::realMin, ac3.real(), u16sqm2_t::resolution);
+    ASSERT_NEAR(50000., bc.real(), u16sqm2_t::resolution);
+    ASSERT_NEAR(50000., bc2.real(), u16sqm2_t::resolution);
+    ASSERT_NEAR(50000., bc3.real(), u16sqm2_t::resolution);
+    ASSERT_NEAR(u16sqm2_t::realMax, cc.real(), u16sqm2_t::resolution);
+    ASSERT_NEAR(u16sqm2_t::realMax, cc2.real(), u16sqm2_t::resolution);
+    ASSERT_NEAR(u16sqm2_t::realMax, cc3.real(), u16sqm2_t::resolution);
 }
 
 
@@ -476,7 +476,7 @@ TEST_F(SQTest_Unary, sq_unary_plus__some_signed_sq_value__same_value_and_limits)
     auto b = +a;
 
     ASSERT_TRUE((std::is_same_v<decltype(a), decltype(b)>));
-    ASSERT_NEAR(a.toReal(), b.toReal(), i16sq4_t::resolution);
+    ASSERT_NEAR(a.real(), b.real(), i16sq4_t::resolution);
 }
 
 TEST_F(SQTest_Unary, sq_unary_plus__some_unsigned_sq_value__same_value_and_limits) {
@@ -485,7 +485,7 @@ TEST_F(SQTest_Unary, sq_unary_plus__some_unsigned_sq_value__same_value_and_limit
     auto b = +a;
 
     ASSERT_TRUE((std::is_same_v<decltype(a), decltype(b)>));
-    ASSERT_NEAR(a.toReal(), b.toReal(), (std::numeric_limits<double>::epsilon()));
+    ASSERT_NEAR(a.real(), b.real(), (std::numeric_limits<double>::epsilon()));
 }
 
 TEST_F(SQTest_Unary, sq_unary_plus__some_signed_q_value__sq_with_same_value_and_limits) {
@@ -494,7 +494,7 @@ TEST_F(SQTest_Unary, sq_unary_plus__some_signed_q_value__sq_with_same_value_and_
     auto b = +a;  // note: quick way to convert q value to its corresponding sq value
 
     ASSERT_TRUE(( std::is_same_v< i16q4_t::Sq<>, decltype(b) > ));
-    ASSERT_NEAR(a.toReal(), b.toReal(), (std::numeric_limits<double>::epsilon()));
+    ASSERT_NEAR(a.real(), b.real(), (std::numeric_limits<double>::epsilon()));
 }
 
 TEST_F(SQTest_Unary, sq_unary_minus__some_signed_positive_sq_value__negated_value_and_limits) {
@@ -506,7 +506,7 @@ TEST_F(SQTest_Unary, sq_unary_minus__some_signed_positive_sq_value__negated_valu
 
     using expected_result_t = i16sq4<-1000., 500.>;
     ASSERT_TRUE((std::is_same_v<expected_result_t, decltype(b)>));
-    ASSERT_NEAR(-a.toReal(), b.toReal(), i16sq4_t::resolution);
+    ASSERT_NEAR(-a.real(), b.real(), i16sq4_t::resolution);
 }
 
 TEST_F(SQTest_Unary, sq_unary_minus__some_signed_negative_sq_value__negated_value_and_limits) {
@@ -518,7 +518,7 @@ TEST_F(SQTest_Unary, sq_unary_minus__some_signed_negative_sq_value__negated_valu
 
     using expected_result_t = i16sq4<-1000., 500.>;
     ASSERT_TRUE((std::is_same_v<expected_result_t, decltype(b)>));
-    ASSERT_NEAR(-a.toReal(), b.toReal(), i16sq4_t::resolution);
+    ASSERT_NEAR(-a.real(), b.real(), i16sq4_t::resolution);
 }
 
 TEST_F(SQTest_Unary, sq_unary_minus__some_signed_sq_value_with_full_range__negated_value_and_same_limits) {
@@ -529,12 +529,12 @@ TEST_F(SQTest_Unary, sq_unary_minus__some_signed_sq_value_with_full_range__negat
     auto b = -a;
 
     ASSERT_TRUE((std::is_same_v<decltype(a), decltype(b)>));
-    ASSERT_NEAR(-a.toReal(), b.toReal(), i16sq4_t::resolution);
+    ASSERT_NEAR(-a.real(), b.real(), i16sq4_t::resolution);
 }
 
 TEST_F(SQTest_Unary, sq_unary_minus__some_signed_sq_type_with_intmin__does_not_compile) {
     constexpr double typeMinimum = fpm::v2s<double, -4>( std::numeric_limits<int16_t>::min() );
-    using i16sq4_t = i16sq4< typeMinimum, i16sq4<>::realVMax >;
+    using i16sq4_t = i16sq4< typeMinimum, i16sq4<>::realMax >;
 
     ASSERT_FALSE(( Negatable< i16sq4_t > ));
 }
@@ -548,7 +548,7 @@ TEST_F(SQTest_Unary, sq_unary_minus__small_unsigned_sq_value__negated_value_and_
 
     using expected_result_t = i16sq4<-500., -0.>;  // (!) -0.0 is not equal to +0.0
     ASSERT_TRUE((std::is_same_v<expected_result_t, decltype(b)>));
-    ASSERT_NEAR(-a.toReal(), b.toReal(), u16sq4_t::resolution);
+    ASSERT_NEAR(-a.real(), b.real(), u16sq4_t::resolution);
 }
 
 TEST_F(SQTest_Unary, sq_unary_minus__large_unsigned_sq_value__negated_value_and_limits) {
@@ -558,9 +558,9 @@ TEST_F(SQTest_Unary, sq_unary_minus__large_unsigned_sq_value__negated_value_and_
     auto a = u16sq4_t::fromReal<234.56>();
     auto b = -a;
 
-    using expected_result_t = i32sq4< -u16sq4_t::realVMax, -0. >;  // (!) -0.0 is not equal to +0.0
+    using expected_result_t = i32sq4< -u16sq4_t::realMax, -0. >;  // (!) -0.0 is not equal to +0.0
     ASSERT_TRUE((std::is_same_v<expected_result_t, decltype(b)>));
-    ASSERT_NEAR(-a.toReal(), b.toReal(), u16sq4_t::resolution);
+    ASSERT_NEAR(-a.real(), b.real(), u16sq4_t::resolution);
 }
 
 TEST_F(SQTest_Unary, sq_unary_minus__some_signed_q_value__sq_with_negated_value_and_limits) {
@@ -569,7 +569,7 @@ TEST_F(SQTest_Unary, sq_unary_minus__some_signed_q_value__sq_with_negated_value_
     auto b = -a;
 
     ASSERT_TRUE(( std::is_same_v< i16sq4<-2000., 1000.>, decltype(b) > ));
-    ASSERT_NEAR(-a.toReal(), b.toReal(), (std::numeric_limits<double>::epsilon()));
+    ASSERT_NEAR(-a.real(), b.real(), (std::numeric_limits<double>::epsilon()));
 }
 
 TEST_F(SQTest_Unary, sq_unary_minus__some_signed_sq_literal__negated_value_and_limits) {
@@ -577,7 +577,7 @@ TEST_F(SQTest_Unary, sq_unary_minus__some_signed_sq_literal__negated_value_and_l
 
     using expected_result_t = i32sq7<-567.,-567.>;
     ASSERT_TRUE((std::is_same_v<expected_result_t, decltype(a)>));
-    ASSERT_NEAR(-567., a.toReal(), expected_result_t::resolution);
+    ASSERT_NEAR(-567., a.real(), expected_result_t::resolution);
 }
 
 TEST_F(SQTest_Unary, sq_unary_minus__some_unsigned_sq_literal__negated_value_and_limits) {
@@ -585,7 +585,7 @@ TEST_F(SQTest_Unary, sq_unary_minus__some_unsigned_sq_literal__negated_value_and
 
     using expected_result_t = i32sq7<-356.78,-356.78>;
     ASSERT_TRUE((std::is_same_v<expected_result_t, decltype(a)>));
-    ASSERT_NEAR(-356.78, a.toReal(), expected_result_t::resolution);
+    ASSERT_NEAR(-356.78, a.real(), expected_result_t::resolution);
 }
 
 TEST_F(SQTest_Unary, sq_unary_abs__some_signed_negative_sq_value__absolute_value_and_limits) {
@@ -595,9 +595,9 @@ TEST_F(SQTest_Unary, sq_unary_abs__some_signed_negative_sq_value__absolute_value
     auto value = i16sq4_t::fromReal<-1897.6>();
     auto absValue = abs(value);  // unqualified lookup (argument-dependent lookup, ADL)
 
-    using expected_result_t = u16sq4< 0., i16sq4<>::realVMax >;
+    using expected_result_t = u16sq4< 0., i16sq4<>::realMax >;
     ASSERT_TRUE((std::is_same_v<expected_result_t, decltype(absValue)>));
-    ASSERT_NEAR(std::abs(value.toReal()), absValue.toReal(), expected_result_t::resolution);
+    ASSERT_NEAR(std::abs(value.real()), absValue.real(), expected_result_t::resolution);
 }
 
 TEST_F(SQTest_Unary, sq_unary_abs__some_signed_positive_sq_value__same_value_absolute_limits) {
@@ -607,14 +607,14 @@ TEST_F(SQTest_Unary, sq_unary_abs__some_signed_positive_sq_value__same_value_abs
     auto value = i16sq4_t::fromReal<+1897.6>();
     auto absValue = abs(value);
 
-    using expected_result_t = u16sq4< 0., i16sq4<>::realVMax >;
+    using expected_result_t = u16sq4< 0., i16sq4<>::realMax >;
     ASSERT_TRUE((std::is_same_v<expected_result_t, decltype(absValue)>));
-    ASSERT_NEAR(value.toReal(), absValue.toReal(), expected_result_t::resolution);
+    ASSERT_NEAR(value.real(), absValue.real(), expected_result_t::resolution);
 }
 
 TEST_F(SQTest_Unary, sq_unary_abs__some_signed_sq_type_with_intmin__does_not_compile) {
     constexpr double typeMinimum = fpm::v2s<double, -8>( std::numeric_limits<int32_t>::min() );
-    using i32sq8_t = i32sq8< typeMinimum, i32sq8<>::realVMax >;
+    using i32sq8_t = i32sq8< typeMinimum, i32sq8<>::realMax >;
 
     ASSERT_FALSE(( Absolutizable< i32sq8_t > ));
 }
@@ -627,7 +627,7 @@ TEST_F(SQTest_Unary, sq_unary_abs__some_unsigned_sq_value__same_value_and_limits
     auto absValue = abs(value);
 
     ASSERT_TRUE((std::is_same_v<u16sq4_t, decltype(absValue)>));
-    ASSERT_NEAR(value.toReal(), absValue.toReal(), u16sq4_t::resolution);
+    ASSERT_NEAR(value.real(), absValue.real(), u16sq4_t::resolution);
 }
 
 TEST_F(SQTest_Unary, sq_unary_abs__some_signed_q_value__absolute_sq_value_and_limits) {
@@ -636,9 +636,9 @@ TEST_F(SQTest_Unary, sq_unary_abs__some_signed_q_value__absolute_sq_value_and_li
     auto value = i16q4_t::fromReal<-1897.6>();
     auto absValue = abs(value);
 
-    using expected_result_t = u16sq4< 0., i16sq4<>::realVMax >;
+    using expected_result_t = u16sq4< 0., i16sq4<>::realMax >;
     ASSERT_TRUE((std::is_same_v<expected_result_t, decltype(absValue)>));
-    ASSERT_NEAR(std::abs(value.toReal()), absValue.toReal(), expected_result_t::resolution);
+    ASSERT_NEAR(std::abs(value.real()), absValue.real(), expected_result_t::resolution);
 }
 
 
@@ -664,9 +664,9 @@ TEST_F(SQTest_Addition, sq_add__three_sq_values_same_sq_type__values_added) {
 
     auto d = a + b + c;
 
-    using expected_result_t = i32sq16_t::clamp_t< 3*i32sq16_t::realVMin, 3*i32sq16_t::realVMax >;
+    using expected_result_t = i32sq16_t::clamp_t< 3*i32sq16_t::realMin, 3*i32sq16_t::realMax >;
     ASSERT_TRUE((std::is_same_v<expected_result_t, decltype(d)>));
-    ASSERT_NEAR(3000., d.toReal(), 3*i32sq16_t::resolution);
+    ASSERT_NEAR(3000., d.real(), 3*i32sq16_t::resolution);
 }
 
 TEST_F(SQTest_Addition, sq_add__three_sq_values_different_sq_type__values_added_largest_resolution) {
@@ -680,7 +680,7 @@ TEST_F(SQTest_Addition, sq_add__three_sq_values_different_sq_type__values_added_
 
     using expected_result_t = i32sq20_t::clamp_t<-1300., 1300.>;
     ASSERT_TRUE((std::is_same_v<expected_result_t, decltype(d)>));
-    ASSERT_NEAR(-55., d.toReal(), 2*i32sq16_t::resolution + i32sq20_t::resolution);
+    ASSERT_NEAR(-55., d.real(), 2*i32sq16_t::resolution + i32sq20_t::resolution);
 }
 
 TEST_F(SQTest_Addition, sq_add__three_q_values_different_q_type__values_added_to_sq_with_largest_resolution) {
@@ -694,7 +694,7 @@ TEST_F(SQTest_Addition, sq_add__three_q_values_different_q_type__values_added_to
 
     using expected_result_t = i32sq20<-1300., 1300.>;
     ASSERT_TRUE((std::is_same_v<expected_result_t, decltype(d)>));
-    ASSERT_NEAR(-55., d.toReal(), 2*i32q16_t::resolution + i32q20_t::resolution);
+    ASSERT_NEAR(-55., d.real(), 2*i32q16_t::resolution + i32q20_t::resolution);
 }
 
 
@@ -722,7 +722,7 @@ TEST_F(SQTest_Subtraction, sq_subtract__three_values_same_sq_type__values_subtra
 
     using expected_result_t = i32sq16_t::clamp_t<-1500., +1500.>;
     ASSERT_TRUE((std::is_same_v<expected_result_t, decltype(d)>));
-    ASSERT_NEAR(-855., d.toReal(), 3*i32sq16_t::resolution);
+    ASSERT_NEAR(-855., d.real(), 3*i32sq16_t::resolution);
 }
 
 TEST_F(SQTest_Subtraction, sq_subtract__three_values_different_sq_type__values_subtracted_largest_resolution) {
@@ -736,7 +736,7 @@ TEST_F(SQTest_Subtraction, sq_subtract__three_values_different_sq_type__values_s
 
     using expected_result_t = i32sq20_t::clamp_t<-1300., +1300.>;
     ASSERT_TRUE((std::is_same_v<expected_result_t, decltype(d)>));
-    ASSERT_NEAR(-145.4444, d.toReal(), 2*i32sq16_t::resolution + i32sq20_t::resolution);
+    ASSERT_NEAR(-145.4444, d.real(), 2*i32sq16_t::resolution + i32sq20_t::resolution);
 }
 
 
@@ -764,7 +764,7 @@ TEST_F(SQTest_Multiplication, sq_multiplicate__three_values_same_sq_type__values
 
     using expected_result_t = i32sq16_t::clamp_t<-512., +512.>;
     ASSERT_TRUE((std::is_same_v<expected_result_t, decltype(d)>));
-    ASSERT_NEAR(-17.5, d.toReal(), 12*i32sq16_t::resolution);
+    ASSERT_NEAR(-17.5, d.real(), 12*i32sq16_t::resolution);
 }
 
 TEST_F(SQTest_Multiplication, sq_multiplicate__three_values_different_sq_type__values_multiplied_largest_resolution) {
@@ -778,7 +778,7 @@ TEST_F(SQTest_Multiplication, sq_multiplicate__three_values_different_sq_type__v
 
     using expected_result_t = i32sq20_t::clamp_t<-800., +720.>;
     ASSERT_TRUE((std::is_same_v<expected_result_t, decltype(d)>));
-    ASSERT_NEAR(170.8218812, d.toReal(), 26*i32sq16_t::resolution);
+    ASSERT_NEAR(170.8218812, d.real(), 26*i32sq16_t::resolution);
 }
 
 TEST_F(SQTest_Multiplication, sq_multiplicate__three_values_same_type_one_int_sq_constant__values_multiplied) {
@@ -794,9 +794,9 @@ TEST_F(SQTest_Multiplication, sq_multiplicate__three_values_same_type_one_int_sq
     ASSERT_TRUE((std::is_same_v<expected_result_t, decltype(d)>));
     ASSERT_TRUE((std::is_same_v<expected_result_t, decltype(e)>));
     ASSERT_TRUE((std::is_same_v<expected_result_t, decltype(f)>));
-    ASSERT_NEAR(-214.5, d.toReal(), 60*i32sq16_t::resolution);
-    ASSERT_NEAR(-214.5, e.toReal(), 60*i32sq16_t::resolution);
-    ASSERT_NEAR(-214.5, f.toReal(), 60*i32sq16_t::resolution);
+    ASSERT_NEAR(-214.5, d.real(), 60*i32sq16_t::resolution);
+    ASSERT_NEAR(-214.5, e.real(), 60*i32sq16_t::resolution);
+    ASSERT_NEAR(-214.5, f.real(), 60*i32sq16_t::resolution);
 }
 
 TEST_F(SQTest_Multiplication, sq_multiplicate__two_values_same_type_and_int_q_constant__values_multiplied) {
@@ -812,9 +812,9 @@ TEST_F(SQTest_Multiplication, sq_multiplicate__two_values_same_type_and_int_q_co
     ASSERT_TRUE((std::is_same_v<expected_result_t, decltype(d)>));
     ASSERT_TRUE((std::is_same_v<expected_result_t, decltype(e)>));
     ASSERT_TRUE((std::is_same_v<expected_result_t, decltype(f)>));
-    ASSERT_NEAR(-287.43, d.toReal(), 100*i32sq16_t::resolution);
-    ASSERT_NEAR(-287.43, e.toReal(), 100*i32sq16_t::resolution);
-    ASSERT_NEAR(-287.43, f.toReal(), 100*i32sq16_t::resolution);
+    ASSERT_NEAR(-287.43, d.real(), 100*i32sq16_t::resolution);
+    ASSERT_NEAR(-287.43, e.real(), 100*i32sq16_t::resolution);
+    ASSERT_NEAR(-287.43, f.real(), 100*i32sq16_t::resolution);
 }
 
 TEST_F(SQTest_Multiplication, sq_multiplicate__sq_values_with_positive_integral_constant__values_multiplied) {
@@ -830,9 +830,9 @@ TEST_F(SQTest_Multiplication, sq_multiplicate__sq_values_with_positive_integral_
     ASSERT_TRUE((std::is_same_v<expected_result_t, decltype(d)>));
     ASSERT_TRUE((std::is_same_v<expected_result_t, decltype(e)>));
     ASSERT_TRUE((std::is_same_v<expected_result_t, decltype(f)>));
-    ASSERT_NEAR(-286., d.toReal(), 100*i32sq16_t::resolution);
-    ASSERT_NEAR(-286., e.toReal(), 100*i32sq16_t::resolution);
-    ASSERT_NEAR(-286., f.toReal(), 100*i32sq16_t::resolution);
+    ASSERT_NEAR(-286., d.real(), 100*i32sq16_t::resolution);
+    ASSERT_NEAR(-286., e.real(), 100*i32sq16_t::resolution);
+    ASSERT_NEAR(-286., f.real(), 100*i32sq16_t::resolution);
 }
 
 TEST_F(SQTest_Multiplication, sq_multiplicate__sq_values_with_negative_integral_constant__values_multiplied) {
@@ -848,9 +848,9 @@ TEST_F(SQTest_Multiplication, sq_multiplicate__sq_values_with_negative_integral_
     ASSERT_TRUE((std::is_same_v<expected_result_t, decltype(d)>));
     ASSERT_TRUE((std::is_same_v<expected_result_t, decltype(e)>));
     ASSERT_TRUE((std::is_same_v<expected_result_t, decltype(f)>));
-    ASSERT_NEAR(286., d.toReal(), 100*i32sq16_t::resolution);
-    ASSERT_NEAR(286., e.toReal(), 100*i32sq16_t::resolution);
-    ASSERT_NEAR(286., f.toReal(), 100*i32sq16_t::resolution);
+    ASSERT_NEAR(286., d.real(), 100*i32sq16_t::resolution);
+    ASSERT_NEAR(286., e.real(), 100*i32sq16_t::resolution);
+    ASSERT_NEAR(286., f.real(), 100*i32sq16_t::resolution);
 }
 
 
@@ -879,7 +879,7 @@ TEST_F(SQTest_Division, sq_divide__three_values_similar_sq_type__values_divided)
 
     using expected_result_t = dividend_t;
     ASSERT_TRUE((std::is_same_v<expected_result_t, decltype(d)>));
-    ASSERT_NEAR(-11.57142857, d.toReal(), 3*2*dividend_t::resolution);
+    ASSERT_NEAR(-11.57142857, d.real(), 3*2*dividend_t::resolution);
 }
 
 TEST_F(SQTest_Division, sq_divide__three_values_different_sq_type__values_divided_largest_resolution) {
@@ -893,7 +893,7 @@ TEST_F(SQTest_Division, sq_divide__three_values_different_sq_type__values_divide
 
     using expected_result_t = i32sq20<-8., -0.02>;
     ASSERT_TRUE((std::is_same_v<expected_result_t, decltype(d)>));
-    ASSERT_NEAR(-0.364242236, d.toReal(), 3*2*dividend_t::resolution);
+    ASSERT_NEAR(-0.364242236, d.real(), 3*2*dividend_t::resolution);
 }
 
 TEST_F(SQTest_Division, sq_divide__three_values_similar_type_one_int_sq_constant__values_divided) {
@@ -910,9 +910,9 @@ TEST_F(SQTest_Division, sq_divide__three_values_similar_type_one_int_sq_constant
     ASSERT_TRUE((std::is_same_v<expected_result_de_t, decltype(d)>));
     ASSERT_TRUE((std::is_same_v<expected_result_de_t, decltype(e)>));
     ASSERT_TRUE((std::is_same_v<expected_result_f_t, decltype(f)>));
-    ASSERT_NEAR(-0.846153846, d.toReal(), 3*2*i32sq16_t::resolution);
-    ASSERT_NEAR(-0.846153846, e.toReal(), 3*2*i32sq16_t::resolution);
-    ASSERT_NEAR(-0.174825175, f.toReal(), 3*2*i32sq16_t::resolution);
+    ASSERT_NEAR(-0.846153846, d.real(), 3*2*i32sq16_t::resolution);
+    ASSERT_NEAR(-0.846153846, e.real(), 3*2*i32sq16_t::resolution);
+    ASSERT_NEAR(-0.174825175, f.real(), 3*2*i32sq16_t::resolution);
 }
 
 TEST_F(SQTest_Division, sq_divide__two_values_similar_type_and_int_q_constant__values_divided) {
@@ -929,9 +929,9 @@ TEST_F(SQTest_Division, sq_divide__two_values_similar_type_and_int_q_constant__v
     ASSERT_TRUE((std::is_same_v<expected_result_de_t, decltype(d)>));
     ASSERT_TRUE((std::is_same_v<expected_result_de_t, decltype(e)>));
     ASSERT_TRUE((std::is_same_v<expected_result_f_t, decltype(f)>));
-    ASSERT_NEAR(0.5, d.toReal(), 3*2*i32sq16_t::resolution);
-    ASSERT_NEAR(0.5, e.toReal(), 3*2*i32sq16_t::resolution);
-    ASSERT_NEAR(0.016232449, f.toReal(), 3*2*i32sq16_t::resolution);
+    ASSERT_NEAR(0.5, d.real(), 3*2*i32sq16_t::resolution);
+    ASSERT_NEAR(0.5, e.real(), 3*2*i32sq16_t::resolution);
+    ASSERT_NEAR(0.016232449, f.real(), 3*2*i32sq16_t::resolution);
 }
 
 TEST_F(SQTest_Division, sq_divide__divisor_has_forbidden_range__does_not_compile) {
@@ -954,9 +954,9 @@ TEST_F(SQTest_Division, sq_divide__two_values_similar_type_and_positive_integral
     ASSERT_TRUE((std::is_same_v<expected_result_de_t, decltype(d)>));
     ASSERT_TRUE((std::is_same_v<expected_result_de_t, decltype(e)>));
     ASSERT_TRUE((std::is_same_v<expected_result_f_t, decltype(f)>));
-    ASSERT_NEAR(0.5, d.toReal(), 3*2*i32sq16_t::resolution);
-    ASSERT_NEAR(0.5, e.toReal(), 3*2*i32sq16_t::resolution);
-    ASSERT_NEAR(0.016232449, f.toReal(), 3*2*i32sq16_t::resolution);
+    ASSERT_NEAR(0.5, d.real(), 3*2*i32sq16_t::resolution);
+    ASSERT_NEAR(0.5, e.real(), 3*2*i32sq16_t::resolution);
+    ASSERT_NEAR(0.016232449, f.real(), 3*2*i32sq16_t::resolution);
 }
 
 TEST_F(SQTest_Division, sq_divide__two_values_similar_type_and_negative_integral_constant__values_divided) {
@@ -973,9 +973,9 @@ TEST_F(SQTest_Division, sq_divide__two_values_similar_type_and_negative_integral
     ASSERT_TRUE((std::is_same_v<expected_result_de_t, decltype(d)>));
     ASSERT_TRUE((std::is_same_v<expected_result_de_t, decltype(e)>));
     ASSERT_TRUE((std::is_same_v<expected_result_f_t, decltype(f)>));
-    ASSERT_NEAR(-0.5, d.toReal(), 3*2*i32sq16_t::resolution);
-    ASSERT_NEAR(-0.5, e.toReal(), 3*2*i32sq16_t::resolution);
-    ASSERT_NEAR(-0.016232449, f.toReal(), 3*2*i32sq16_t::resolution);
+    ASSERT_NEAR(-0.5, d.real(), 3*2*i32sq16_t::resolution);
+    ASSERT_NEAR(-0.5, e.real(), 3*2*i32sq16_t::resolution);
+    ASSERT_NEAR(-0.016232449, f.real(), 3*2*i32sq16_t::resolution);
 }
 
 
@@ -1003,7 +1003,7 @@ TEST_F(SQTest_Modulus, sq_modulo__similar_type_negative_dividend_positive_diviso
 
     using expected_result_t = i16sq8<-6., 3.>;
     ASSERT_TRUE((std::is_same_v<expected_result_t, decltype(c)>));
-    ASSERT_NEAR(-1.23, c.toReal(), 3*expected_result_t::resolution);
+    ASSERT_NEAR(-1.23, c.real(), 3*expected_result_t::resolution);
 }
 
 TEST_F(SQTest_Modulus, sq_modulo__similar_type_negative_dividend__negative_divisor__modulo_works) {
@@ -1016,7 +1016,7 @@ TEST_F(SQTest_Modulus, sq_modulo__similar_type_negative_dividend__negative_divis
 
     using expected_result_t = i16sq8<-6., 3.>;
     ASSERT_TRUE((std::is_same_v<expected_result_t, decltype(c)>));
-    ASSERT_NEAR(-1.23, c.toReal(), 3*expected_result_t::resolution);
+    ASSERT_NEAR(-1.23, c.real(), 3*expected_result_t::resolution);
 }
 
 TEST_F(SQTest_Modulus, sq_modulo__different_type_positive_dividend_positive_divisor__modulo_works) {
@@ -1029,7 +1029,7 @@ TEST_F(SQTest_Modulus, sq_modulo__different_type_positive_dividend_positive_divi
 
     using expected_result_t = i16sq8<0., 6.>;
     ASSERT_TRUE((std::is_same_v<expected_result_t, decltype(c)>));
-    ASSERT_NEAR(1.23, c.toReal(), 3*expected_result_t::resolution);
+    ASSERT_NEAR(1.23, c.real(), 3*expected_result_t::resolution);
 }
 
 TEST_F(SQTest_Modulus, sq_modulo__different_type_positive_dividend__negative_divisor__modulo_works) {
@@ -1042,7 +1042,7 @@ TEST_F(SQTest_Modulus, sq_modulo__different_type_positive_dividend__negative_div
 
     using expected_result_t = i16sq8<0., 6.>;
     ASSERT_TRUE((std::is_same_v<expected_result_t, decltype(c)>));
-    ASSERT_NEAR(1.23, c.toReal(), 3*expected_result_t::resolution);
+    ASSERT_NEAR(1.23, c.real(), 3*expected_result_t::resolution);
 }
 
 TEST_F(SQTest_Modulus, sq_modulo__different_type_different_f_negative_dividend_positive_divisor__modulo_works) {
@@ -1055,7 +1055,7 @@ TEST_F(SQTest_Modulus, sq_modulo__different_type_different_f_negative_dividend_p
 
     using expected_result_t = i16sq12<-6., 3.>;
     ASSERT_TRUE((std::is_same_v<expected_result_t, decltype(c)>));
-    ASSERT_NEAR(-1.23, c.toReal(), 3*dividend_t::resolution);
+    ASSERT_NEAR(-1.23, c.real(), 3*dividend_t::resolution);
 }
 
 TEST_F(SQTest_Modulus, sq_modulo__divisor_has_forbidden_range__does_not_compile) {
@@ -1602,7 +1602,7 @@ TEST_F(SQTest_Shift, sq_shiftL__some_value__shifted_value) {
 
     using expected_t = i32sq14_t::clamp_t<-128000., +128000.>;
     ASSERT_TRUE(( std::is_same_v<expected_t, decltype(shifted)> ));
-    ASSERT_NEAR(128*value.toReal(), shifted.toReal(), 128*i32sq14_t::resolution);
+    ASSERT_NEAR(128*value.real(), shifted.real(), 128*i32sq14_t::resolution);
 }
 
 TEST_F(SQTest_Shift, sq_shiftL__some_value_shifted_by_0__same_value) {
@@ -1613,7 +1613,7 @@ TEST_F(SQTest_Shift, sq_shiftL__some_value_shifted_by_0__same_value) {
     auto shifted = value << 0_ic;
 
     ASSERT_TRUE(( std::is_same_v<i32sq14_t, decltype(shifted)> ));
-    ASSERT_NEAR(value.toReal(), shifted.toReal(), i32sq14_t::resolution);
+    ASSERT_NEAR(value.real(), shifted.real(), i32sq14_t::resolution);
 }
 
 TEST_F(SQTest_Shift, sq_shiftL__invalid_shift__not_possible) {
@@ -1632,7 +1632,7 @@ TEST_F(SQTest_Shift, sq_shiftR__some_value__shifted_value) {
 
     using expected_t = i32sq14_t::clamp_t<-2500., +2500.>;
     ASSERT_TRUE(( std::is_same_v<expected_t, decltype(shifted)> ));
-    ASSERT_NEAR(value.toReal()/4, shifted.toReal(), i32sq14_t::resolution);
+    ASSERT_NEAR(value.real()/4, shifted.real(), i32sq14_t::resolution);
 }
 
 TEST_F(SQTest_Shift, sq_shiftR__some_value_shifted_by_much__shifted_value_is_minus_one) {
@@ -1644,8 +1644,8 @@ TEST_F(SQTest_Shift, sq_shiftR__some_value_shifted_by_much__shifted_value_is_min
     auto shifted1 = value1 >> 31_ic;  //< smallest: -1 when source value is negative
     auto shifted2 = value2 >> 31_ic;  //< smallest:  0 when source value is positive
 
-    ASSERT_NEAR(-i32sq14_t::resolution, shifted1.toReal(), 1e-10);  // -1 * 2^-14
-    ASSERT_NEAR(0.0, shifted2.toReal(), 1e-10);  // 0 * 2^-14
+    ASSERT_NEAR(-i32sq14_t::resolution, shifted1.real(), 1e-10);  // -1 * 2^-14
+    ASSERT_NEAR(0.0, shifted2.real(), 1e-10);  // 0 * 2^-14
 }
 
 TEST_F(SQTest_Shift, sq_shiftR__some_value_shifted_by_0__same_value) {
@@ -1656,7 +1656,7 @@ TEST_F(SQTest_Shift, sq_shiftR__some_value_shifted_by_0__same_value) {
     auto shifted = value >> 0_ic;
 
     ASSERT_TRUE(( std::is_same_v<i32sq14_t, decltype(shifted)> ));
-    ASSERT_NEAR(value.toReal(), shifted.toReal(), i32sq14_t::resolution);
+    ASSERT_NEAR(value.real(), shifted.real(), i32sq14_t::resolution);
 }
 
 TEST_F(SQTest_Shift, sq_shiftR__invalid_shift__not_possible) {
@@ -1690,7 +1690,7 @@ TEST_F(SQTest_Square, sq_square__positive_value__squared_value) {
 
     using expected_t = i32sq12_t::clamp_t<0., 10000.>;
     ASSERT_TRUE(( std::is_same_v<expected_t, decltype(squared)> ));
-    ASSERT_NEAR(23.4*23.4, squared.toReal(), 45*i32sq12_t::resolution);
+    ASSERT_NEAR(23.4*23.4, squared.real(), 45*i32sq12_t::resolution);
 }
 
 TEST_F(SQTest_Square, sq_square__positive_value_smaller_type_with_positive_range__squared_value_i32) {
@@ -1702,7 +1702,7 @@ TEST_F(SQTest_Square, sq_square__positive_value_smaller_type_with_positive_range
 
     using expected_t = i32sq10<36., 625.>;
     ASSERT_TRUE(( std::is_same_v<expected_t, decltype(squared)> ));
-    ASSERT_NEAR(23.4*23.4, squared.toReal(), 45*i16sq10_t::resolution);
+    ASSERT_NEAR(23.4*23.4, squared.real(), 45*i16sq10_t::resolution);
 }
 
 TEST_F(SQTest_Square, sq_square__negative_value__squared_value) {
@@ -1714,7 +1714,7 @@ TEST_F(SQTest_Square, sq_square__negative_value__squared_value) {
 
     using expected_t = i32sq12_t::clamp_t<0., 10000.>;
     ASSERT_TRUE(( std::is_same_v<expected_t, decltype(squared)> ));
-    ASSERT_NEAR(45.999*45.999, squared.toReal(), 90*i32sq12_t::resolution);
+    ASSERT_NEAR(45.999*45.999, squared.real(), 90*i32sq12_t::resolution);
 }
 
 TEST_F(SQTest_Square, sq_square__negative_value_smaller_type_with_negative_range__squared_value_i32) {
@@ -1726,7 +1726,7 @@ TEST_F(SQTest_Square, sq_square__negative_value_smaller_type_with_negative_range
 
     using expected_t = i32sq10<36., 625.>;
     ASSERT_TRUE(( std::is_same_v<expected_t, decltype(squared)> ));
-    ASSERT_NEAR(18.9*18.9, squared.toReal(), 38*i16sq10_t::resolution);
+    ASSERT_NEAR(18.9*18.9, squared.real(), 38*i16sq10_t::resolution);
 }
 
 TEST_F(SQTest_Square, sq_square__value_zero__value_squared_is_zero) {
@@ -1741,8 +1741,8 @@ TEST_F(SQTest_Square, sq_square__value_zero__value_squared_is_zero) {
     using expected_t = i32sq12_t::clamp_t<0., 10000.>;
     ASSERT_TRUE(( std::is_same_v<expected_t, decltype(squared1)> ));
     ASSERT_TRUE(( std::is_same_v<expected_t, decltype(squared2)> ));
-    ASSERT_NEAR(0., squared1.toReal(), i32sq12_t::resolution);
-    ASSERT_NEAR(0., squared2.toReal(), i32sq12_t::resolution);
+    ASSERT_NEAR(0., squared1.real(), i32sq12_t::resolution);
+    ASSERT_NEAR(0., squared2.real(), i32sq12_t::resolution);
 }
 
 TEST_F(SQTest_Square, sq_square__various_types__squareable_or_not) {
@@ -1761,7 +1761,7 @@ TEST_F(SQTest_Square, sq_sqrt__some_positive_value__root_taken) {
 
     using expected_t = u32sq12_t::clamp_t<0., 32.>;
     ASSERT_TRUE(( std::is_same_v<expected_t, decltype(root)> ));
-    ASSERT_NEAR(30., root.toReal(), u32sq12_t::resolution);
+    ASSERT_NEAR(30., root.real(), u32sq12_t::resolution);
 }
 
 TEST_F(SQTest_Square, sq_sqrt__maximum_u32_value__root_taken) {
@@ -1773,7 +1773,7 @@ TEST_F(SQTest_Square, sq_sqrt__maximum_u32_value__root_taken) {
 
     using expected_t = u32sq12_t::clamp_t<0., 1025.>;
     ASSERT_TRUE(( std::is_same_v<expected_t, decltype(root)> ));
-    ASSERT_NEAR(1024., root.toReal(), u32sq12_t::resolution);
+    ASSERT_NEAR(1024., root.real(), u32sq12_t::resolution);
 }
 
 TEST_F(SQTest_Square, sq_sqrt__zero_value__root_zero) {
@@ -1785,7 +1785,7 @@ TEST_F(SQTest_Square, sq_sqrt__zero_value__root_zero) {
 
     using expected_t = i32sq12_t::clamp_t<0., 11.>;
     ASSERT_TRUE(( std::is_same_v<expected_t, decltype(root)> ));
-    ASSERT_NEAR(0., root.toReal(), i32sq12_t::resolution);
+    ASSERT_NEAR(0., root.real(), i32sq12_t::resolution);
 }
 
 TEST_F(SQTest_Square, sq_sqrt__various_types__not_rootable) {
@@ -1801,11 +1801,11 @@ TEST_F(SQTest_Square, sq_rsqrt__some_positive_value__reciprocal_root_taken) {
 
     using expected_t = i32sq20_t::clamp_t<0., 1.>;
     ASSERT_TRUE(( std::is_same_v<expected_t, decltype(rRoot)> ));
-    ASSERT_NEAR(0.199806282, rRoot.toReal(), i32sq20_t::resolution);
+    ASSERT_NEAR(0.199806282, rRoot.real(), i32sq20_t::resolution);
 }
 
 TEST_F(SQTest_Square, sq_rsqrt__maximum_positive_value__reciprocal_root_taken) {
-    using u32sq30_t = u32sq30< 1.0, u32sq30<>::realVMax >;
+    using u32sq30_t = u32sq30< 1.0, u32sq30<>::realMax >;
     auto value = u32sq30_t::fromScaled<std::numeric_limits<u32sq30_t::base_t>::max()>();
 
     EXPECT_TRUE(( RSquareRootable<u32sq30_t> ));
@@ -1813,7 +1813,7 @@ TEST_F(SQTest_Square, sq_rsqrt__maximum_positive_value__reciprocal_root_taken) {
 
     using expected_t = u32sq30_t::clamp_t<0., 1.>;
     ASSERT_TRUE(( std::is_same_v<expected_t, decltype(rRoot)> ));
-    ASSERT_NEAR(0.5, rRoot.toReal(), u32sq30_t::resolution);
+    ASSERT_NEAR(0.5, rRoot.real(), u32sq30_t::resolution);
 }
 
 TEST_F(SQTest_Square, sq_rsqrt__minimum_value__maximum_value_returned) {
@@ -1823,9 +1823,9 @@ TEST_F(SQTest_Square, sq_rsqrt__minimum_value__maximum_value_returned) {
     EXPECT_TRUE(( RSquareRootable<i32sq29_t> ));
     auto rRoot = rsqrt(value);
 
-    using expected_t = i32sq29_t::clamp_t<0., i32sq29<>::realVMax>;
+    using expected_t = i32sq29_t::clamp_t<0., i32sq29<>::realMax>;
     ASSERT_TRUE(( std::is_same_v<expected_t, decltype(rRoot)> ));
-    ASSERT_NEAR(i32sq29<>::realVMax, rRoot.toReal(), i32sq29_t::resolution);
+    ASSERT_NEAR(i32sq29<>::realMax, rRoot.real(), i32sq29_t::resolution);
 }
 
 TEST_F(SQTest_Square, sq_rsqrt__minimum_value2__reciprocal_root_returned) {
@@ -1837,7 +1837,7 @@ TEST_F(SQTest_Square, sq_rsqrt__minimum_value2__reciprocal_root_returned) {
 
     using expected_t = i32sq20_t::clamp_t<0., 1024.>;
     ASSERT_TRUE(( std::is_same_v<expected_t, decltype(rRoot)> ));
-    ASSERT_NEAR(1024., rRoot.toReal(), i32sq20_t::resolution);
+    ASSERT_NEAR(1024., rRoot.real(), i32sq20_t::resolution);
 }
 
 TEST_F(SQTest_Square, sq_rsqrt__various_types__not_rootable) {
@@ -1869,7 +1869,7 @@ TEST_F(SQTest_Cube, sq_cube__positive_value__value_cubed) {
 
     using expected_t = u32sq12_t::clamp_t<0., 512000.>;
     ASSERT_TRUE(( std::is_same_v<expected_t, decltype(cubed)> ));
-    ASSERT_NEAR(175606.5922, cubed.toReal(), 3*56*56*u32sq12_t::resolution);
+    ASSERT_NEAR(175606.5922, cubed.real(), 3*56*56*u32sq12_t::resolution);
 }
 
 TEST_F(SQTest_Cube, sq_cube__positive_value_smaller_type__value_cubed_i32) {
@@ -1881,7 +1881,7 @@ TEST_F(SQTest_Cube, sq_cube__positive_value_smaller_type__value_cubed_i32) {
 
     using expected_t = i32sq4<0., 1.25e8>;
     ASSERT_TRUE(( std::is_same_v<expected_t, decltype(cubed)> ));
-    ASSERT_NEAR(3048561.925, cubed.toReal(), 3*145*145*u16sq4_t::resolution);
+    ASSERT_NEAR(3048561.925, cubed.real(), 3*145*145*u16sq4_t::resolution);
 }
 
 TEST_F(SQTest_Cube, sq_cube__zero_value__value_cubed_is_zero) {
@@ -1896,8 +1896,8 @@ TEST_F(SQTest_Cube, sq_cube__zero_value__value_cubed_is_zero) {
     using expected_t = i32sq12_t::clamp_t<-64000., 64000.>;
     ASSERT_TRUE(( std::is_same_v<expected_t, decltype(cubed1)> ));
     ASSERT_TRUE(( std::is_same_v<expected_t, decltype(cubed2)> ));
-    ASSERT_NEAR(0., cubed1.toReal(), i32sq12_t::resolution);
-    ASSERT_NEAR(0., cubed2.toReal(), i32sq12_t::resolution);
+    ASSERT_NEAR(0., cubed1.real(), i32sq12_t::resolution);
+    ASSERT_NEAR(0., cubed2.real(), i32sq12_t::resolution);
 }
 
 TEST_F(SQTest_Cube, sq_cube__negative_value__value_cubed) {
@@ -1909,7 +1909,7 @@ TEST_F(SQTest_Cube, sq_cube__negative_value__value_cubed) {
 
     using expected_t = i32sq12_t::clamp_t<-64000., 64000.>;
     ASSERT_TRUE(( std::is_same_v<expected_t, decltype(cubed)> ));
-    ASSERT_NEAR(-46652.11211, cubed.toReal(), 3*36*36*i32sq12_t::resolution);
+    ASSERT_NEAR(-46652.11211, cubed.real(), 3*36*36*i32sq12_t::resolution);
 }
 
 TEST_F(SQTest_Cube, sq_cube__smallest_value__value_cubed_is_minimum_i32) {
@@ -1921,7 +1921,7 @@ TEST_F(SQTest_Cube, sq_cube__smallest_value__value_cubed_is_minimum_i32) {
 
     using expected_t = i32sq7_t::clamp_t<-16777216., -0.>;
     ASSERT_TRUE(( std::is_same_v<expected_t, decltype(cubed)> ));
-    ASSERT_NEAR(-16777216., cubed.toReal(), i32sq7_t::resolution);
+    ASSERT_NEAR(-16777216., cubed.real(), i32sq7_t::resolution);
 }
 
 TEST_F(SQTest_Square, sq_cube__various_types__cubeable_or_not) {
@@ -1941,7 +1941,7 @@ TEST_F(SQTest_Cube, sq_cbrt__positive_value__cube_root_taken) {
 
     using expected_t = u32sq8_t::clamp_t<0., 36.>;
     ASSERT_TRUE(( std::is_same_v<expected_t, decltype(root)> ));
-    ASSERT_NEAR(34.64956394, root.toReal(), u32sq8_t::resolution);
+    ASSERT_NEAR(34.64956394, root.real(), u32sq8_t::resolution);
 }
 
 TEST_F(SQTest_Cube, sq_cbrt__maximum_u32_value__cube_root_taken) {
@@ -1953,7 +1953,7 @@ TEST_F(SQTest_Cube, sq_cbrt__maximum_u32_value__cube_root_taken) {
 
     using expected_t = u32sq16_t::clamp_t<0., 41.>;
     ASSERT_TRUE(( std::is_same_v<expected_t, decltype(root)> ));
-    ASSERT_NEAR(40.31747359, root.toReal(), u32sq16_t::resolution);
+    ASSERT_NEAR(40.31747359, root.real(), u32sq16_t::resolution);
 }
 
 TEST_F(SQTest_Cube, sq_cbrt__zero_value__cube_root_is_zero) {
@@ -1965,7 +1965,7 @@ TEST_F(SQTest_Cube, sq_cbrt__zero_value__cube_root_is_zero) {
 
     using expected_t = i32sq12_t::clamp_t<0., 8.>;
     ASSERT_TRUE(( std::is_same_v<expected_t, decltype(root)> ));
-    ASSERT_NEAR(0., root.toReal(), i32sq12_t::resolution);
+    ASSERT_NEAR(0., root.real(), i32sq12_t::resolution);
 }
 
 TEST_F(SQTest_Cube, sq_cbrt__various_types__not_rootable) {
@@ -1991,16 +1991,16 @@ protected:
 TEST_F(SQTest_Clamp, sq_clamp__some_value_in_same_range__same_value_same_type) {
     using u32sq10_t = u32sq10<50.0, 5000.0>;
     auto a = u32sq10_t::fromReal<555.555>();
-    auto min = u32sq10_t::fromReal<u32sq10_t::realVMin>();
-    auto max = u32sq10_t::fromReal<u32sq10_t::realVMax>();
+    auto min = u32sq10_t::fromReal<u32sq10_t::realMin>();
+    auto max = u32sq10_t::fromReal<u32sq10_t::realMax>();
 
     auto clamped = clamp(a, min, max);  // argument-dependent lookup (ADL)
-    auto clamped2 = clamp<u32sq10_t::realVMin, u32sq10_t::realVMax>(a);
+    auto clamped2 = clamp<u32sq10_t::realMin, u32sq10_t::realMax>(a);
 
     ASSERT_TRUE(( std::is_same_v<u32sq10_t, decltype(clamped)> ));
     ASSERT_TRUE(( std::is_same_v<u32sq10_t, decltype(clamped2)> ));
-    ASSERT_NEAR(a.toReal(), clamped.toReal(), u32sq10_t::resolution);
-    ASSERT_NEAR(a.toReal(), clamped2.toReal(), u32sq10_t::resolution);
+    ASSERT_NEAR(a.real(), clamped.real(), u32sq10_t::resolution);
+    ASSERT_NEAR(a.real(), clamped2.real(), u32sq10_t::resolution);
 }
 
 TEST_F(SQTest_Clamp, sq_clamp__some_value_in_narrower_range__same_value_new_type) {
@@ -2017,8 +2017,8 @@ TEST_F(SQTest_Clamp, sq_clamp__some_value_in_narrower_range__same_value_new_type
 
     ASSERT_TRUE(( std::is_same_v<limit_t, decltype(clamped)> ));
     ASSERT_TRUE(( std::is_same_v<value_t::clamp_t<sLo, sHi>, decltype(clamped2)> ));
-    ASSERT_NEAR(a.toReal(), clamped.toReal(), value_t::resolution);
-    ASSERT_NEAR(a.toReal(), clamped2.toReal(), value_t::resolution);
+    ASSERT_NEAR(a.real(), clamped.real(), value_t::resolution);
+    ASSERT_NEAR(a.real(), clamped2.real(), value_t::resolution);
 }
 
 TEST_F(SQTest_Clamp, sq_clamp__some_value_larger_than_narrower_range__clamped_value_new_type) {
@@ -2035,8 +2035,8 @@ TEST_F(SQTest_Clamp, sq_clamp__some_value_larger_than_narrower_range__clamped_va
 
     ASSERT_TRUE(( std::is_same_v<limit_t, decltype(clamped)> ));
     ASSERT_TRUE(( std::is_same_v<value_t::clamp_t<sLo, sHi>, decltype(clamped2)> ));
-    ASSERT_NEAR(max.toReal(), clamped.toReal(), value_t::resolution);
-    ASSERT_NEAR(sHi, clamped2.toReal(), value_t::resolution);
+    ASSERT_NEAR(max.real(), clamped.real(), value_t::resolution);
+    ASSERT_NEAR(sHi, clamped2.real(), value_t::resolution);
 }
 
 TEST_F(SQTest_Clamp, sq_clamp__some_value_smaller_than_narrower_range__clamped_value_new_type) {
@@ -2053,8 +2053,8 @@ TEST_F(SQTest_Clamp, sq_clamp__some_value_smaller_than_narrower_range__clamped_v
 
     ASSERT_TRUE(( std::is_same_v<limit_t, decltype(clamped)> ));
     ASSERT_TRUE(( std::is_same_v<value_t::clamp_t<sLo, sHi>, decltype(clamped2)> ));
-    ASSERT_NEAR(min.toReal(), clamped.toReal(), value_t::resolution);
-    ASSERT_NEAR(sLo, clamped2.toReal(), value_t::resolution);
+    ASSERT_NEAR(min.real(), clamped.real(), value_t::resolution);
+    ASSERT_NEAR(sLo, clamped2.real(), value_t::resolution);
 }
 
 TEST_F(SQTest_Clamp, sq_clamp__some_value_in_narrower_range_with_different_f__same_value_new_type) {
@@ -2067,9 +2067,9 @@ TEST_F(SQTest_Clamp, sq_clamp__some_value_in_narrower_range_with_different_f__sa
 
     auto clamped = clamp(a, min, max);
 
-    using expected_t = value_t::clamp_t<min_t::realVMin, max_t::realVMax>;
+    using expected_t = value_t::clamp_t<min_t::realMin, max_t::realMax>;
     ASSERT_TRUE(( std::is_same_v<expected_t, decltype(clamped)> ));
-    ASSERT_NEAR(a.toReal(), clamped.toReal(), expected_t::resolution);
+    ASSERT_NEAR(a.real(), clamped.real(), expected_t::resolution);
 }
 
 TEST_F(SQTest_Clamp, sq_clamp__some_value_larger_than_narrower_range_with_different_f__clamped_value_new_type) {
@@ -2082,9 +2082,9 @@ TEST_F(SQTest_Clamp, sq_clamp__some_value_larger_than_narrower_range_with_differ
 
     auto clamped = clamp(a, min, max);
 
-    using expected_t = value_t::clamp_t<min_t::realVMin, max_t::realVMax>;
+    using expected_t = value_t::clamp_t<min_t::realMin, max_t::realMax>;
     ASSERT_TRUE(( std::is_same_v<expected_t, decltype(clamped)> ));
-    ASSERT_NEAR(max.toReal(), clamped.toReal(), expected_t::resolution);
+    ASSERT_NEAR(max.real(), clamped.real(), expected_t::resolution);
 }
 
 TEST_F(SQTest_Clamp, sq_clamp__some_value_smaller_than_narrower_range_with_different_f__clamped_value_new_type) {
@@ -2097,9 +2097,9 @@ TEST_F(SQTest_Clamp, sq_clamp__some_value_smaller_than_narrower_range_with_diffe
 
     auto clamped = clamp(a, min, max);
 
-    using expected_t = value_t::clamp_t<min_t::realVMin, max_t::realVMax>;
+    using expected_t = value_t::clamp_t<min_t::realMin, max_t::realMax>;
     ASSERT_TRUE(( std::is_same_v<expected_t, decltype(clamped)> ));
-    ASSERT_NEAR(min.toReal(), clamped.toReal(), expected_t::resolution);
+    ASSERT_NEAR(min.real(), clamped.real(), expected_t::resolution);
 }
 
 TEST_F(SQTest_Clamp, sq_clamp__some_cases_not_clampable__does_not_compile) {
@@ -2114,25 +2114,22 @@ TEST_F(SQTest_Clamp, sq_clamp__some_cases_not_clampable__does_not_compile) {
     // hi type is not implicitly convertible to value type (hi has higher maximum)
     ASSERT_FALSE(( Clampable< i16sq8<-10., 10.>, i16sq8<-5., 10.>, i16sq8<0., 15.> > ));
 
-    // maximum of lo is larger than maximum of hi
-    ASSERT_FALSE(( Clampable< i16sq8<-10., 10.>, i16sq8<-5., 20.>, i16sq8<0., 15.> > ));
-
-    // minimum of hi is smaller than minimum of lo
-    ASSERT_FALSE(( Clampable< i16sq8<-10., 10.>, i16sq8<-5., -2.>, i16sq8<-6., 8.> > ));
+    // minimum of lo is larger than maximum of hi
+    ASSERT_FALSE(( Clampable< i16sq8<-10., 10.>, i16sq8<-5., 20.>, i16sq8<-10., -6.> > ));
 }
 
 TEST_F(SQTest_Clamp, sq_clampLower__some_value_in_same_range__same_value_same_type) {
     using u32sq10_t = u32sq10<50.0, 5000.0>;
     auto a = u32sq10_t::fromReal<443.210>();
-    auto min = u32sq10_t::fromReal<u32sq10_t::realVMin>();
+    auto min = u32sq10_t::fromReal<u32sq10_t::realMin>();
 
     auto clamped = clampLower(a, min);
-    auto clamped2 = clampLower<u32sq10_t::realVMin>(a);
+    auto clamped2 = clampLower<u32sq10_t::realMin>(a);
 
     ASSERT_TRUE(( std::is_same_v<u32sq10_t, decltype(clamped)> ));
     ASSERT_TRUE(( std::is_same_v<u32sq10_t, decltype(clamped2)> ));
-    ASSERT_NEAR(a.toReal(), clamped.toReal(), u32sq10_t::resolution);
-    ASSERT_NEAR(a.toReal(), clamped2.toReal(), u32sq10_t::resolution);
+    ASSERT_NEAR(a.real(), clamped.real(), u32sq10_t::resolution);
+    ASSERT_NEAR(a.real(), clamped2.real(), u32sq10_t::resolution);
 }
 
 TEST_F(SQTest_Clamp, sq_clampLower__some_value_in_narrower_range__same_value_new_type) {
@@ -2146,11 +2143,11 @@ TEST_F(SQTest_Clamp, sq_clampLower__some_value_in_narrower_range__same_value_new
     constexpr double sLo = 55.5;
     auto clamped2 = clampLower<sLo>(a);
 
-    using expected_t = value_t::clamp_t<min_t::realVMin, value_t::realVMax>;
+    using expected_t = value_t::clamp_t<min_t::realMin, value_t::realMax>;
     ASSERT_TRUE(( std::is_same_v<expected_t, decltype(clamped)> ));
-    ASSERT_TRUE(( std::is_same_v<value_t::clamp_t<sLo, value_t::realVMax>, decltype(clamped2)> ));
-    ASSERT_NEAR(a.toReal(), clamped.toReal(), value_t::resolution);
-    ASSERT_NEAR(a.toReal(), clamped2.toReal(), value_t::resolution);
+    ASSERT_TRUE(( std::is_same_v<value_t::clamp_t<sLo, value_t::realMax>, decltype(clamped2)> ));
+    ASSERT_NEAR(a.real(), clamped.real(), value_t::resolution);
+    ASSERT_NEAR(a.real(), clamped2.real(), value_t::resolution);
 }
 
 TEST_F(SQTest_Clamp, sq_clampLower__some_value_smaller_than_min__clamped_value_new_type) {
@@ -2164,11 +2161,11 @@ TEST_F(SQTest_Clamp, sq_clampLower__some_value_smaller_than_min__clamped_value_n
     constexpr double sLo = -12.12;
     auto clamped2 = clampLower<sLo>(a);
 
-    using expected_t = value_t::clamp_t<min_t::realVMin, value_t::realVMax>;
+    using expected_t = value_t::clamp_t<min_t::realMin, value_t::realMax>;
     ASSERT_TRUE(( std::is_same_v<expected_t, decltype(clamped)> ));
-    ASSERT_TRUE(( std::is_same_v<value_t::clamp_t<sLo, value_t::realVMax>, decltype(clamped2)> ));
-    ASSERT_NEAR(min.toReal(), clamped.toReal(), value_t::resolution);
-    ASSERT_NEAR(sLo, clamped2.toReal(), value_t::resolution);
+    ASSERT_TRUE(( std::is_same_v<value_t::clamp_t<sLo, value_t::realMax>, decltype(clamped2)> ));
+    ASSERT_NEAR(min.real(), clamped.real(), value_t::resolution);
+    ASSERT_NEAR(sLo, clamped2.real(), value_t::resolution);
 }
 
 TEST_F(SQTest_Clamp, sq_clampLower__some_value_in_narrower_range_with_different_f__same_value_new_type) {
@@ -2179,9 +2176,9 @@ TEST_F(SQTest_Clamp, sq_clampLower__some_value_in_narrower_range_with_different_
 
     auto clamped = clampLower(a, min);
 
-    using expected_t = value_t::clamp_t<min_t::realVMin, value_t::realVMax>;
+    using expected_t = value_t::clamp_t<min_t::realMin, value_t::realMax>;
     ASSERT_TRUE(( std::is_same_v<expected_t, decltype(clamped)> ));
-    ASSERT_NEAR(a.toReal(), clamped.toReal(), expected_t::resolution);
+    ASSERT_NEAR(a.real(), clamped.real(), expected_t::resolution);
 }
 
 TEST_F(SQTest_Clamp, sq_clampLower__some_value_smaller_than_min_with_different_f__clamped_value_new_type) {
@@ -2192,24 +2189,24 @@ TEST_F(SQTest_Clamp, sq_clampLower__some_value_smaller_than_min_with_different_f
 
     auto clamped = clampLower(a, min);
 
-    using expected_t = value_t::clamp_t<min_t::realVMin, value_t::realVMax>;
+    using expected_t = value_t::clamp_t<min_t::realMin, value_t::realMax>;
     ASSERT_TRUE(( std::is_same_v<expected_t, decltype(clamped)> ));
-    ASSERT_NEAR(min.toReal(), clamped.toReal(), expected_t::resolution);
+    ASSERT_NEAR(min.real(), clamped.real(), expected_t::resolution);
 }
 
 
 TEST_F(SQTest_Clamp, sq_clampUpper__some_value_in_same_range__same_value_same_type) {
     using u32sq10_t = u32sq10<50.0, 5000.0>;
     auto a = u32sq10_t::fromReal<543.21>();
-    auto max = u32sq10_t::fromReal<u32sq10_t::realVMax>();
+    auto max = u32sq10_t::fromReal<u32sq10_t::realMax>();
 
     auto clamped = clampUpper(a, max);
-    auto clamped2 = clampUpper<u32sq10_t::realVMax>(a);
+    auto clamped2 = clampUpper<u32sq10_t::realMax>(a);
 
     ASSERT_TRUE(( std::is_same_v<u32sq10_t, decltype(clamped)> ));
     ASSERT_TRUE(( std::is_same_v<u32sq10_t, decltype(clamped2)> ));
-    ASSERT_NEAR(a.toReal(), clamped.toReal(), u32sq10_t::resolution);
-    ASSERT_NEAR(a.toReal(), clamped2.toReal(), u32sq10_t::resolution);
+    ASSERT_NEAR(a.real(), clamped.real(), u32sq10_t::resolution);
+    ASSERT_NEAR(a.real(), clamped2.real(), u32sq10_t::resolution);
 }
 
 TEST_F(SQTest_Clamp, sq_clampUpper__some_value_in_narrower_range__same_value_new_type) {
@@ -2223,11 +2220,11 @@ TEST_F(SQTest_Clamp, sq_clampUpper__some_value_in_narrower_range__same_value_new
     constexpr double sHi = 577.78;
     auto clamped2 = clampUpper<sHi>(a);
 
-    using expected_t = value_t::clamp_t<value_t::realVMin, max_t::realVMax>;
+    using expected_t = value_t::clamp_t<value_t::realMin, max_t::realMax>;
     ASSERT_TRUE(( std::is_same_v<expected_t, decltype(clamped)> ));
-    ASSERT_TRUE(( std::is_same_v<value_t::clamp_t<value_t::realVMin, sHi>, decltype(clamped2)> ));
-    ASSERT_NEAR(a.toReal(), clamped.toReal(), value_t::resolution);
-    ASSERT_NEAR(a.toReal(), clamped2.toReal(), value_t::resolution);
+    ASSERT_TRUE(( std::is_same_v<value_t::clamp_t<value_t::realMin, sHi>, decltype(clamped2)> ));
+    ASSERT_NEAR(a.real(), clamped.real(), value_t::resolution);
+    ASSERT_NEAR(a.real(), clamped2.real(), value_t::resolution);
 }
 
 TEST_F(SQTest_Clamp, sq_clampUpper__some_value_larger_than_max__clamped_value_new_type) {
@@ -2241,11 +2238,11 @@ TEST_F(SQTest_Clamp, sq_clampUpper__some_value_larger_than_max__clamped_value_ne
     constexpr double sHi = 466.67;
     auto clamped2 = clampUpper<sHi>(a);
 
-    using expected_t = value_t::clamp_t<value_t::realVMin, max_t::realVMax>;
+    using expected_t = value_t::clamp_t<value_t::realMin, max_t::realMax>;
     ASSERT_TRUE(( std::is_same_v<expected_t, decltype(clamped)> ));
-    ASSERT_TRUE(( std::is_same_v<value_t::clamp_t<value_t::realVMin, sHi>, decltype(clamped2)> ));
-    ASSERT_NEAR(max.toReal(), clamped.toReal(), value_t::resolution);
-    ASSERT_NEAR(sHi, clamped2.toReal(), value_t::resolution);
+    ASSERT_TRUE(( std::is_same_v<value_t::clamp_t<value_t::realMin, sHi>, decltype(clamped2)> ));
+    ASSERT_NEAR(max.real(), clamped.real(), value_t::resolution);
+    ASSERT_NEAR(sHi, clamped2.real(), value_t::resolution);
 }
 
 TEST_F(SQTest_Clamp, sq_clampUpper__some_value_in_narrower_range_with_different_f__same_value_new_type) {
@@ -2256,9 +2253,9 @@ TEST_F(SQTest_Clamp, sq_clampUpper__some_value_in_narrower_range_with_different_
 
     auto clamped = clampUpper(a, max);
 
-    using expected_t = value_t::clamp_t<value_t::realVMin, max_t::realVMax>;
+    using expected_t = value_t::clamp_t<value_t::realMin, max_t::realMax>;
     ASSERT_TRUE(( std::is_same_v<expected_t, decltype(clamped)> ));
-    ASSERT_NEAR(a.toReal(), clamped.toReal(), expected_t::resolution);
+    ASSERT_NEAR(a.real(), clamped.real(), expected_t::resolution);
 }
 
 TEST_F(SQTest_Clamp, sq_clampUpper__some_value_larger_than_max_with_different_f__clamped_value_new_type) {
@@ -2269,9 +2266,9 @@ TEST_F(SQTest_Clamp, sq_clampUpper__some_value_larger_than_max_with_different_f_
 
     auto clamped = clampUpper(a, max);
 
-    using expected_t = value_t::clamp_t<value_t::realVMin, max_t::realVMax>;
+    using expected_t = value_t::clamp_t<value_t::realMin, max_t::realMax>;
     ASSERT_TRUE(( std::is_same_v<expected_t, decltype(clamped)> ));
-    ASSERT_NEAR(max.toReal(), clamped.toReal(), expected_t::resolution);
+    ASSERT_NEAR(max.real(), clamped.real(), expected_t::resolution);
 }
 
 
@@ -2299,7 +2296,7 @@ TEST_F(SQTest_MinMax, sq_min__two_positive_values__returns_smaller) {
 
     using expected_t = value1_t::clamp_t<0., 1000.>;
     ASSERT_TRUE(( std::is_same_v<expected_t, decltype(minimum1)> ));
-    ASSERT_NEAR(std::min(a.toReal(), b.toReal()), minimum1.toReal(), expected_t::resolution);
+    ASSERT_NEAR(std::min(a.real(), b.real()), minimum1.real(), expected_t::resolution);
 }
 
 TEST_F(SQTest_MinMax, sq_min__two_negative_values__returns_smaller) {
@@ -2312,7 +2309,7 @@ TEST_F(SQTest_MinMax, sq_min__two_negative_values__returns_smaller) {
 
     using expected_t = value1_t::clamp_t<-12000., -0.>;
     ASSERT_TRUE(( std::is_same_v<expected_t, decltype(minimum1)> ));
-    ASSERT_NEAR(std::min(a.toReal(), b.toReal()), minimum1.toReal(), expected_t::resolution);
+    ASSERT_NEAR(std::min(a.real(), b.real()), minimum1.real(), expected_t::resolution);
 }
 
 TEST_F(SQTest_MinMax, sq_min__two_mixed_values__returns_smaller) {
@@ -2325,7 +2322,7 @@ TEST_F(SQTest_MinMax, sq_min__two_mixed_values__returns_smaller) {
 
     using expected_t = value1_t::clamp_t<-12000., 5000.>;
     ASSERT_TRUE(( std::is_same_v<expected_t, decltype(minimum1)> ));
-    ASSERT_NEAR(std::min(a.toReal(), b.toReal()), minimum1.toReal(), expected_t::resolution);
+    ASSERT_NEAR(std::min(a.real(), b.real()), minimum1.real(), expected_t::resolution);
 }
 
 TEST_F(SQTest_MinMax, sq_min__neg_zero_and_pos_zero__returns_positive_zero) {
@@ -2336,7 +2333,7 @@ TEST_F(SQTest_MinMax, sq_min__neg_zero_and_pos_zero__returns_positive_zero) {
     auto minimum1 = min(a, b);  // will give +0., no matter if it is the first or second value (because int-zero is always positive)
 
     ASSERT_TRUE(( std::is_same_v<value_t, decltype(minimum1)> ));
-    ASSERT_NEAR(+0., minimum1.toReal(), value_t::resolution);
+    ASSERT_NEAR(+0., minimum1.real(), value_t::resolution);
 }
 
 TEST_F(SQTest_MinMax, sq_max__two_positive_values__returns_smaller) {
@@ -2349,7 +2346,7 @@ TEST_F(SQTest_MinMax, sq_max__two_positive_values__returns_smaller) {
 
     using expected_t = value1_t::clamp_t<100., 12000.>;
     ASSERT_TRUE(( std::is_same_v<expected_t, decltype(maximum1)> ));
-    ASSERT_NEAR(std::max(a.toReal(), b.toReal()), maximum1.toReal(), expected_t::resolution);
+    ASSERT_NEAR(std::max(a.real(), b.real()), maximum1.real(), expected_t::resolution);
 }
 
 TEST_F(SQTest_MinMax, sq_max__two_negative_values__returns_smaller) {
@@ -2362,7 +2359,7 @@ TEST_F(SQTest_MinMax, sq_max__two_negative_values__returns_smaller) {
 
     using expected_t = value1_t::clamp_t<-2000., 12000.>;
     ASSERT_TRUE(( std::is_same_v<expected_t, decltype(maximum1)> ));
-    ASSERT_NEAR(std::max(a.toReal(), b.toReal()), maximum1.toReal(), expected_t::resolution);
+    ASSERT_NEAR(std::max(a.real(), b.real()), maximum1.real(), expected_t::resolution);
 }
 
 TEST_F(SQTest_MinMax, sq_max__two_mixed_values__returns_smaller) {
@@ -2375,7 +2372,7 @@ TEST_F(SQTest_MinMax, sq_max__two_mixed_values__returns_smaller) {
 
     using expected_t = value1_t::clamp_t<0., 12000.>;
     ASSERT_TRUE(( std::is_same_v<expected_t, decltype(maximum1)> ));
-    ASSERT_NEAR(std::max(a.toReal(), b.toReal()), maximum1.toReal(), expected_t::resolution);
+    ASSERT_NEAR(std::max(a.real(), b.real()), maximum1.real(), expected_t::resolution);
 }
 
 TEST_F(SQTest_MinMax, sq_max__neg_zero_and_pos_zero__returns_positive_zero) {
@@ -2386,7 +2383,7 @@ TEST_F(SQTest_MinMax, sq_max__neg_zero_and_pos_zero__returns_positive_zero) {
     auto maximum1 = max(a, b);  // will give +0., no matter if it is the first or second value (because int-zero is always positive)
 
     ASSERT_TRUE(( std::is_same_v<value_t, decltype(maximum1)> ));
-    ASSERT_NEAR(+0., maximum1.toReal(), value_t::resolution);
+    ASSERT_NEAR(+0., maximum1.real(), value_t::resolution);
 }
 
 // EOF

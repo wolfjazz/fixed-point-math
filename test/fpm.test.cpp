@@ -139,10 +139,10 @@ TEST_F(S2STest, s2smd__constexpr_double_positiveF__double_negativeF) {
 
 TEST_F(S2STest, s2smd__constexpr_double_sameF__sameF_same_double) {
     constexpr scaling_t from = -2, to = -2;
-    constexpr double realValue = -564.1;
-    auto result = s2smd<double,from,to>(realValue);
+    constexpr double real = -564.1;
+    auto result = s2smd<double,from,to>(real);
 
-    ASSERT_NEAR(realValue, result, 0.1);
+    ASSERT_NEAR(real, result, 0.1);
 }
 
 TEST_F(S2STest, s2smd__var_signed_negativeF__int_positiveF) {
@@ -368,8 +368,8 @@ protected:
 
 TEST_F(V2STest, v2s__constexpr_double_positiveF__scaled_int) {
     constexpr scaling_t to = 5;
-    constexpr double realValue = 4.8971;
-    auto result = v2s<int,to>(realValue);
+    constexpr double real = 4.8971;
+    auto result = v2s<int,to>(real);
 
     constexpr int expectedResult = 156;
     ASSERT_EQ(expectedResult, result);
@@ -377,8 +377,8 @@ TEST_F(V2STest, v2s__constexpr_double_positiveF__scaled_int) {
 
 TEST_F(V2STest, v2s__constexpr_double_negativeF__scaled_int) {
     constexpr scaling_t to = -4;
-    constexpr double realValue = 4897.1;
-    auto result = v2s<int,to>(realValue);
+    constexpr double real = 4897.1;
+    auto result = v2s<int,to>(real);
 
     constexpr int expectedResult = 306;
     ASSERT_EQ(expectedResult, result);
@@ -386,8 +386,8 @@ TEST_F(V2STest, v2s__constexpr_double_negativeF__scaled_int) {
 
 TEST_F(V2STest, v2s__constexpr_double_zeroF__scaled_int) {
     constexpr scaling_t to = 0;
-    constexpr double realValue = 4897.1;
-    auto result = v2s<int,to>(realValue);
+    constexpr double real = 4897.1;
+    auto result = v2s<int,to>(real);
 
     constexpr int expectedResult = 4897;
     ASSERT_EQ(expectedResult, result);
@@ -395,9 +395,9 @@ TEST_F(V2STest, v2s__constexpr_double_zeroF__scaled_int) {
 
 TEST_F(V2STest, v2s__constexpr_pos_and_neg_double__symmetric_output) {
     constexpr scaling_t to = 4;
-    constexpr double realValue = 36.9999;
-    auto resultP = v2s<int,to>(+realValue);
-    auto resultN = v2s<int,to>(-realValue);
+    constexpr double real = 36.9999;
+    auto resultP = v2s<int,to>(+real);
+    auto resultN = v2s<int,to>(-real);
 
     constexpr int expectedResult = 591;
     ASSERT_EQ(+expectedResult, resultP);
@@ -406,9 +406,9 @@ TEST_F(V2STest, v2s__constexpr_pos_and_neg_double__symmetric_output) {
 
 TEST_F(V2STest, v2s__constexpr_pos_and_neg_double__double_output) {
     constexpr scaling_t to = 4;
-    constexpr double realValue = 16.66;
-    auto resultP = v2s<double,to>(+realValue);
-    auto resultN = v2s<double,to>(-realValue);
+    constexpr double real = 16.66;
+    auto resultP = v2s<double,to>(+real);
+    auto resultN = v2s<double,to>(-real);
 
     constexpr double expectedResult = 266.56;
     ASSERT_NEAR(+expectedResult, resultP, 0.0625);  // precision = 2^-4 = 1/16 = 0.0625
@@ -416,10 +416,10 @@ TEST_F(V2STest, v2s__constexpr_pos_and_neg_double__double_output) {
 }
 
 TEST_F(V2STest, v2s__large_F__double_output) {
-    constexpr double realValueMin = std::numeric_limits<int16_t>().min();
-    constexpr double realValueMax = std::numeric_limits<int16_t>().max();
-    auto resultN = v2s<double,MAX_F-std::numeric_limits<int16_t>::digits>(realValueMin);  // f: 53-15=38
-    auto resultP = v2s<double,MAX_F-std::numeric_limits<int16_t>::digits>(realValueMax);
+    constexpr double realMin = std::numeric_limits<int16_t>().min();
+    constexpr double realMax = std::numeric_limits<int16_t>().max();
+    auto resultN = v2s<double,MAX_F-std::numeric_limits<int16_t>::digits>(realMin);  // f: 53-15=38
+    auto resultP = v2s<double,MAX_F-std::numeric_limits<int16_t>::digits>(realMax);
 
     constexpr double expectedResultN = -9.007199254740992e15;  // epsilon is very close to 1.0 for this number
     constexpr double expectedResultP = +9.006924376834048e15;
