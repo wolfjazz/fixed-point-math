@@ -2,8 +2,8 @@
  * Implementation of the Sq class template.
  */
 
-#ifndef FPM_FPM_SQ_HPP_
-#define FPM_FPM_SQ_HPP_
+#ifndef FPM_FPM_SQ_HPP_F6ED28B6_D4B0_4418_B39B_9658F2D6587E
+#define FPM_FPM_SQ_HPP_F6ED28B6_D4B0_4418_B39B_9658F2D6587E
 
 #include "fpm.hpp"
 #include <compare>

@@ -2,8 +2,8 @@
  * Implementation of the Q class template.
  */
 
-#ifndef FPM_FPM_Q_HPP_
-#define FPM_FPM_Q_HPP_
+#ifndef FPM_FPM_Q_HPP_D7920966_3ECD_4275_96CB_7B5D755A3B18
+#define FPM_FPM_Q_HPP_D7920966_3ECD_4275_96CB_7B5D755A3B18
 
 #include "sq.hpp"
 

@@ -2,8 +2,8 @@
  * Main header. Include this header to use the fpm library.
  */
 
-#ifndef FPM_HPP_
-#define FPM_HPP_
+#ifndef FPM_HPP_F76CC86E_BBCD_46BC_A775_6D44D82C72C3
+#define FPM_HPP_F76CC86E_BBCD_46BC_A775_6D44D82C72C3
 
 #include "fpm/fpm.hpp"
 #include "fpm/sq.hpp"

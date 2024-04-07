@@ -2,10 +2,11 @@
  * Declaration of the predefined q types and literals.
  */
 
-#ifndef FPM_FPM_Q_TYPES_HPP_
-#define FPM_FPM_Q_TYPES_HPP_
+#ifndef FPM_FPM_Q_TYPES_HPP_DD98BB78_062C_4757_8293_32EDA4A5F299
+#define FPM_FPM_Q_TYPES_HPP_DD98BB78_062C_4757_8293_32EDA4A5F299
 
 #include "q.hpp"
+
 
 namespace fpm::q::inline types {
 /** \addtogroup grp_fpmQ

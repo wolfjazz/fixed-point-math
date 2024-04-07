@@ -2,10 +2,11 @@
  * Declaration of the predefined sq types and literals.
  */
 
-#ifndef FPM_FPM_SQ_TYPES_HPP_
-#define FPM_FPM_SQ_TYPES_HPP_
+#ifndef FPM_FPM_SQ_TYPES_HPP_B8FAF54D_3E5F_432E_AD57_8CBD6B403061
+#define FPM_FPM_SQ_TYPES_HPP_B8FAF54D_3E5F_432E_AD57_8CBD6B403061
 
 #include "sq.hpp"
+
 
 namespace fpm::sq::inline types {
 /** \addtogroup grp_fpmSq

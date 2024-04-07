@@ -2,8 +2,8 @@
  * Default includes, declarations and definitions of the fpm library.
  */
 
-#ifndef FPM_FPM_HPP_
-#define FPM_FPM_HPP_
+#ifndef FPM_FPM_HPP_A8F802C9_E2D6_45D5_B0AF_AEAD2FE2D1A2
+#define FPM_FPM_HPP_A8F802C9_E2D6_45D5_B0AF_AEAD2FE2D1A2
 
 #include <algorithm>
 #include <bit>
