@@ -37,7 +37,7 @@
             "env": {
                 "PATH": "${env:PATH}:${command:cmake.getLaunchTargetDirectory}",
                 "GTEST_SHUFFLE": "1",
-                "GTEST_BREAK_ON": "1"
+                "GTEST_BREAK_ON_FAILURE": "1"
             }
         }
     ]

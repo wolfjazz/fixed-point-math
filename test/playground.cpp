@@ -60,6 +60,7 @@ void playground() {
 
 int main(void) {
     playground();
+    std::cout << "dd:" << (int)(std::is_same_v<int32_t, std::common_type_t<uint8_t, int8_t> >) << std::endl;
     return 0;
 }
 

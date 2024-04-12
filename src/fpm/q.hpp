@@ -104,17 +104,16 @@ private:
         static constexpr double realMax = Q::realMax;
         static constexpr Overflow ovfBx = ovfBxOvrd;
         // include overflow check if value range of from-type is not fully within range of target type,
-        // or if different overflow properties could result in overflow if not checked;
-        // note: real limits are compared because scaled integers with different Q's cannot be compared so easily
+        // or if different overflow properties could result in overflow if not checked
         static constexpr bool ovfCheckNeeded = (QFrom::realMin < realMin || realMax < QFrom::realMax
                                                 || is_ovf_stricter_v<ovfBx, QFrom::ovfBx> || is_ovf_stricter_v<Q::ovfBx, ovfBx>);
         static constexpr base_t value(typename QFrom::base_t from) noexcept {
-            interm_t<base_t> value = s2s<interm_t<base_t>, QFrom::f, f>( from );
+            base_t value = s2s<base_t, QFrom::f, f>( from );
             // perform overflow check if needed
             if constexpr (ovfCheckNeeded) {
-                fpm::detail::checkOverflow<ovfBxOvrd, interm_t<base_t>>( value, Q::scaledMin, Q::scaledMax );
+                fpm::detail::checkOverflow<ovfBxOvrd>( value, Q::scaledMin, Q::scaledMax );
             }
-            return static_cast<base_t>( value );
+            return value;
         }
     };
 
@@ -165,24 +164,24 @@ private:
     requires fpm::detail::Scalable<typename Q::base_t, Q::f, typename QC::base_t, QC::f>
     struct Cast {
         using base_t = typename QC::base_t;
+        // cast type is twice the size of the target type to allow for proper cropping
+        using cast_t = fpm::detail::fit_type_t<sizeof(base_t) * 2u, std::is_signed_v<base_t>>;
         static constexpr scaling_t f = QC::f;
         static constexpr double realMin = QC::realMin;
         static constexpr double realMax = QC::realMax;
         static constexpr Overflow ovfBx = QC::ovfBx;
         // include overflow check if value range of source type Q is not fully within range of target
-        // type QC, or if different overflow properties could result in overflow if not checked;
-        // note: real limits are compared because scaled integers with different base types and Q's
+        // type QC, or if different overflow properties could result in overflow if not checked
         //       cannot be compared so easily
         static constexpr bool ovfCheckNeeded = (Q::realMin < realMin || realMax < Q::realMax
                                                 || is_ovf_stricter_v<ovfBx, Q::ovfBx>);
         static constexpr base_t value(typename Q::base_t from) noexcept {
-            // scale source value and cast it to the intermediate type with the sign of the target type
-            auto cValue = s2s<interm_t<base_t>, Q::f, f>(from);
+            // scale source value and cast it to the cast type with the sign of the target type
+            auto cValue = s2s<cast_t, Q::f, f>(from);
             // perform overflow check if needed
             if constexpr (ovfCheckNeeded) {
-                fpm::detail::checkOverflow<ovfBx, interm_t<base_t>, typename Q::base_t>(cValue, QC::scaledMin, QC::scaledMax);
+                fpm::detail::checkOverflow<ovfBx, cast_t, typename Q::base_t>(cValue, QC::scaledMin, QC::scaledMax);
             }
-            // create target value
             return static_cast<base_t>(cValue);
         }
     };
@@ -193,22 +192,22 @@ private:
                || (std::is_unsigned_v<typename QC::base_t> && ovfBxOvrd == Overflow::allowed) )
     struct StaticCast {
         using base_t = typename QC::base_t;
+        // cast type is twice the size of the target type to allow for proper cropping
+        using cast_t = fpm::detail::fit_type_t<sizeof(base_t) * 2u, std::is_signed_v<base_t>>;
         static constexpr scaling_t f = QC::f;
         static constexpr double realMin = QC::realMin;
         static constexpr double realMax = QC::realMax;
         static constexpr Overflow ovfBx = ovfBxOvrd;
         // include overflow check if value range of source type Q is not fully within range of target
         // type QC, or if different overflow properties could result in overflow if not checked
-        // note: real limits are compared because scaled integers with different base types and Q's
-        //       cannot be compared so easily
         static constexpr bool ovfCheckNeeded = (Q::realMin < QC::realMin || QC::realMax < Q::realMax
                                                 || is_ovf_stricter_v<ovfBx, Q::ovfBx> || is_ovf_stricter_v<QC::ovfBx, ovfBxOvrd>);
         static constexpr base_t value(typename Q::base_t from) noexcept {
-            // scale source value and cast it to the intermediate type with the sign of the target type
-            auto cValue = s2s<interm_t<base_t>, Q::f, f>(from);
+            // scale source value and cast it to the cast type with the sign of the target type
+            auto cValue = s2s<cast_t, Q::f, f>(from);
             // perform overflow check if needed
             if constexpr (ovfCheckNeeded) {
-                fpm::detail::checkOverflow<ovfBx, interm_t<base_t>, interm_t<typename Q::base_t>>(cValue, QC::scaledMin, QC::scaledMax);
+                fpm::detail::checkOverflow<ovfBx, cast_t, typename Q::base_t>(cValue, QC::scaledMin, QC::scaledMax);
             }
             // create target value
             return static_cast<base_t>(cValue);
@@ -221,15 +220,17 @@ private:
                && ovfBxOvrd != Overflow::noCheck )
     struct SafeCast {
         using base_t = typename QC::base_t;
+        // cast type is twice the size of the target type to allow for proper cropping
+        using cast_t = fpm::detail::fit_type_t<sizeof(base_t) * 2u, std::is_signed_v<base_t>>;
         static constexpr scaling_t f = QC::f;
         static constexpr double realMin = QC::realMin;
         static constexpr double realMax = QC::realMax;
         static constexpr Overflow ovfBx = ovfBxOvrd;
         static constexpr base_t value(typename Q::base_t from) noexcept {
-            // scale source value and cast it to the intermediate type with the sign of the target type
-            auto cValue = s2s<interm_t<base_t>, Q::f, f>(from);
+            // scale source value and cast it to the cast type with the sign of the target type
+            auto cValue = s2s<cast_t, Q::f, f>(from);
             // always perform overflow checks
-            fpm::detail::checkOverflow<ovfBx, interm_t<base_t>, interm_t<typename Q::base_t>>(cValue, QC::scaledMin, QC::scaledMax);
+            fpm::detail::checkOverflow<ovfBx, cast_t, typename Q::base_t>(cValue, QC::scaledMin, QC::scaledMax);
             // create target value
             return static_cast<base_t>(cValue);
         }

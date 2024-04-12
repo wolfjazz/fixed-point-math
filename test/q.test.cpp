@@ -973,7 +973,51 @@ TEST_F(QTest_Casting, q_static_cast__negative_real_value__smaller_unsigned_type_
     ASSERT_TRUE((std::is_same_v<u16q6_ovf_t, decltype(d)>));
 }
 
-TEST_F(QTest_Casting, q_static_cast__signed_user_range__unsigned_different_range__expected_real_value) {
+TEST_F(QTest_Casting, q_static_cast__small_signed_type_2_large_unsigned_type__expected_real_value) {
+    // i8[min,max]:
+    // i8::min     min        0         max      i8::max
+    // |------------|---------|----------|-----------|
+    //              ^^^^^^^^^^^^^^^^^^^^^^  <= user value range i8
+    //
+    // static_cast< u32[MIN,MAX] >( i8_scaled[min,max] ):
+    // 0         MIN                                   MAX    u32::max
+    // |----------|-----|-----------||-----------|------|---------|
+    // |               max   i8::max   i8::min  min               |
+    // ^^^^^^^^^^^^^^^^^^                        ^^^^^^^^^^^^^^^^^^  <= scaled i8 user value range in u32
+    //
+    // note: every i8 < 0 before cast will result in u32 > i8::max; these values are mapped to u32::MIN
+
+    using i8qm3_t = i8qm3<-1000., 1000.>;  // i8 -> u32, max delta f is 25
+    using u32q22_t = u32q22<800., 1020.>;
+    auto a = i8qm3_t::fromRealOvf<-1010.>();
+    auto b = i8qm3_t::fromReal<i8qm3_t::realMin>();
+    auto c = i8qm3_t::fromReal<500.>();
+    auto d = i8qm3_t::fromReal<900.>();
+    auto e = i8qm3_t::fromReal<i8qm3_t::realMax>();
+    auto f = i8qm3_t::fromRealOvf<1010.>();
+    auto g = i8qm3_t::fromRealOvf<1022.>();
+    auto ac = static_q_cast<u32q22_t, fpm::Ovf::clamp>(a);
+    auto bc = static_q_cast<u32q22_t, fpm::Ovf::clamp>(b);
+    auto bc_ovf = static_q_cast<u32q22_t, fpm::Ovf::allowed>(b);
+    auto cc = static_q_cast<u32q22_t, fpm::Ovf::clamp>(c);
+    auto dc = static_q_cast<u32q22_t, fpm::Ovf::clamp>(d);
+    auto ec = static_q_cast<u32q22_t, fpm::Ovf::clamp>(e);
+    auto fc = static_q_cast<u32q22_t, fpm::Ovf::clamp>(f);
+    auto gc = static_q_cast<u32q22_t, fpm::Ovf::clamp>(g);
+    auto gc_ovf = static_q_cast<u32q22_t, fpm::Ovf::allowed>(g);
+
+    ASSERT_NEAR(u32q22_t::realMin, ac.real(), i8qm3_t::resolution);  // (u32::max - 1010*2^22) / 2^22 clamped
+    ASSERT_NEAR(u32q22_t::realMin, bc.real(), i8qm3_t::resolution);  // (u32::max - 1000*2^22) / 2^22 clamped
+    ASSERT_NEAR(23.99999976, bc_ovf.real(), i8qm3_t::resolution);    // (u32::max - 1000*2^22) / 2^22
+    ASSERT_NEAR(u32q22_t::realMin, cc.real(), i8qm3_t::resolution);  // 500 clamped to u32q22::realMin
+    ASSERT_NEAR( 900., dc.real(), i8qm3_t::resolution);
+    ASSERT_NEAR(i8qm3_t::realMax, ec.real(), i8qm3_t::resolution);
+    ASSERT_NEAR(1010., fc.real(), i8qm3_t::resolution);
+    ASSERT_NEAR(u32q22_t::realMax, gc.real(), i8qm3_t::resolution);
+    ASSERT_NEAR(1022., gc_ovf.real(), i8qm3_t::resolution);
+}
+
+TEST_F(QTest_Casting, q_static_cast__smaller_signed_type_2_larger_unsigned_type__expected_real_value) {
     // i16[min,max]:
     // i16::min    min        0         max      i16::max
     // |------------|---------|----------|-----------|
@@ -1017,7 +1061,43 @@ TEST_F(QTest_Casting, q_static_cast__signed_user_range__unsigned_different_range
     ASSERT_NEAR(200000., gc_ovf.real(), i16qm3_t::resolution);
 }
 
-TEST_F(QTest_Casting, q_static_cast__unsigned_user_range__signed_different_range__expected_real_value) {
+TEST_F(QTest_Casting, q_static_cast__small_unsigned_type_2_large_signed_type__expected_real_value) {
+    // u8[min,max]:
+    // 0           min                 max          u8::max
+    // |------------|----------|--------|--------------|
+    //              ^^^^^^^^^^^^^^^^^^^^^  <= user value range u8
+    //
+    // static_cast< i32[MIN,MAX] >( u8_scaled[min,max] ):
+    // i32::min  MIN                0                 MAX    i32::max
+    // |----------|----|------------|-------|----------|---------|
+    // |              max                  min                   |
+    // ^^^^^^^^^^^^^^^^^                    ^^^^^^^^^^^^^^^^^^^^^^  <= scaled u8 user value range in i32
+    //
+    // note: everything > u8::max/2 before cast will result in negative i32; these values are mapped to i32::MAX
+
+    using u8qm3_t = u8qm3<0., 1000.>;  // u8 -> i32, max delta f is 23
+    using i32q20_t = i32q20<-800., 1020.>;
+    auto a = u8qm3_t::fromReal<u8qm3_t::realMin>();
+    auto b = u8qm3_t::fromReal<500.>();
+    auto c = u8qm3_t::fromReal<u8qm3_t::realMax>();
+    auto d = u8qm3_t::fromRealOvf<1010.>();
+    auto e = u8qm3_t::fromRealOvf<1022.>();
+    auto ac = static_q_cast<i32q20_t, fpm::Ovf::clamp>(a);
+    auto bc = static_q_cast<i32q20_t, fpm::Ovf::clamp>(b);
+    auto cc = static_q_cast<i32q20_t, fpm::Ovf::clamp>(c);
+    auto dc = static_q_cast<i32q20_t, fpm::Ovf::clamp>(d);
+    auto ec = static_q_cast<i32q20_t, fpm::Ovf::clamp>(e);
+    auto ec_ovf = static_q_cast<i32q20_t, fpm::Ovf::allowed>(e);
+
+    ASSERT_NEAR(u8qm3_t::realMin, ac.real(), u8qm3_t::resolution);
+    ASSERT_NEAR( 500., bc.real(), u8qm3_t::resolution);
+    ASSERT_NEAR(u8qm3_t::realMax, cc.real(), u8qm3_t::resolution);
+    ASSERT_NEAR(1010., dc.real(), u8qm3_t::resolution);
+    ASSERT_NEAR(i32q20_t::realMax, ec.real(), u8qm3_t::resolution);  // 1022 clamped to i32q20_t::realMax
+    ASSERT_NEAR(1022., ec_ovf.real(), u8qm3_t::resolution);
+}
+
+TEST_F(QTest_Casting, q_static_cast__smaller_unsigned_type_2_larger_signed_type__expected_real_value) {
     // u16[min,max]:
     // 0           min                 max         u16::max
     // |------------|----------|--------|--------------|
@@ -1053,7 +1133,45 @@ TEST_F(QTest_Casting, q_static_cast__unsigned_user_range__signed_different_range
     ASSERT_NEAR(520000., ec_ovf.real(), u16qm3_t::resolution);
 }
 
-TEST_F(QTest_Casting, q_static_cast__signed_user_range__signed_different_range__expected_real_value) {
+TEST_F(QTest_Casting, q_static_cast__small_signed_type_2_large_signed_type__expected_real_value) {
+    // i8[min,max]:
+    // i8::min       min       0       max          i8::max
+    // |--------------|--------|--------|--------------|
+    //                ^^^^^^^^^^^^^^^^^^^  <= i8 user value range
+    //
+    // static_cast< i32[MIN,MAX] >( i8_scaled[min,max] ):
+    // i32::min  MIN           0            MAX    i32::max
+    // |-----|----|------------|-------------|--|------|
+    //      min   |                          | max
+    //       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^  <= scaled i8 user value range before clamping
+    //            |                          |
+    //            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^  <= i32 user value range (clamped value range)
+
+    using i8qm4_t = i8qm4<-2000., 2000.>;  // i8 -> i32, max delta f is 24
+    using i32q20_t = i32q20<-1000., 2020.>;
+    auto a = i8qm4_t::fromReal<i8qm4_t::realMin>();
+    auto b = i8qm4_t::fromReal<-500.>();
+    auto c = i8qm4_t::fromReal<i8qm4_t::realMax>();
+    auto d = i8qm4_t::fromRealOvf<2010.>();
+    auto e = i8qm4_t::fromRealOvf<2030.>();
+    auto ac = static_q_cast<i32q20_t, fpm::Ovf::clamp>(a);
+    auto ac_ovf = static_q_cast<i32q20_t, fpm::Ovf::allowed>(a);
+    auto bc = static_q_cast<i32q20_t, fpm::Ovf::clamp>(b);
+    auto cc = static_q_cast<i32q20_t, fpm::Ovf::clamp>(c);
+    auto dc = static_q_cast<i32q20_t, fpm::Ovf::clamp>(d);
+    auto ec = static_q_cast<i32q20_t, fpm::Ovf::clamp>(e);
+    auto ec_ovf = static_q_cast<i32q20_t, fpm::Ovf::allowed>(e);
+
+    ASSERT_NEAR(i32q20_t::realMin, ac.real(), i8qm4_t::resolution);  // -2000 clamped to i32q12::realMin
+    ASSERT_NEAR(i8qm4_t::realMin, ac_ovf.real(), i8qm4_t::resolution);  // -2000 not clamped
+    ASSERT_NEAR(-500., bc.real(), i8qm4_t::resolution);
+    ASSERT_NEAR(i8qm4_t::realMax, cc.real(), i8qm4_t::resolution);
+    ASSERT_NEAR(2010., dc.real(), i8qm4_t::resolution);
+    ASSERT_NEAR(i32q20_t::realMax, ec.real(), i8qm4_t::resolution);  // 2010 clamped to i32q12::realMax
+    ASSERT_NEAR(2030., ec_ovf.real(), i8qm4_t::resolution);  // not clamped
+}
+
+TEST_F(QTest_Casting, q_static_cast__smaller_signed_type_2_larger_signed_type__expected_real_value) {
     // i16[min,max]:
     // i16::min      min       0       max         i16::max
     // |--------------|--------|--------|--------------|
@@ -1091,7 +1209,46 @@ TEST_F(QTest_Casting, q_static_cast__signed_user_range__signed_different_range__
     ASSERT_NEAR(520000., ec_ovf.real(), i16qm4_t::resolution);  // not clamped
 }
 
-TEST_F(QTest_Casting, q_static_cast__unsigned_user_range__unsigned_different_range__expected_real_value) {
+TEST_F(QTest_Casting, q_static_cast__small_unsigned_type_2_large_unsigned_type__expected_real_value) {
+    // u8[min,max]:
+    // 0             min               max         u8::max
+    // |--------------|--------|--------|--------------|
+    //                ^^^^^^^^^^^^^^^^^^^  <= u8 user value range
+    //
+    // static_cast< u32[MIN,MAX] >( u8_scaled[min,max] ):
+    // 0         MIN                        MAX    u32::max
+    // |-----|----|------------|-------------|--|------|
+    //      min   |                          | max
+    //       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^  <= scaled u8 user value range before clamping
+    //            |                          |
+    //            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^  <= u32 user value range (clamped value range)
+
+    using u8qm2_t = u8qm2<100., 1000.>;  // u8 -> u32, max delta f is 24
+    using u32q22_t = u32q22<800., 1020.>;
+    auto a = u8qm2_t::fromRealOvf<0.>();
+    auto b = u8qm2_t::fromReal<u8qm2_t::realMin>();
+    auto c = u8qm2_t::fromReal<500.>();
+    auto d = u8qm2_t::fromReal<900.>();
+    auto e = u8qm2_t::fromReal<u8qm2_t::realMax>();
+    auto f = u8qm2_t::fromRealOvf<1023.>();
+    auto ac = static_q_cast<u32q22_t, fpm::Ovf::clamp>(a);
+    auto bc = static_q_cast<u32q22_t, fpm::Ovf::clamp>(b);
+    auto cc = static_q_cast<u32q22_t, fpm::Ovf::clamp>(c);
+    auto dc = static_q_cast<u32q22_t, fpm::Ovf::clamp>(d);
+    auto ec = static_q_cast<u32q22_t, fpm::Ovf::clamp>(e);
+    auto fc = static_q_cast<u32q22_t, fpm::Ovf::clamp>(f);
+    auto fc_ovf = static_q_cast<u32q22_t, fpm::Ovf::allowed>(f);
+
+    ASSERT_NEAR(u32q22_t::realMin, ac.real(), u8qm2_t::resolution);  // 0 clamped to u32q14::realMin
+    ASSERT_NEAR(u32q22_t::realMin, bc.real(), u8qm2_t::resolution);  // 100 clamped to u32q14::realMin
+    ASSERT_NEAR(u32q22_t::realMin, cc.real(), u8qm2_t::resolution);  // 500 clamped to u32q14::realMin
+    ASSERT_NEAR( 900., dc.real(), u8qm2_t::resolution);
+    ASSERT_NEAR(u8qm2_t::realMax, ec.real(), u8qm2_t::resolution);
+    ASSERT_NEAR(u32q22_t::realMax, fc.real(), u8qm2_t::resolution);  // 1023 clamped to u32q14::realMax
+    ASSERT_NEAR(1023., fc_ovf.real(), u8qm2_t::resolution);  // not clamped
+}
+
+TEST_F(QTest_Casting, q_static_cast__smaller_unsigned_type_2_larger_unsigned_type__expected_real_value) {
     // u16[min,max]:
     // 0             min               max         u16::max
     // |--------------|--------|--------|--------------|
@@ -1121,13 +1278,192 @@ TEST_F(QTest_Casting, q_static_cast__unsigned_user_range__unsigned_different_ran
     auto fc = static_q_cast<u32q14_t, fpm::Ovf::clamp>(f);
     auto fc_ovf = static_q_cast<u32q14_t, fpm::Ovf::allowed>(f);
 
-    ASSERT_NEAR(u32q14_t::realMin, ac.real(), u16qm2_t::resolution);  // (u32::max - 110000*2^14) / 2^14 clamped
-    ASSERT_NEAR(u32q14_t::realMin, bc.real(), u16qm2_t::resolution);  // (u32::max - 100000*2^14) / 2^14 clamped
+    ASSERT_NEAR(u32q14_t::realMin, ac.real(), u16qm2_t::resolution);  // 0 clamped to u32q14::realMin
+    ASSERT_NEAR(u32q14_t::realMin, bc.real(), u16qm2_t::resolution);  // 10000 clamped to u32q14::realMin
     ASSERT_NEAR(u32q14_t::realMin, cc.real(), u16qm2_t::resolution);  // 50000 clamped to u32q14::realMin
     ASSERT_NEAR( 90000., dc.real(), u16qm2_t::resolution);
     ASSERT_NEAR(u16qm2_t::realMax, ec.real(), u16qm2_t::resolution);
     ASSERT_NEAR(u32q14_t::realMax, fc.real(), u16qm2_t::resolution);  // 210000 clamped to u32q14::realMax
     ASSERT_NEAR(210000., fc_ovf.real(), u16qm2_t::resolution);  // not clamped
+}
+
+TEST_F(QTest_Casting, q_static_cast__large_unsigned_type_2_small_signed_type__expected_real_value) {
+    using u32q22_t = u32q22<800., 1020.>;
+    using i8qm3_t = i8qm3<-1000., 1000.>;  // u32 -> i8, max delta f is 25
+    auto a = u32q22_t::fromRealOvf<0.>();
+    auto b = u32q22_t::fromReal<u32q22_t::realMin>();
+    auto c = u32q22_t::fromReal<900.>();
+    auto d = u32q22_t::fromReal<i8qm3_t::realMax>();
+    auto e = u32q22_t::fromReal<u32q22_t::realMax>();
+    auto ac = static_q_cast<i8qm3_t, fpm::Ovf::clamp>(a);
+    auto bc = static_q_cast<i8qm3_t, fpm::Ovf::clamp>(b);
+    auto cc = static_q_cast<i8qm3_t, fpm::Ovf::clamp>(c);
+    auto dc = static_q_cast<i8qm3_t, fpm::Ovf::clamp>(d);
+    auto ec = static_q_cast<i8qm3_t, fpm::Ovf::clamp>(e);
+    auto ec_ovf = static_q_cast<i8qm3_t, fpm::Ovf::allowed>(e);
+
+    ASSERT_NEAR(   0., ac.real(), i8qm3_t::resolution);
+    ASSERT_NEAR(u32q22_t::realMin, bc.real(), i8qm3_t::resolution);
+    ASSERT_NEAR( 900., cc.real(), i8qm3_t::resolution);
+    ASSERT_NEAR(i8qm3_t::realMax, dc.real(), i8qm3_t::resolution);
+    ASSERT_NEAR(i8qm3_t::realMax, ec.real(), i8qm3_t::resolution);
+    ASSERT_NEAR(1020., ec_ovf.real(), i8qm3_t::resolution);
+}
+
+TEST_F(QTest_Casting, q_static_cast__larger_unsigned_type_2_smaller_signed_type__expected_real_value) {
+    using u32q14_t = u32q14<80000., 160000.>;
+    using i16qm3_t = i16qm3<-100000., 100000.>;  // u32 -> i16, max delta f is 17
+    auto a = u32q14_t::fromRealOvf<0.>();
+    auto b = u32q14_t::fromReal<u32q14_t::realMin>();
+    auto c = u32q14_t::fromReal<90000.>();
+    auto d = u32q14_t::fromReal<i16qm3_t::realMax>();
+    auto e = u32q14_t::fromReal<u32q14_t::realMax>();
+    auto ac = static_q_cast<i16qm3_t, fpm::Ovf::clamp>(a);
+    auto bc = static_q_cast<i16qm3_t, fpm::Ovf::clamp>(b);
+    auto cc = static_q_cast<i16qm3_t, fpm::Ovf::clamp>(c);
+    auto dc = static_q_cast<i16qm3_t, fpm::Ovf::clamp>(d);
+    auto ec = static_q_cast<i16qm3_t, fpm::Ovf::clamp>(e);
+    auto ec_ovf = static_q_cast<i16qm3_t, fpm::Ovf::allowed>(e);
+
+    ASSERT_NEAR(   0., ac.real(), i16qm3_t::resolution);
+    ASSERT_NEAR(u32q14_t::realMin, bc.real(), i16qm3_t::resolution);
+    ASSERT_NEAR( 90000., cc.real(), i16qm3_t::resolution);
+    ASSERT_NEAR(i16qm3_t::realMax, dc.real(), i16qm3_t::resolution);
+    ASSERT_NEAR(i16qm3_t::realMax, ec.real(), i16qm3_t::resolution);
+    ASSERT_NEAR(160000., ec_ovf.real(), i16qm3_t::resolution);
+}
+
+TEST_F(QTest_Casting, q_static_cast__large_signed_type_2_small_unsigned_type__expected_real_value) {
+    using i32q20_t = i32q20<-1000., 1000.>;
+    using u8qm3_t = u8qm3<100., 900.>;  // i32 -> u8, max delta f is 23
+    auto a = i32q20_t::fromReal<i32q20_t::realMin>();
+    auto b = i32q20_t::fromReal<500.>();
+    auto c = i32q20_t::fromReal<u8qm3_t::realMax>();
+    auto d = i32q20_t::fromReal<i32q20_t::realMax>();
+    auto ac = static_q_cast<u8qm3_t, fpm::Ovf::clamp>(a);
+    auto bc = static_q_cast<u8qm3_t, fpm::Ovf::clamp>(b);
+    auto cc = static_q_cast<u8qm3_t, fpm::Ovf::clamp>(c);
+    auto dc = static_q_cast<u8qm3_t, fpm::Ovf::clamp>(d);
+    auto dc_ovf = static_q_cast<u8qm3_t, fpm::Ovf::allowed>(d);
+
+    ASSERT_NEAR(u8qm3_t::realMin, ac.real(), u8qm3_t::resolution);
+    ASSERT_NEAR( 500., bc.real(), u8qm3_t::resolution);
+    ASSERT_NEAR(u8qm3_t::realMax, cc.real(), u8qm3_t::resolution);
+    ASSERT_NEAR(u8qm3_t::realMax, dc.real(), u8qm3_t::resolution);
+    ASSERT_NEAR(i32q20_t::realMax, dc_ovf.real(), u8qm3_t::resolution);
+}
+
+TEST_F(QTest_Casting, q_static_cast__larger_signed_type_2_smaller_unsigned_type__expected_real_value) {
+    using i32q12_t = i32q12<-1000., 1000.>;
+    using u16qm3_t = u8qm3<100., 900.>;  // i32 -> u16, max delta f is 15
+    auto a = i32q12_t::fromReal<i32q12_t::realMin>();
+    auto b = i32q12_t::fromReal<500.>();
+    auto c = i32q12_t::fromReal<u16qm3_t::realMax>();
+    auto d = i32q12_t::fromReal<i32q12_t::realMax>();
+    auto ac = static_q_cast<u16qm3_t, fpm::Ovf::clamp>(a);
+    auto bc = static_q_cast<u16qm3_t, fpm::Ovf::clamp>(b);
+    auto cc = static_q_cast<u16qm3_t, fpm::Ovf::clamp>(c);
+    auto dc = static_q_cast<u16qm3_t, fpm::Ovf::clamp>(d);
+    auto dc_ovf = static_q_cast<u16qm3_t, fpm::Ovf::allowed>(d);
+
+    ASSERT_NEAR(u16qm3_t::realMin, ac.real(), u16qm3_t::resolution);
+    ASSERT_NEAR( 500., bc.real(), u16qm3_t::resolution);
+    ASSERT_NEAR(u16qm3_t::realMax, cc.real(), u16qm3_t::resolution);
+    ASSERT_NEAR(u16qm3_t::realMax, dc.real(), u16qm3_t::resolution);
+    ASSERT_NEAR(i32q12_t::realMax, dc_ovf.real(), u16qm3_t::resolution);
+}
+
+TEST_F(QTest_Casting, q_static_cast__large_signed_type_2_small_signed_type__expected_real_value) {
+    using i32q20_t = i32q20<-1000., 2020.>;
+    using i8qm4_t = i8qm4<-900., 2000.>;  // i32 -> i8, max delta f is 24
+    auto a = i32q20_t::fromReal<i32q20_t::realMin>();
+    auto b = i32q20_t::fromReal<-500.>();
+    auto c = i32q20_t::fromReal<i32q20_t::realMax>();
+    auto d = i32q20_t::fromRealOvf<2030.>();
+    auto ac = static_q_cast<i8qm4_t, fpm::Ovf::clamp>(a);
+    auto ac_ovf = static_q_cast<i8qm4_t, fpm::Ovf::allowed>(a);
+    auto bc = static_q_cast<i8qm4_t, fpm::Ovf::clamp>(b);
+    auto cc = static_q_cast<i8qm4_t, fpm::Ovf::clamp>(c);
+    auto dc = static_q_cast<i8qm4_t, fpm::Ovf::clamp>(d);
+    auto dc_ovf = static_q_cast<i8qm4_t, fpm::Ovf::allowed>(d);
+
+    ASSERT_NEAR(i8qm4_t::realMin, ac.real(), i8qm4_t::resolution);
+    ASSERT_NEAR(i32q20_t::realMin, ac_ovf.real(), i8qm4_t::resolution);
+    ASSERT_NEAR(-500., bc.real(), i8qm4_t::resolution);
+    ASSERT_NEAR(i8qm4_t::realMax, cc.real(), i8qm4_t::resolution);
+    ASSERT_NEAR(i8qm4_t::realMax, dc.real(), i8qm4_t::resolution);
+    ASSERT_NEAR(2030., dc_ovf.real(), i8qm4_t::resolution);
+}
+
+TEST_F(QTest_Casting, q_static_cast__larger_signed_type_2_smaller_signed_type__expected_real_value) {
+    using i32q12_t = i32q12<-80000., 500000.>;
+    using i16qm4_t = i16qm4<-40000., 400000.>;  // i32 -> i16, max delta f is 16
+    auto a = i32q12_t::fromReal<i32q12_t::realMin>();
+    auto b = i32q12_t::fromReal<-10000.>();
+    auto c = i32q12_t::fromReal<i32q12_t::realMax>();
+    auto d = i32q12_t::fromRealOvf<410000.>();
+    auto e = i32q12_t::fromRealOvf<520000.>();
+    auto ac = static_q_cast<i16qm4_t, fpm::Ovf::clamp>(a);
+    auto ac_ovf = static_q_cast<i16qm4_t, fpm::Ovf::allowed>(a);
+    auto bc = static_q_cast<i16qm4_t, fpm::Ovf::clamp>(b);
+    auto cc = static_q_cast<i16qm4_t, fpm::Ovf::clamp>(c);
+    auto dc = static_q_cast<i16qm4_t, fpm::Ovf::clamp>(d);
+    auto ec = static_q_cast<i16qm4_t, fpm::Ovf::clamp>(e);
+    auto ec_ovf = static_q_cast<i16qm4_t, fpm::Ovf::allowed>(e);
+
+    ASSERT_NEAR(i16qm4_t::realMin, ac.real(), i16qm4_t::resolution);
+    ASSERT_NEAR(-80000., ac_ovf.real(), i16qm4_t::resolution);
+    ASSERT_NEAR(-10000., bc.real(), i16qm4_t::resolution);
+    ASSERT_NEAR(i16qm4_t::realMax, cc.real(), i16qm4_t::resolution);
+    ASSERT_NEAR(i16qm4_t::realMax, dc.real(), i16qm4_t::resolution);
+    ASSERT_NEAR(i16qm4_t::realMax, ec.real(), i16qm4_t::resolution);
+    ASSERT_NEAR(520000., ec_ovf.real(), i16qm4_t::resolution);
+}
+
+TEST_F(QTest_Casting, q_static_cast__large_unsigned_type_2_small_unsigned_type__expected_real_value) {
+    using u32q22_t = u32q22<800., 1010.>;
+    using u8qm2_t = u8qm2<100., 1000.>;  // u32 -> u8, max delta f is 24
+    auto a = u32q22_t::fromRealOvf<0.>();
+    auto b = u32q22_t::fromReal<u32q22_t::realMin>();
+    auto d = u32q22_t::fromReal<900.>();
+    auto e = u32q22_t::fromReal<u32q22_t::realMax>();
+    auto f = u32q22_t::fromRealOvf<1023.>();
+    auto ac = static_q_cast<u8qm2_t, fpm::Ovf::clamp>(a);
+    auto bc = static_q_cast<u8qm2_t, fpm::Ovf::clamp>(b);
+    auto dc = static_q_cast<u8qm2_t, fpm::Ovf::clamp>(d);
+    auto ec = static_q_cast<u8qm2_t, fpm::Ovf::clamp>(e);
+    auto fc = static_q_cast<u8qm2_t, fpm::Ovf::clamp>(f);
+    auto fc_ovf = static_q_cast<u8qm2_t, fpm::Ovf::allowed>(f);
+
+    ASSERT_NEAR(u8qm2_t::realMin, ac.real(), u8qm2_t::resolution);
+    ASSERT_NEAR( 800., bc.real(), u8qm2_t::resolution);
+    ASSERT_NEAR( 900., dc.real(), u8qm2_t::resolution);
+    ASSERT_NEAR(u8qm2_t::realMax, ec.real(), u8qm2_t::resolution);
+    ASSERT_NEAR(u8qm2_t::realMax, fc.real(), u8qm2_t::resolution);
+    ASSERT_NEAR(1023., fc_ovf.real(), u8qm2_t::resolution);
+}
+
+TEST_F(QTest_Casting, q_static_cast__larger_unsigned_type_2_smaller_unsigned_type__expected_real_value) {
+    using u32q14_t = u32q14<80000., 160000.>;
+    using u16qm2_t = u16qm2<10000., 100000.>;  // u32 -> u16, max delta f is 16
+    auto a = u32q14_t::fromRealOvf<0.>();
+    auto b = u32q14_t::fromReal<u32q14_t::realMin>();
+    auto d = u32q14_t::fromReal<90000.>();
+    auto e = u32q14_t::fromReal<u32q14_t::realMax>();
+    auto f = u32q14_t::fromRealOvf<210000.>();
+    auto ac = static_q_cast<u16qm2_t, fpm::Ovf::clamp>(a);
+    auto bc = static_q_cast<u16qm2_t, fpm::Ovf::clamp>(b);
+    auto dc = static_q_cast<u16qm2_t, fpm::Ovf::clamp>(d);
+    auto ec = static_q_cast<u16qm2_t, fpm::Ovf::clamp>(e);
+    auto fc = static_q_cast<u16qm2_t, fpm::Ovf::clamp>(f);
+    auto fc_ovf = static_q_cast<u16qm2_t, fpm::Ovf::allowed>(f);
+
+    ASSERT_NEAR(u16qm2_t::realMin, ac.real(), u16qm2_t::resolution);
+    ASSERT_NEAR( 80000., bc.real(), u16qm2_t::resolution);
+    ASSERT_NEAR( 90000., dc.real(), u16qm2_t::resolution);
+    ASSERT_NEAR(u16qm2_t::realMax, ec.real(), u16qm2_t::resolution);
+    ASSERT_NEAR(u16qm2_t::realMax, fc.real(), u16qm2_t::resolution);
+    ASSERT_NEAR(210000., fc_ovf.real(), u16qm2_t::resolution);
 }
 
 TEST_F(QTest_Casting, q_safe_cast__positive_real_value_signed__unsigned_type_smallerF_same_value) {
@@ -1204,20 +1540,34 @@ TEST_F(QTest_Casting, q_safe_cast__negative_real_value__smaller_unsigned_type_la
     ASSERT_TRUE((std::is_same_v<u16q6_t, decltype(c)>));
 }
 
-TEST_F(QTest_Casting, q_safe_cast__signed_user_range__unsigned_different_range__clamped_real_value) {
-    // i16[min,max]:
-    // i16::min    min        0         max      i16::max
-    // |------------|---------|----------|-----------|
-    //              ^^^^^^^^^^^^^^^^^^^^^^  <= user value range i16
-    //
-    // static_cast< u32[MIN,MAX] >( i16_scaled[min,max] ):
-    // 0         MIN                                   MAX    u32::max
-    // |----------|-----|-----------||-----------|------|---------|
-    // |               max  i16::max  i16::min  min               |
-    // ^^^^^^^^^^^^^^^^^^                        ^^^^^^^^^^^^^^^^^^  <= scaled i16 user value range in u32
-    //
-    // note: every i16 < 0 before cast will result in u32 > i16::max; these values are mapped to u32::MIN
+TEST_F(QTest_Casting, q_safe_cast__small_signed_type_2_large_unsigned_type__expected_real_value) {
+    using i8qm3_t = i8qm3<-1000., 1000.>;  // i8 -> u32, max delta f is 25
+    using u32q22_t = u32q22<800., 1020.>;
+    auto a = i8qm3_t::fromRealOvf<-1010.>();
+    auto b = i8qm3_t::fromReal<i8qm3_t::realMin>();
+    auto c = i8qm3_t::fromReal<500.>();
+    auto d = i8qm3_t::fromReal<900.>();
+    auto e = i8qm3_t::fromReal<i8qm3_t::realMax>();
+    auto f = i8qm3_t::fromRealOvf<1010.>();
+    auto g = i8qm3_t::fromRealOvf<1022.>();
+    auto ac = safe_q_cast<u32q22_t, fpm::Ovf::clamp>(a);
+    auto bc = safe_q_cast<u32q22_t, fpm::Ovf::clamp>(b);
+    auto cc = safe_q_cast<u32q22_t, fpm::Ovf::clamp>(c);
+    auto dc = safe_q_cast<u32q22_t, fpm::Ovf::clamp>(d);
+    auto ec = safe_q_cast<u32q22_t, fpm::Ovf::clamp>(e);
+    auto fc = safe_q_cast<u32q22_t, fpm::Ovf::clamp>(f);
+    auto gc = safe_q_cast<u32q22_t, fpm::Ovf::clamp>(g);
 
+    ASSERT_NEAR(u32q22_t::realMin, ac.real(), i8qm3_t::resolution);
+    ASSERT_NEAR(u32q22_t::realMin, bc.real(), i8qm3_t::resolution);
+    ASSERT_NEAR(u32q22_t::realMin, cc.real(), i8qm3_t::resolution);
+    ASSERT_NEAR( 900., dc.real(), i8qm3_t::resolution);
+    ASSERT_NEAR(i8qm3_t::realMax, ec.real(), i8qm3_t::resolution);
+    ASSERT_NEAR(1010., fc.real(), i8qm3_t::resolution);
+    ASSERT_NEAR(u32q22_t::realMax, gc.real(), i8qm3_t::resolution);
+}
+
+TEST_F(QTest_Casting, q_safe_cast__smaller_signed_type_2_larger_unsigned_type__expected_real_value) {
     using i16qm3_t = i16qm3<-100000., 100000.>;  // i16 -> u32, max delta f is 17
     using u32q14_t = u32q14<80000., 160000.>;
     auto a = i16qm3_t::fromRealOvf<-110000.>();
@@ -1226,35 +1576,46 @@ TEST_F(QTest_Casting, q_safe_cast__signed_user_range__unsigned_different_range__
     auto d = i16qm3_t::fromReal<90000.>();
     auto e = i16qm3_t::fromReal<i16qm3_t::realMax>();
     auto f = i16qm3_t::fromRealOvf<110000.>();
+    auto g = i16qm3_t::fromRealOvf<200000.>();
     auto ac = safe_q_cast<u32q14_t, fpm::Ovf::clamp>(a);
     auto bc = safe_q_cast<u32q14_t, fpm::Ovf::clamp>(b);
     auto cc = safe_q_cast<u32q14_t, fpm::Ovf::clamp>(c);
     auto dc = safe_q_cast<u32q14_t, fpm::Ovf::clamp>(d);
     auto ec = safe_q_cast<u32q14_t, fpm::Ovf::clamp>(e);
     auto fc = safe_q_cast<u32q14_t, fpm::Ovf::clamp>(f);
+    auto gc = safe_q_cast<u32q14_t, fpm::Ovf::clamp>(g);
 
-    ASSERT_NEAR(u32q14_t::realMin, ac.real(), i16qm3_t::resolution);  // (u32::max - 110000*2^14) / 2^14 clamped
-    ASSERT_NEAR(u32q14_t::realMin, bc.real(), i16qm3_t::resolution);  // (u32::max - 100000*2^14) / 2^14 clamped
-    ASSERT_NEAR(u32q14_t::realMin, cc.real(), i16qm3_t::resolution);  // 50000 clamped to u32q14::realMin
+    ASSERT_NEAR(u32q14_t::realMin, ac.real(), i16qm3_t::resolution);
+    ASSERT_NEAR(u32q14_t::realMin, bc.real(), i16qm3_t::resolution);
+    ASSERT_NEAR(u32q14_t::realMin, cc.real(), i16qm3_t::resolution);
     ASSERT_NEAR( 90000., dc.real(), i16qm3_t::resolution);
     ASSERT_NEAR(i16qm3_t::realMax, ec.real(), i16qm3_t::resolution);
     ASSERT_NEAR(110000., fc.real(), i16qm3_t::resolution);
+    ASSERT_NEAR(u32q14_t::realMax, gc.real(), i16qm3_t::resolution);
 }
 
-TEST_F(QTest_Casting, q_safe_cast__unsigned_user_range__signed_different_range__clamped_real_value) {
-    // u16[min,max]:
-    // 0           min                 max         u16::max
-    // |------------|----------|--------|--------------|
-    //              ^^^^^^^^^^^^^^^^^^^^^  <= user value range u16
-    //
-    // static_cast< i32[MIN,MAX] >( u16_scaled[min,max] ):
-    // i32::min  MIN                0                 MAX    i32::max
-    // |----------|----|------------|-------|----------|---------|
-    // |              max                  min                   |
-    // ^^^^^^^^^^^^^^^^^                    ^^^^^^^^^^^^^^^^^^^^^^  <= scaled u16 user value range in i32
-    //
-    // note: everything > u16::max/2 before cast will result in negative i32; these values are mapped to i32::MAX
+TEST_F(QTest_Casting, q_safe_cast__small_unsigned_type_2_large_signed_type__expected_real_value) {
+    using u8qm3_t = u8qm3<0., 1000.>;  // u8 -> i32, max delta f is 23
+    using i32q20_t = i32q20<-800., 1020.>;
+    auto a = u8qm3_t::fromReal<u8qm3_t::realMin>();
+    auto b = u8qm3_t::fromReal<500.>();
+    auto c = u8qm3_t::fromReal<u8qm3_t::realMax>();
+    auto d = u8qm3_t::fromRealOvf<1010.>();
+    auto e = u8qm3_t::fromRealOvf<1022.>();
+    auto ac = safe_q_cast<i32q20_t, fpm::Ovf::clamp>(a);
+    auto bc = safe_q_cast<i32q20_t, fpm::Ovf::clamp>(b);
+    auto cc = safe_q_cast<i32q20_t, fpm::Ovf::clamp>(c);
+    auto dc = safe_q_cast<i32q20_t, fpm::Ovf::clamp>(d);
+    auto ec = safe_q_cast<i32q20_t, fpm::Ovf::clamp>(e);
 
+    ASSERT_NEAR(u8qm3_t::realMin, ac.real(), u8qm3_t::resolution);
+    ASSERT_NEAR( 500., bc.real(), u8qm3_t::resolution);
+    ASSERT_NEAR(u8qm3_t::realMax, cc.real(), u8qm3_t::resolution);
+    ASSERT_NEAR(1010., dc.real(), u8qm3_t::resolution);
+    ASSERT_NEAR(i32q20_t::realMax, ec.real(), u8qm3_t::resolution);
+}
+
+TEST_F(QTest_Casting, q_safe_cast__smaller_unsigned_type_2_larger_signed_type__expected_real_value) {
     using u16qm3_t = u16qm3<0., 400000.>;  // u16 -> i32, max delta f is 15
     using i32q12_t = i32q12<-80000., 500000.>;
     auto a = u16qm3_t::fromReal<u16qm3_t::realMin>();
@@ -1272,23 +1633,31 @@ TEST_F(QTest_Casting, q_safe_cast__unsigned_user_range__signed_different_range__
     ASSERT_NEAR( 50000., bc.real(), u16qm3_t::resolution);
     ASSERT_NEAR(u16qm3_t::realMax, cc.real(), u16qm3_t::resolution);
     ASSERT_NEAR(410000., dc.real(), u16qm3_t::resolution);
-    ASSERT_NEAR(i32q12_t::realMax, ec.real(), u16qm3_t::resolution);  // 520000 clamped to i32q12::realMax
+    ASSERT_NEAR(i32q12_t::realMax, ec.real(), u16qm3_t::resolution);
 }
 
-TEST_F(QTest_Casting, q_safe_cast__signed_user_range__signed_different_range__clamped_real_value) {
-    // i16[min,max]:
-    // i16::min      min       0       max         i16::max
-    // |--------------|--------|--------|--------------|
-    //                ^^^^^^^^^^^^^^^^^^^  <= i16 user value range
-    //
-    // static_cast< i32[MIN,MAX] >( i16_scaled[min,max] ):
-    // i32::min  MIN           0            MAX    i32::max
-    // |-----|----|------------|-------------|--|------|
-    //      min   |                          | max
-    //       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^  <= scaled i16 user value range before clamping
-    //            |                          |
-    //            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^  <= i32 user value range (clamped value range)
+TEST_F(QTest_Casting, q_safe_cast__small_signed_type_2_large_signed_type__expected_real_value) {
+    using i8qm4_t = i8qm4<-2000., 2000.>;  // i8 -> i32, max delta f is 24
+    using i32q20_t = i32q20<-1000., 2020.>;
+    auto a = i8qm4_t::fromReal<i8qm4_t::realMin>();
+    auto b = i8qm4_t::fromReal<-500.>();
+    auto c = i8qm4_t::fromReal<i8qm4_t::realMax>();
+    auto d = i8qm4_t::fromRealOvf<2010.>();
+    auto e = i8qm4_t::fromRealOvf<2030.>();
+    auto ac = safe_q_cast<i32q20_t, fpm::Ovf::clamp>(a);
+    auto bc = safe_q_cast<i32q20_t, fpm::Ovf::clamp>(b);
+    auto cc = safe_q_cast<i32q20_t, fpm::Ovf::clamp>(c);
+    auto dc = safe_q_cast<i32q20_t, fpm::Ovf::clamp>(d);
+    auto ec = safe_q_cast<i32q20_t, fpm::Ovf::clamp>(e);
 
+    ASSERT_NEAR(i32q20_t::realMin, ac.real(), i8qm4_t::resolution);
+    ASSERT_NEAR(-500., bc.real(), i8qm4_t::resolution);
+    ASSERT_NEAR(i8qm4_t::realMax, cc.real(), i8qm4_t::resolution);
+    ASSERT_NEAR(2010., dc.real(), i8qm4_t::resolution);
+    ASSERT_NEAR(i32q20_t::realMax, ec.real(), i8qm4_t::resolution);
+}
+
+TEST_F(QTest_Casting, q_safe_cast__smaller_signed_type_2_larger_signed_type__expected_real_value) {
     using i16qm4_t = i16qm4<-400000., 400000.>;  // i16 -> i32, max delta f is 16
     using i32q12_t = i32q12<-80000., 500000.>;
     auto a = i16qm4_t::fromReal<i16qm4_t::realMin>();
@@ -1302,27 +1671,38 @@ TEST_F(QTest_Casting, q_safe_cast__signed_user_range__signed_different_range__cl
     auto dc = safe_q_cast<i32q12_t, fpm::Ovf::clamp>(d);
     auto ec = safe_q_cast<i32q12_t, fpm::Ovf::clamp>(e);
 
-    ASSERT_NEAR(i32q12_t::realMin, ac.real(), i16qm4_t::resolution);  // -400000 clamped to i32q12::realMin
+    ASSERT_NEAR(i32q12_t::realMin, ac.real(), i16qm4_t::resolution);
     ASSERT_NEAR(-50000., bc.real(), i16qm4_t::resolution);
     ASSERT_NEAR(i16qm4_t::realMax, cc.real(), i16qm4_t::resolution);
     ASSERT_NEAR(410000., dc.real(), i16qm4_t::resolution);
-    ASSERT_NEAR(i32q12_t::realMax, ec.real(), i16qm4_t::resolution);  // 520000 clamped to i32q12::realMax
+    ASSERT_NEAR(i32q12_t::realMax, ec.real(), i16qm4_t::resolution);
 }
 
-TEST_F(QTest_Casting, q_safe_cast__unsigned_user_range__unsigned_different_range__clamped_real_value) {
-    // u16[min,max]:
-    // 0             min               max         u16::max
-    // |--------------|--------|--------|--------------|
-    //                ^^^^^^^^^^^^^^^^^^^  <= u16 user value range
-    //
-    // static_cast< u32[MIN,MAX] >( u16_scaled[min,max] ):
-    // 0         MIN                        MAX    u32::max
-    // |-----|----|------------|-------------|--|------|
-    // |    min   |                          | max     |
-    //       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^  <= scaled u16 user value range before clamping
-    //            |                          |
-    //            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^  <= u32 user value range (clamped value range)
+TEST_F(QTest_Casting, q_safe_cast__small_unsigned_type_2_large_unsigned_type__expected_real_value) {
+    using u8qm2_t = u8qm2<100., 1000.>;  // u8 -> u32, max delta f is 24
+    using u32q22_t = u32q22<800., 1020.>;
+    auto a = u8qm2_t::fromRealOvf<0.>();
+    auto b = u8qm2_t::fromReal<u8qm2_t::realMin>();
+    auto c = u8qm2_t::fromReal<500.>();
+    auto d = u8qm2_t::fromReal<900.>();
+    auto e = u8qm2_t::fromReal<u8qm2_t::realMax>();
+    auto f = u8qm2_t::fromRealOvf<1023.>();
+    auto ac = safe_q_cast<u32q22_t, fpm::Ovf::clamp>(a);
+    auto bc = safe_q_cast<u32q22_t, fpm::Ovf::clamp>(b);
+    auto cc = safe_q_cast<u32q22_t, fpm::Ovf::clamp>(c);
+    auto dc = safe_q_cast<u32q22_t, fpm::Ovf::clamp>(d);
+    auto ec = safe_q_cast<u32q22_t, fpm::Ovf::clamp>(e);
+    auto fc = safe_q_cast<u32q22_t, fpm::Ovf::clamp>(f);
 
+    ASSERT_NEAR(u32q22_t::realMin, ac.real(), u8qm2_t::resolution);
+    ASSERT_NEAR(u32q22_t::realMin, bc.real(), u8qm2_t::resolution);
+    ASSERT_NEAR(u32q22_t::realMin, cc.real(), u8qm2_t::resolution);
+    ASSERT_NEAR( 900., dc.real(), u8qm2_t::resolution);
+    ASSERT_NEAR(u8qm2_t::realMax, ec.real(), u8qm2_t::resolution);
+    ASSERT_NEAR(u32q22_t::realMax, fc.real(), u8qm2_t::resolution);
+}
+
+TEST_F(QTest_Casting, q_safe_cast__smaller_unsigned_type_2_larger_unsigned_type__expected_real_value) {
     using u16qm2_t = u16qm2<10000., 100000.>;  // u16 -> u32, max delta f is 16
     using u32q14_t = u32q14<80000., 160000.>;
     auto a = u16qm2_t::fromRealOvf<0.>();
@@ -1330,7 +1710,7 @@ TEST_F(QTest_Casting, q_safe_cast__unsigned_user_range__unsigned_different_range
     auto c = u16qm2_t::fromReal<50000.>();
     auto d = u16qm2_t::fromReal<90000.>();
     auto e = u16qm2_t::fromReal<u16qm2_t::realMax>();
-    auto f = u16qm2_t::fromRealOvf<110000.>();
+    auto f = u16qm2_t::fromRealOvf<210000.>();
     auto ac = safe_q_cast<u32q14_t, fpm::Ovf::clamp>(a);
     auto bc = safe_q_cast<u32q14_t, fpm::Ovf::clamp>(b);
     auto cc = safe_q_cast<u32q14_t, fpm::Ovf::clamp>(c);
@@ -1338,12 +1718,171 @@ TEST_F(QTest_Casting, q_safe_cast__unsigned_user_range__unsigned_different_range
     auto ec = safe_q_cast<u32q14_t, fpm::Ovf::clamp>(e);
     auto fc = safe_q_cast<u32q14_t, fpm::Ovf::clamp>(f);
 
-    ASSERT_NEAR(u32q14_t::realMin, ac.real(), u16qm2_t::resolution);  // (u32::max - 110000*2^14) / 2^14 clamped
-    ASSERT_NEAR(u32q14_t::realMin, bc.real(), u16qm2_t::resolution);  // (u32::max - 100000*2^14) / 2^14 clamped
-    ASSERT_NEAR(u32q14_t::realMin, cc.real(), u16qm2_t::resolution);  // 50000 clamped to u32q14::realMin
+    ASSERT_NEAR(u32q14_t::realMin, ac.real(), u16qm2_t::resolution);
+    ASSERT_NEAR(u32q14_t::realMin, bc.real(), u16qm2_t::resolution);
+    ASSERT_NEAR(u32q14_t::realMin, cc.real(), u16qm2_t::resolution);
     ASSERT_NEAR( 90000., dc.real(), u16qm2_t::resolution);
     ASSERT_NEAR(u16qm2_t::realMax, ec.real(), u16qm2_t::resolution);
-    ASSERT_NEAR(110000., fc.real(), u16qm2_t::resolution);
+    ASSERT_NEAR(u32q14_t::realMax, fc.real(), u16qm2_t::resolution);
+}
+
+TEST_F(QTest_Casting, q_safe_cast__large_unsigned_type_2_small_signed_type__expected_real_value) {
+    using u32q22_t = u32q22<800., 1020.>;
+    using i8qm3_t = i8qm3<-1000., 1000.>;  // u32 -> i8, max delta f is 25
+    auto a = u32q22_t::fromRealOvf<0.>();
+    auto b = u32q22_t::fromReal<u32q22_t::realMin>();
+    auto c = u32q22_t::fromReal<900.>();
+    auto d = u32q22_t::fromReal<i8qm3_t::realMax>();
+    auto e = u32q22_t::fromReal<u32q22_t::realMax>();
+    auto ac = safe_q_cast<i8qm3_t, fpm::Ovf::clamp>(a);
+    auto bc = safe_q_cast<i8qm3_t, fpm::Ovf::clamp>(b);
+    auto cc = safe_q_cast<i8qm3_t, fpm::Ovf::clamp>(c);
+    auto dc = safe_q_cast<i8qm3_t, fpm::Ovf::clamp>(d);
+    auto ec = safe_q_cast<i8qm3_t, fpm::Ovf::clamp>(e);
+
+    ASSERT_NEAR(   0., ac.real(), i8qm3_t::resolution);
+    ASSERT_NEAR(u32q22_t::realMin, bc.real(), i8qm3_t::resolution);
+    ASSERT_NEAR( 900., cc.real(), i8qm3_t::resolution);
+    ASSERT_NEAR(i8qm3_t::realMax, dc.real(), i8qm3_t::resolution);
+    ASSERT_NEAR(i8qm3_t::realMax, ec.real(), i8qm3_t::resolution);
+}
+
+TEST_F(QTest_Casting, q_safe_cast__larger_unsigned_type_2_smaller_signed_type__expected_real_value) {
+    using u32q14_t = u32q14<80000., 160000.>;
+    using i16qm3_t = i16qm3<-100000., 100000.>;  // u32 -> i16, max delta f is 17
+    auto a = u32q14_t::fromRealOvf<0.>();
+    auto b = u32q14_t::fromReal<u32q14_t::realMin>();
+    auto c = u32q14_t::fromReal<90000.>();
+    auto d = u32q14_t::fromReal<i16qm3_t::realMax>();
+    auto e = u32q14_t::fromReal<u32q14_t::realMax>();
+    auto ac = safe_q_cast<i16qm3_t, fpm::Ovf::clamp>(a);
+    auto bc = safe_q_cast<i16qm3_t, fpm::Ovf::clamp>(b);
+    auto cc = safe_q_cast<i16qm3_t, fpm::Ovf::clamp>(c);
+    auto dc = safe_q_cast<i16qm3_t, fpm::Ovf::clamp>(d);
+    auto ec = safe_q_cast<i16qm3_t, fpm::Ovf::clamp>(e);
+
+    ASSERT_NEAR(   0., ac.real(), i16qm3_t::resolution);
+    ASSERT_NEAR(u32q14_t::realMin, bc.real(), i16qm3_t::resolution);
+    ASSERT_NEAR( 90000., cc.real(), i16qm3_t::resolution);
+    ASSERT_NEAR(i16qm3_t::realMax, dc.real(), i16qm3_t::resolution);
+    ASSERT_NEAR(i16qm3_t::realMax, ec.real(), i16qm3_t::resolution);
+}
+
+TEST_F(QTest_Casting, q_safe_cast__large_signed_type_2_small_unsigned_type__expected_real_value) {
+    using i32q20_t = i32q20<-1000., 1000.>;
+    using u8qm3_t = u8qm3<100., 900.>;  // i32 -> u8, max delta f is 23
+    auto a = i32q20_t::fromReal<i32q20_t::realMin>();
+    auto b = i32q20_t::fromReal<500.>();
+    auto c = i32q20_t::fromReal<u8qm3_t::realMax>();
+    auto d = i32q20_t::fromReal<i32q20_t::realMax>();
+    auto ac = safe_q_cast<u8qm3_t, fpm::Ovf::clamp>(a);
+    auto bc = safe_q_cast<u8qm3_t, fpm::Ovf::clamp>(b);
+    auto cc = safe_q_cast<u8qm3_t, fpm::Ovf::clamp>(c);
+    auto dc = safe_q_cast<u8qm3_t, fpm::Ovf::clamp>(d);
+
+    ASSERT_NEAR(u8qm3_t::realMin, ac.real(), u8qm3_t::resolution);
+    ASSERT_NEAR( 500., bc.real(), u8qm3_t::resolution);
+    ASSERT_NEAR(u8qm3_t::realMax, cc.real(), u8qm3_t::resolution);
+    ASSERT_NEAR(u8qm3_t::realMax, dc.real(), u8qm3_t::resolution);
+}
+
+TEST_F(QTest_Casting, q_safe_cast__larger_signed_type_2_smaller_unsigned_type__expected_real_value) {
+    using i32q12_t = i32q12<-1000., 1000.>;
+    using u16qm3_t = u8qm3<100., 900.>;  // i32 -> u16, max delta f is 15
+    auto a = i32q12_t::fromReal<i32q12_t::realMin>();
+    auto b = i32q12_t::fromReal<500.>();
+    auto c = i32q12_t::fromReal<u16qm3_t::realMax>();
+    auto d = i32q12_t::fromReal<i32q12_t::realMax>();
+    auto ac = safe_q_cast<u16qm3_t, fpm::Ovf::clamp>(a);
+    auto bc = safe_q_cast<u16qm3_t, fpm::Ovf::clamp>(b);
+    auto cc = safe_q_cast<u16qm3_t, fpm::Ovf::clamp>(c);
+    auto dc = safe_q_cast<u16qm3_t, fpm::Ovf::clamp>(d);
+
+    ASSERT_NEAR(u16qm3_t::realMin, ac.real(), u16qm3_t::resolution);
+    ASSERT_NEAR( 500., bc.real(), u16qm3_t::resolution);
+    ASSERT_NEAR(u16qm3_t::realMax, cc.real(), u16qm3_t::resolution);
+    ASSERT_NEAR(u16qm3_t::realMax, dc.real(), u16qm3_t::resolution);
+}
+
+TEST_F(QTest_Casting, q_safe_cast__large_signed_type_2_small_signed_type__expected_real_value) {
+    using i32q20_t = i32q20<-1000., 2020.>;
+    using i8qm4_t = i8qm4<-900., 2000.>;  // i32 -> i8, max delta f is 24
+    auto a = i32q20_t::fromReal<i32q20_t::realMin>();
+    auto b = i32q20_t::fromReal<-500.>();
+    auto c = i32q20_t::fromReal<i32q20_t::realMax>();
+    auto d = i32q20_t::fromRealOvf<2030.>();
+    auto ac = safe_q_cast<i8qm4_t, fpm::Ovf::clamp>(a);
+    auto bc = safe_q_cast<i8qm4_t, fpm::Ovf::clamp>(b);
+    auto cc = safe_q_cast<i8qm4_t, fpm::Ovf::clamp>(c);
+    auto dc = safe_q_cast<i8qm4_t, fpm::Ovf::clamp>(d);
+
+    ASSERT_NEAR(i8qm4_t::realMin, ac.real(), i8qm4_t::resolution);
+    ASSERT_NEAR(-500., bc.real(), i8qm4_t::resolution);
+    ASSERT_NEAR(i8qm4_t::realMax, cc.real(), i8qm4_t::resolution);
+    ASSERT_NEAR(i8qm4_t::realMax, dc.real(), i8qm4_t::resolution);
+}
+
+TEST_F(QTest_Casting, q_safe_cast__larger_signed_type_2_smaller_signed_type__expected_real_value) {
+    using i32q12_t = i32q12<-80000., 500000.>;
+    using i16qm4_t = i16qm4<-40000., 400000.>;  // i32 -> i16, max delta f is 16
+    auto a = i32q12_t::fromReal<i32q12_t::realMin>();
+    auto b = i32q12_t::fromReal<-10000.>();
+    auto c = i32q12_t::fromReal<i32q12_t::realMax>();
+    auto d = i32q12_t::fromRealOvf<410000.>();
+    auto e = i32q12_t::fromRealOvf<520000.>();
+    auto ac = safe_q_cast<i16qm4_t, fpm::Ovf::clamp>(a);
+    auto bc = safe_q_cast<i16qm4_t, fpm::Ovf::clamp>(b);
+    auto cc = safe_q_cast<i16qm4_t, fpm::Ovf::clamp>(c);
+    auto dc = safe_q_cast<i16qm4_t, fpm::Ovf::clamp>(d);
+    auto ec = safe_q_cast<i16qm4_t, fpm::Ovf::clamp>(e);
+
+    ASSERT_NEAR(i16qm4_t::realMin, ac.real(), i16qm4_t::resolution);
+    ASSERT_NEAR(-10000., bc.real(), i16qm4_t::resolution);
+    ASSERT_NEAR(i16qm4_t::realMax, cc.real(), i16qm4_t::resolution);
+    ASSERT_NEAR(i16qm4_t::realMax, dc.real(), i16qm4_t::resolution);
+    ASSERT_NEAR(i16qm4_t::realMax, ec.real(), i16qm4_t::resolution);
+}
+
+TEST_F(QTest_Casting, q_safe_cast__large_unsigned_type_2_small_unsigned_type__expected_real_value) {
+    using u32q22_t = u32q22<800., 1010.>;
+    using u8qm2_t = u8qm2<100., 1000.>;  // u32 -> u8, max delta f is 24
+    auto a = u32q22_t::fromRealOvf<0.>();
+    auto b = u32q22_t::fromReal<u32q22_t::realMin>();
+    auto d = u32q22_t::fromReal<900.>();
+    auto e = u32q22_t::fromReal<u32q22_t::realMax>();
+    auto f = u32q22_t::fromRealOvf<1023.>();
+    auto ac = safe_q_cast<u8qm2_t, fpm::Ovf::clamp>(a);
+    auto bc = safe_q_cast<u8qm2_t, fpm::Ovf::clamp>(b);
+    auto dc = safe_q_cast<u8qm2_t, fpm::Ovf::clamp>(d);
+    auto ec = safe_q_cast<u8qm2_t, fpm::Ovf::clamp>(e);
+    auto fc = safe_q_cast<u8qm2_t, fpm::Ovf::clamp>(f);
+
+    ASSERT_NEAR(u8qm2_t::realMin, ac.real(), u8qm2_t::resolution);
+    ASSERT_NEAR( 800., bc.real(), u8qm2_t::resolution);
+    ASSERT_NEAR( 900., dc.real(), u8qm2_t::resolution);
+    ASSERT_NEAR(u8qm2_t::realMax, ec.real(), u8qm2_t::resolution);
+    ASSERT_NEAR(u8qm2_t::realMax, fc.real(), u8qm2_t::resolution);
+}
+
+TEST_F(QTest_Casting, q_safe_cast__larger_unsigned_type_2_smaller_unsigned_type__expected_real_value) {
+    using u32q14_t = u32q14<80000., 160000.>;
+    using u16qm2_t = u16qm2<10000., 100000.>;  // u32 -> u16, max delta f is 16
+    auto a = u32q14_t::fromRealOvf<0.>();
+    auto b = u32q14_t::fromReal<u32q14_t::realMin>();
+    auto d = u32q14_t::fromReal<90000.>();
+    auto e = u32q14_t::fromReal<u32q14_t::realMax>();
+    auto f = u32q14_t::fromRealOvf<210000.>();
+    auto ac = safe_q_cast<u16qm2_t, fpm::Ovf::clamp>(a);
+    auto bc = safe_q_cast<u16qm2_t, fpm::Ovf::clamp>(b);
+    auto dc = safe_q_cast<u16qm2_t, fpm::Ovf::clamp>(d);
+    auto ec = safe_q_cast<u16qm2_t, fpm::Ovf::clamp>(e);
+    auto fc = safe_q_cast<u16qm2_t, fpm::Ovf::clamp>(f);
+
+    ASSERT_NEAR(u16qm2_t::realMin, ac.real(), u16qm2_t::resolution);
+    ASSERT_NEAR( 80000., bc.real(), u16qm2_t::resolution);
+    ASSERT_NEAR( 90000., dc.real(), u16qm2_t::resolution);
+    ASSERT_NEAR(u16qm2_t::realMax, ec.real(), u16qm2_t::resolution);
+    ASSERT_NEAR(u16qm2_t::realMax, fc.real(), u16qm2_t::resolution);
 }
 
 TEST_F(QTest_Casting, q_force_cast__positive_scaled_value_signed__unsigned_type_smallerF_same_value) {

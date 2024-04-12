@@ -207,10 +207,12 @@ private:
         static constexpr double realMax = std::max(std::max(Sq::realMax * SqRhs::realMin, SqRhs::realMax * Sq::realMin),
                                                    std::max(Sq::realMin * SqRhs::realMin, Sq::realMax * SqRhs::realMax));
         using base_t = fpm::detail::common_q_base_t<typename Sq::base_t, typename SqRhs::base_t, f, realMin, realMax>;
+        using common_t = fpm::detail::common_base_t<typename Sq::base_t, typename SqRhs::base_t>;
+        using calc_t = fpm::detail::fit_type_t<sizeof(common_t) * 2u, std::is_signed_v<common_t>>;
         static constexpr base_t value(typename Sq::base_t lv, typename SqRhs::base_t rv) noexcept {
-            // multiply lhs with rhs in intermediate type and correct scaling to obtain result
+            // multiply lhs with rhs in calculation type and correct scaling to obtain result
             // a*b <=> (a * 2^f) * (b * 2^f) / 2^f = a*b * 2^f
-            return s2s<base_t, 2*f, f>( s2s<interm_t<base_t>, Sq::f, f>(lv) * s2s<interm_t<base_t>, SqRhs::f, f>(rv) );
+            return s2s<base_t, 2*f, f>( s2s<calc_t, Sq::f, f>(lv) * s2s<calc_t, SqRhs::f, f>(rv) );
         }
     };
 
@@ -239,10 +241,13 @@ private:
         static constexpr double realMax = std::max(std::max(Sq::realMin / SqRhs::realMax, Sq::realMin / SqRhs::realMin),
                                                    std::max(Sq::realMax / SqRhs::realMin, Sq::realMax / SqRhs::realMax));
         using base_t = fpm::detail::common_q_base_t<typename Sq::base_t, typename SqRhs::base_t, f, realMin, realMax>;
+        using common_t = fpm::detail::common_base_t<typename Sq::base_t, typename SqRhs::base_t>;
+        using calc_t = fpm::detail::fit_type_t<
+            sizeof(typename Sq::base_t) + fpm::detail::div_ceil(2*f - Sq::f, CHAR_BIT), std::is_signed_v<common_t>>;
         static constexpr base_t value(typename Sq::base_t lv, typename SqRhs::base_t rv) noexcept {
-            // divide lhs by rhs in intermediate type and correct scaling to obtain result
+            // divide lhs by rhs in calculation type and correct scaling to obtain result
             // a/b <=> (a * 2^(2f)) / (b * 2^f) = a/b * 2^f
-            return static_cast<base_t>( s2s<interm_t<base_t>, Sq::f, 2*f>(lv) / s2s<interm_t<base_t>, SqRhs::f, f>(rv) );
+            return static_cast<base_t>( s2s<calc_t, Sq::f, 2*f>(lv) / s2s<calc_t, SqRhs::f, f>(rv) );
         };
     };
 
@@ -267,10 +272,11 @@ private:
         static constexpr double realMin = std::min(ic / Sq::realMin, ic / Sq::realMax);
         static constexpr double realMax = std::max(ic / Sq::realMin, ic / Sq::realMax);
         using base_t = fpm::detail::common_q_base_t<typename Sq::base_t, T, f, realMin, realMax>;
-        using interm_t = interm_t<base_t>;
+        using common_t = fpm::detail::common_base_t<typename Sq::base_t, T>;
+        using calc_t = fpm::detail::fit_type_t< sizeof(T) + fpm::detail::div_ceil(2*f, CHAR_BIT), std::is_signed_v<common_t> >;
         static constexpr base_t value(std::integral_constant<T, ic>, typename Sq::base_t rv) noexcept {
             // ic * 2^(2f) / (v*2^f) = ic/v * 2^f
-            return static_cast<base_t>( v2s<interm_t, 2*f>(ic) / static_cast<interm_t>(rv) );
+            return static_cast<base_t>( v2s<calc_t, 2*f>(ic) / static_cast<calc_t>(rv) );
         }
     };
 
@@ -283,11 +289,14 @@ private:
                                                    std::max(fpm::detail::abs(SqRhs::realMin), fpm::detail::abs(SqRhs::realMax)));
         static constexpr double realMax = std::min(Sq::realMax, fpm::detail::signum(Sq::realMax) *
                                                    std::max(fpm::detail::abs(SqRhs::realMin), fpm::detail::abs(SqRhs::realMax)));
-        using base_t = fpm::detail::common_q_base_t<Sq::base_t, typename SqRhs::base_t, f, realMin, realMax>;
+        using base_t = fpm::detail::common_q_base_t<typename Sq::base_t, typename SqRhs::base_t, f, realMin, realMax>;
+        using common_t = fpm::detail::common_base_t<typename Sq::base_t, typename SqRhs::base_t>;
+        using calc_t = fpm::detail::fit_type_t<
+            sizeof(common_t) + fpm::detail::div_ceil(f - std::min(Sq::f, SqRhs::f), CHAR_BIT), std::is_signed_v<common_t> >;
         static constexpr base_t value(typename Sq::base_t lv, typename SqRhs::base_t rv) noexcept {
-            // divide lhs by rhs in intermediate type and correct scaling to obtain result
+            // divide lhs by rhs in calculation type and correct scaling to obtain result
             // a%b <=> (a * 2^f) % (b * 2^f) = a%b * 2^f
-            return static_cast<base_t>( s2s<interm_t<base_t>, Sq::f, f>(lv) % s2s<interm_t<base_t>, SqRhs::f, f>(rv) );
+            return static_cast<base_t>( s2s<calc_t, Sq::f, f>(lv) % s2s<calc_t, SqRhs::f, f>(rv) );
         }
     };
 
@@ -329,8 +338,9 @@ private:
     struct ShiftL {
         using base_t = typename Sq::base_t;
         static constexpr scaling_t f = Sq::f;
-        static constexpr double realMin = fpm::real<Sq>(static_cast<interm_t<base_t>>(Sq::scaledMin) << ic);
-        static constexpr double realMax = fpm::real<Sq>(static_cast<interm_t<base_t>>(Sq::scaledMax) << ic);
+        using calc_t = fpm::detail::fit_type_t< sizeof(base_t) + fpm::detail::div_ceil(ic, CHAR_BIT), std::is_signed_v<base_t> >;
+        static constexpr double realMin = fpm::real<Sq>(static_cast<calc_t>(Sq::scaledMin) << ic);
+        static constexpr double realMax = fpm::real<Sq>(static_cast<calc_t>(Sq::scaledMax) << ic);
         static constexpr base_t value(typename Sq::base_t lv, std::integral_constant<T, ic>) noexcept {
             return lv << ic;  // left-shift value
         }
@@ -342,8 +352,8 @@ private:
     struct ShiftR {
         using base_t = typename Sq::base_t;
         static constexpr scaling_t f = Sq::f;
-        static constexpr double realMin = fpm::real<Sq>(static_cast<interm_t<base_t>>(Sq::scaledMin) >> ic);
-        static constexpr double realMax = fpm::real<Sq>(static_cast<interm_t<base_t>>(Sq::scaledMax) >> ic);
+        static constexpr double realMin = fpm::real<Sq>(Sq::scaledMin >> ic);
+        static constexpr double realMax = fpm::real<Sq>(Sq::scaledMax >> ic);
         static constexpr base_t value(typename Sq::base_t lv, std::integral_constant<T, ic>) noexcept {
             return lv >> ic;  // right-shift value
         }
@@ -371,10 +381,11 @@ private:
             ? 0.0  // use 0 as new minimum if signed input type has a range of negative and positive values
             : std::min(Sq::realMin*Sq::realMin, Sq::realMax*Sq::realMax);
         static constexpr double realMax = std::max(Sq::realMin*Sq::realMin, Sq::realMax*Sq::realMax);
+        using calc_t = fpm::detail::fit_type_t< sizeof(typename Sq::base_t) * 2u, std::is_signed_v<base_t> >;
         static constexpr base_t value(typename Sq::base_t v) noexcept {
             // x^2 <=> [ (x*2^f)*(x*2^f) / 2^f ] = x*x*2^f
-            auto const vIntm = static_cast<interm_t<base_t>>(v);
-            constexpr auto fPower = v2s<interm_t<base_t>, f>(1);
+            auto const vIntm = static_cast<calc_t>(v);
+            constexpr auto fPower = v2s<calc_t, f>(1);
             return static_cast<base_t>( vIntm*vIntm / fPower );
         }
     };
@@ -385,13 +396,14 @@ private:
         static constexpr scaling_t f = Sq::f;
         static constexpr double realMin = fpm::detail::floor( fpm::detail::sqrt(Sq::realMin) );
         static constexpr double realMax = fpm::detail::ceil( fpm::detail::sqrt(Sq::realMax) );
+        using calc_t = fpm::detail::fit_type_t< sizeof(base_t) + fpm::detail::div_ceil(f, CHAR_BIT), std::is_signed_v<base_t> >;
         static constexpr base_t value(typename Sq::base_t v) noexcept {
             if (v <= 0) { return 0; }  // negative value has imaginary root, real part is 0
             else {
                 // take root of corrected number; result can be cast to base_t without truncation
                 // sqrt(x) <=> [ ((x*2^f) * 2^f)^1/2 ] = x^1/2 * 2^f
-                auto xIntm = static_cast<interm_t<base_t>>(v);
-                constexpr auto fPower = v2s<interm_t<base_t>, f>(1);
+                auto xIntm = static_cast<calc_t>(v);
+                constexpr auto fPower = v2s<calc_t, f>(1);
                 return static_cast<base_t>( fpm::detail::isqrt( xIntm * fPower ) );
             }
         }
@@ -404,13 +416,14 @@ private:
         static constexpr double thMax = fpm::realMax<base_t, f>();
         static constexpr double realMin = fpm::detail::floor( fpm::detail::rsqrt(Sq::realMax) );
         static constexpr double realMax = std::min( thMax, fpm::detail::ceil( fpm::detail::rsqrt(Sq::realMin) ) );
+        using calc_t = fpm::detail::fit_type_t< sizeof(base_t) + fpm::detail::div_ceil(f, CHAR_BIT), std::is_signed_v<base_t> >;
         static constexpr auto value(typename Sq::base_t v) noexcept {
             // too small number results in theoretical maximum; this is the case if x*2^f <= (2^f / max^2)
             constexpr base_t limit = fpm::scaled<Sq>( 1. / thMax / thMax );
             return v < limit
                 ? fpm::scaled<Sq>(thMax)
                 // 1/sqrt(x) <=> [ 2^(2f) / ((x*2^f) * 2^f)^1/2 ] = 2^f / sqrt(x)
-                : static_cast<base_t>( v2s<interm_t<base_t>, 2*f>(1) / static_cast<interm_t<base_t>>( Sqrt::value(v) ) );
+                : static_cast<base_t>( v2s<calc_t, 2*f>(1) / static_cast<calc_t>( Sqrt::value(v) ) );
         }
     };
 
@@ -424,11 +437,12 @@ private:
         static constexpr double l4 = Sq::realMax*Sq::realMax*Sq::realMax;
         static constexpr double realMin = std::min(std::min(std::min(l1, l2), l3), l4);
         static constexpr double realMax = std::max(std::max(std::max(l1, l2), l3), l4);
+        using calc_t = fpm::detail::fit_type_t< sizeof(typename Sq::base_t) * 2u, std::is_signed_v<base_t> >;
         static constexpr base_t value(typename Sq::base_t v) noexcept {
             // x^3 <=> [ (x*2^f)*(x*2^f) / 2^f * (x*2^f) / 2^f ] = [ square(x)*(x*2^f) / 2^f ] = x*x*x*2^f
-            auto xIntm = static_cast<interm_t<base_t>>(v);
-            auto xSqr = static_cast<interm_t<base_t>>( Square::value(v) );
-            constexpr auto fPower = v2s<interm_t<base_t>, f>(1);
+            auto xIntm = static_cast<calc_t>(v);
+            auto xSqr = static_cast<calc_t>( Square::value(v) );
+            constexpr auto fPower = v2s<calc_t, f>(1);
             return static_cast<base_t>( xSqr*xIntm / fPower );
         }
     };
@@ -439,12 +453,13 @@ private:
         static constexpr scaling_t f = Sq::f;
         static constexpr double realMin = (Sq::realMin < 0. ? 0. : fpm::detail::floor( fpm::detail::cbrt(Sq::realMin) ));
         static constexpr double realMax = (Sq::realMax < 0. ? 0. : fpm::detail::ceil( fpm::detail::cbrt(Sq::realMax) ));
+        using calc_t = fpm::detail::fit_type_t< sizeof(base_t) + fpm::detail::div_ceil(2*f, CHAR_BIT), std::is_signed_v<base_t> >;
         static constexpr base_t value(typename Sq::base_t v) noexcept {
             if (v <= 0) { return 0; }  // negative number is out of scope for hardware algorithm icbrt
             else {
                 // cbrt(x) <=> [ ((x*2^f) * 2^f * 2^f)^1/3 ] = x^1/3 * 2^f
-                auto xIntm = static_cast<interm_t<base_t>>(v);
-                constexpr auto fPower = v2s<interm_t<base_t>, f>(1);
+                auto xIntm = static_cast<calc_t>(v);
+                constexpr auto fPower = v2s<calc_t, f>(1);
                 return static_cast<base_t>( fpm::detail::icbrt( xIntm * fPower * fPower ) );
             }
         }
@@ -668,7 +683,7 @@ public:
     ///          have values between -1 and +1 in its value range.
     template< /* deduced: */ std::integral T, T ic >
     requires ( fpm::detail::ValidImplType< DivIcL<T,ic> >
-               && v2s<typename DivIcL<T,ic>::interm_t, 2*f>(ic) <= std::numeric_limits<typename DivIcL<T,ic>::interm_t>::max() )
+               && v2s<typename DivIcL<T,ic>::calc_t, 2*f>(ic) <= std::numeric_limits<typename DivIcL<T,ic>::calc_t>::max() )
     friend constexpr
     auto operator /(std::integral_constant<T, ic> iv, Sq const &rhs) noexcept {
         return Sq< UNPACK(DivIcL<T,ic>) >( DivIcL<T,ic>::value(iv, rhs.value) );

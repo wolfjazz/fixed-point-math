@@ -62,10 +62,6 @@ static constexpr bool is_ovf_stricter_v = is_ovf_stricter<a, b>::value;
 /// Scaling factor type.
 using scaling_t = int;
 
-/// Intermediate type used for compile-time and runtime calculations with (S)Q values.
-template< std::integral BaseT >
-using interm_t = typename std::conditional_t<std::is_signed_v<BaseT>, int64_t, uint64_t>;
-
 /// Maximal supported size of a (S)Q type's base type.
 /// TODO: Support uint64_t.
 constexpr size_t MAX_BASETYPE_SIZE = sizeof(uint32_t);
@@ -217,6 +213,10 @@ namespace detail {
         else { return T(0) < x; }
     }
 
+    /** \returns the result of the integer division a / b, rounded up to the next integer. */
+    consteval
+    int div_ceil(int a, int b) { return (a + b-1) / b; }
+
     // Some standard functions are redefined here for compile-time use in templates and concepts,
     // when they are not yet defined constexpr/consteval in C++20.
     inline namespace lib {
@@ -366,7 +366,7 @@ namespace detail {
         return (pow > 0) ? num * dpowi(num, pow-1) : dpowi(num, pow+1) / num;
     }
 
-    /// Converts a given character array from a template literal operator into a double value.
+    /** Converts a given character array from a template literal operator into a double value. */
     template< char ...charArray >
     consteval
     double doubleFromLiteral() noexcept {
@@ -393,7 +393,7 @@ namespace detail {
         return number * dpowi(10., exp);
     }
 
-    /// Converts a given character array into an unsigned integer value that can be used as constexpr.
+    /** Converts a given character array into an unsigned integer value that can be used as constexpr. */
     template< char ...charArray >
     consteval
     unsigned int intFromLiteral() noexcept {
@@ -410,7 +410,45 @@ namespace detail {
         return value;
     }
 
-    /** Determines the smallest type that can hold the the given real minimum and maximum values for
+    /** Fits the smallest possible type to the given size and sign information. */
+    template< size_t size, bool isSigned >
+    struct fit_type {
+        using type =
+            std::conditional_t< isSigned && sizeof( int8_t ) >= size,  int8_t,
+            std::conditional_t<!isSigned && sizeof(uint8_t ) >= size, uint8_t,
+            std::conditional_t< isSigned && sizeof( int16_t) >= size,  int16_t,
+            std::conditional_t<!isSigned && sizeof(uint16_t) >= size, uint16_t,
+            std::conditional_t< isSigned && sizeof( int32_t) >= size,  int32_t,
+            std::conditional_t<!isSigned && sizeof(uint32_t) >= size, uint32_t,
+            std::conditional_t< isSigned,                              int64_t, uint64_t >>>>>>>;
+    };
+    /// Alias for fit_type<>::type.
+    template< size_t size, bool isSigned >
+    using fit_type_t = typename fit_type<size, isSigned>::type;
+
+    /** Determines the smallest common type that can hold values of the two given base types.
+     * \note This is similar to std::common_type, however, the trait from the standard library
+     * promotes the given integers to int, which is not desired here. */
+    template< std::integral T1, std::integral T2 >
+    struct common_base {
+        static constexpr bool isSigned = std::is_signed_v<T1> || std::is_signed_v<T2>;
+        static constexpr size_t size = std::max(sizeof(T1), sizeof(T2));
+        using type = fit_type_t<size, isSigned>;
+    };
+    /// Alias for common_base<>::type.
+    template< std::integral T1, std::integral T2 >
+    using common_base_t = typename common_base<T1, T2>::type;
+
+    /** \returns whether the two given values are in range of the given type. */
+    template< std::integral T, std::integral L, L v1, L v2 >
+    struct in_range {
+        static constexpr bool value = std::in_range<T>(v1) && std::in_range<T>(v2);
+    };
+    /// Alias for in_range<>::value.
+    template< std::integral T, std::integral L, L v1, L v2 >
+    constexpr bool in_range_v = in_range<T, L, v1, v2>::value;
+
+    /** Determines the smallest type that can hold the given real minimum and maximum values for
      * the given scaling f. The size of the resulting type will not be smaller than the smallest of
      * the input types. If one of the given base types is signed, the result will be signed too,
      * otherwise the result will be an unsigned type.
@@ -420,18 +458,19 @@ namespace detail {
     struct common_q_base {
     private:
         static constexpr bool isSigned = std::is_signed_v<T1> || std::is_signed_v<T2>;
-        static constexpr size_t minSize = std::min(sizeof(T1), sizeof(T2));
-        using interm_type = interm_t< typename std::conditional_t<isSigned, int, unsigned> >;
-        static constexpr auto scaledMin = v2s<interm_type, f>(realMin);
-        static constexpr auto scaledMax = v2s<interm_type, f>(realMax);
+        static constexpr size_t size = std::min(sizeof(T1), sizeof(T2));
+        using scaled_t = std::conditional_t<isSigned, int64_t, uint64_t>;
+        static constexpr auto scaledMin = v2s<scaled_t, f>(realMin);
+        static constexpr auto scaledMax = v2s<scaled_t, f>(realMax);
     public:
         using type =
-            std::conditional_t< isSigned && sizeof( int8_t ) >= minSize && std::in_range< int8_t >(scaledMin) && std::in_range< int8_t >(scaledMax),  int8_t,
-            std::conditional_t<!isSigned && sizeof(uint8_t ) >= minSize && std::in_range<uint8_t >(scaledMin) && std::in_range<uint8_t >(scaledMax), uint8_t,
-            std::conditional_t< isSigned && sizeof( int16_t) >= minSize && std::in_range< int16_t>(scaledMin) && std::in_range< int16_t>(scaledMax),  int16_t,
-            std::conditional_t<!isSigned && sizeof(uint16_t) >= minSize && std::in_range<uint16_t>(scaledMin) && std::in_range<uint16_t>(scaledMax), uint16_t,
-            std::conditional_t< isSigned && sizeof( int32_t) >= minSize && std::in_range< int32_t>(scaledMin) && std::in_range< int32_t>(scaledMax),  int32_t,
-            std::conditional_t<!isSigned && sizeof(uint32_t) >= minSize && std::in_range<uint32_t>(scaledMin) && std::in_range<uint32_t>(scaledMax), uint32_t, interm_type>>>>>>;
+            std::conditional_t< isSigned && sizeof( int8_t ) >= size && in_range_v< int8_t,  scaled_t, scaledMin, scaledMax>,  int8_t,
+            std::conditional_t<!isSigned && sizeof(uint8_t ) >= size && in_range_v<uint8_t,  scaled_t, scaledMin, scaledMax>, uint8_t,
+            std::conditional_t< isSigned && sizeof( int16_t) >= size && in_range_v< int16_t, scaled_t, scaledMin, scaledMax>,  int16_t,
+            std::conditional_t<!isSigned && sizeof(uint16_t) >= size && in_range_v<uint16_t, scaled_t, scaledMin, scaledMax>, uint16_t,
+            std::conditional_t< isSigned && sizeof( int32_t) >= size && in_range_v< int32_t, scaled_t, scaledMin, scaledMax>,  int32_t,
+            std::conditional_t<!isSigned && sizeof(uint32_t) >= size && in_range_v<uint32_t, scaled_t, scaledMin, scaledMax>, uint32_t,
+            std::conditional_t< isSigned, int64_t, uint64_t >>>>>>>;
     };
     /// Alias for common_q_base<>::type.
     template< std::integral T1, std::integral T2, scaling_t f, double realMin, double realMax >
@@ -537,11 +576,11 @@ namespace detail {
     /** Concept of a valid scaled value that fits the specified base type. */
     template< typename BaseT, scaling_t f, double real >
     concept ScaledFitsBaseType = (
-        // check if double is too large for 64-bit intermediate type
-        ((real < 0. && real >= std::numeric_limits<interm_t<BaseT>>::min() / v2s<double, f>(1))
-         || (real >= 0. && real <= std::numeric_limits<interm_t<BaseT>>::max() / v2s<double, f>(1)))
+        // check if double is too large for 64-bit maximum supported calculation type
+        ((real < 0. && real >= std::numeric_limits<fit_type_t<8u, std::is_signed_v<BaseT>>>::min() / v2s<double, f>(1))
+         || (real >= 0. && real <= std::numeric_limits<fit_type_t<8u, std::is_signed_v<BaseT>>>::max() / v2s<double, f>(1)))
         // check whether scaled double fits base type
-        && std::in_range<BaseT>(v2s<interm_t<BaseT>, f>(real))
+        && std::in_range<BaseT>(v2s<fit_type_t<8u, std::is_signed_v<BaseT>>, f>(real))
     );
 
     /** Concept of a valid (S)Q type value range that fits the specified base type.
@@ -670,7 +709,7 @@ namespace detail {
     template< typename T >
     concept CanBePassedToSqrt = (
         sizeof(typename T::base_t) <= sizeof(uint32_t)
-        && T::f <= 30  //< ceil of upper q31 limit would round up to 2.0 which is out of value range
+        && T::f < std::numeric_limits<typename T::base_t>::digits  // lower and upper limits are out of range for f == digits
         && T::realMin >= 0.
     );
 
@@ -680,7 +719,7 @@ namespace detail {
     template< typename T >
     concept CanBePassedToRSqrt = (
         sizeof(typename T::base_t) <= sizeof(int32_t)
-        && T::f <= 30  //< ceil of upper q31 limit would round up to 2.0 which is out of value range
+        && T::f < std::numeric_limits<typename T::base_t>::digits  // lower and upper limits are out of range for f == digits
         && T::realMin > 0.
     );
 
