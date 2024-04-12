@@ -72,6 +72,21 @@ constexpr size_t MAX_BASETYPE_SIZE = sizeof(uint32_t);
 constexpr scaling_t MAX_F = 53;
 
 
+// Template compile-time function to create a scaling factor with the nth bit set.
+template< unsigned n, bool isSigned >
+consteval auto scale_factor() {
+    if constexpr (n < 31u) {
+        std::conditional_t<isSigned, int32_t, uint32_t> mask = 1;
+        mask <<= n;
+        return mask;
+    } else {
+        std::conditional_t<isSigned, int64_t, uint64_t> mask = 1;
+        mask <<= n;
+        return mask;
+    }
+}
+
+
 /** Scale-To-Scale scaling function.
  * Used to scale a given, already scaled (integer) value to a different scaling factor and target type
  * using multiplication/division.
@@ -84,16 +99,13 @@ template< typename TargetT, scaling_t from, scaling_t to, /* deduced: */ typenam
 [[nodiscard]] constexpr
 TargetT s2smd(ValueT value) noexcept {
     // use common type for calculation to avoid loss of precision
-    using CommonT = typename std::common_type<ValueT, TargetT>::type;
-    using ScalingT = typename std::conditional_t<sizeof(CommonT) <= 4u,
-        std::conditional_t<std::is_signed_v<CommonT>, int32_t, uint32_t>,
-        std::conditional_t<std::is_signed_v<CommonT>, int64_t, uint64_t>>;
+    using common_t = typename std::common_type_t<ValueT, TargetT>;
 
     if constexpr (from > to) {
-        return static_cast<TargetT>( static_cast<CommonT>(value) / (static_cast<ScalingT>(1) << (unsigned)(from - to)) );
+        return static_cast<TargetT>( static_cast<common_t>(value) / scale_factor<from-to, std::is_signed_v<common_t>>() );
     }
     else if constexpr (to > from) {
-        return static_cast<TargetT>( static_cast<CommonT>(value) * (static_cast<ScalingT>(1) << (unsigned)(to - from)) );
+        return static_cast<TargetT>( static_cast<common_t>(value) * scale_factor<to-from, std::is_signed_v<common_t>>() );
     }
     else /* from == to */ {
         return static_cast<TargetT>(value);
@@ -112,13 +124,13 @@ template< std::integral TargetT, scaling_t from, scaling_t to, /* deduced: */ st
 [[nodiscard]] constexpr
 TargetT s2sh(ValueT value) noexcept {
     // use common type for shift to avoid loss of precision
-    using CommonT = typename std::common_type<ValueT, TargetT>::type;
+    using common_t = typename std::common_type_t<ValueT, TargetT>;
 
     if constexpr (from > to) {
-        return static_cast<TargetT>( static_cast<CommonT>(value) >> (unsigned)(from - to) );
+        return static_cast<TargetT>( static_cast<common_t>(value) >> (unsigned)(from - to) );
     }
     else if constexpr (to > from) {
-        return static_cast<TargetT>( static_cast<CommonT>(value) << (unsigned)(to - from) );
+        return static_cast<TargetT>( static_cast<common_t>(value) << (unsigned)(to - from) );
     }
     else /* from == to */ {
         return static_cast<TargetT>(value);
@@ -148,16 +160,13 @@ template< typename TargetT, scaling_t to, /* deduced: */ typename ValueT >
 [[nodiscard]] constexpr
 TargetT v2smd(ValueT value) noexcept {
     // use common type for shift to avoid loss of precision
-    using CommonT = typename std::common_type<ValueT, TargetT>::type;
-    using ScalingT = typename std::conditional_t<sizeof(CommonT) <= 4u,
-        std::conditional_t<std::is_signed_v<CommonT>, int32_t, uint32_t>,
-        std::conditional_t<std::is_signed_v<CommonT>, int64_t, uint64_t>>;
+    using common_t = typename std::common_type_t<ValueT, TargetT>;
 
     if constexpr (to < 0) {
-        return static_cast<TargetT>( static_cast<CommonT>(value) / (static_cast<ScalingT>(1) << (unsigned)(-to)) );
+        return static_cast<TargetT>( static_cast<common_t>(value) / scale_factor<-to, std::is_signed_v<common_t>>() );
     }
     else if constexpr (to > 0) {
-        return static_cast<TargetT>( static_cast<CommonT>(value) * (static_cast<ScalingT>(1) << (unsigned)to) );
+        return static_cast<TargetT>( static_cast<common_t>(value) * scale_factor<to, std::is_signed_v<common_t>>() );
     }
     else /* to == 0 */ {
         return static_cast<TargetT>(value);
@@ -174,13 +183,13 @@ template< std::integral TargetT, scaling_t to, /* deduced: */ std::integral Valu
 [[nodiscard]] constexpr
 TargetT v2sh(ValueT value) noexcept {
     // use common type for calculation to avoid loss of precision
-    using CommonT = typename std::common_type<ValueT, TargetT>::type;
+    using common_t = typename std::common_type_t<ValueT, TargetT>;
 
     if constexpr (to < 0) {
-        return static_cast<TargetT>( static_cast<CommonT>(value) >> (unsigned)(-to) );
+        return static_cast<TargetT>( static_cast<common_t>(value) >> (unsigned)(-to) );
     }
     else if constexpr (to > 0) {
-        return static_cast<TargetT>( static_cast<CommonT>(value) << (unsigned)to );
+        return static_cast<TargetT>( static_cast<common_t>(value) << (unsigned)to );
     }
     else /* to == 0 */ {
         return static_cast<TargetT>(value);
