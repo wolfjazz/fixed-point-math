@@ -27,7 +27,7 @@ In the end, one just wants to perform calculations within a predefined value ran
 - explicit construction from integer-based variables with scaled integer values at runtime
 - no runtime construction from floating-point variables (we don't want floats at runtime)
 - compile-time overflow checks where possible, runtime-checks only when really needed
-- different types of (runtime) overflow behaviors (overflow: forbidden, assert, clamp, allowed/no-check)
+- different types of (runtime) overflow behaviors (overflow: error, assert, clamp, allowed/unchecked)
 - implicit conversion between fixed-point types of same base type only to higher precision (no losses)
 - explicit conversion to fixed-point type with same base type but different precision via up/downscale-copy
 - conversion to different base types only via explicit casts (static_q_cast, safe_q_cast, force_q_cast)
@@ -88,14 +88,14 @@ using u16q<...> = fpm::q::Q<uint16_t, ...>;
 // ...
 
 // user-defined types
-// note: overflow behaviors are examples here; best practice is to use the default, forbidden, and
+// note: overflow behaviors are examples here; best practice is to use the default, error, and
 // to change the overflow behavior explicitly when needed/desired (so that a dev has control when
 // the compiler should add overflow checks; code does not compile if a check is needed
 // -> this way a dev can add a check explicitly, or fix the bug if the check should not be needed)
 using u32q16<...> = u32q<16, ..., fpm::Overflow::clamp>;  // res. 2^-16; overflow: clamping
 using i32q16<...> = i32q<16, ..., fpm::Overflow::assert>;  // res. 2^-16; overflow: assertion
 // res. 2^-20; overflow at runtime forbidden -> code does not compile if check would be needed
-using u32q20<...> = u32q<20, ...>;  // Overflow::forbidden is default
+using u32q20<...> = u32q<20, ...>;  // Overflow::error is default
 using i16q2<...> = i16q<2, ..., fpm::Overflow::clamp>;  // res. 2^-2; overflow: clamping
 
 
@@ -138,7 +138,7 @@ auto cast1 = static_cast<i16q2<>>(b);  // Performs checks if needed (decided at 
 auto cast1b = static_q_cast<i16q2<>, Overflow::clamp>(b);  // Same as static_cast but with overflow
                                                            // override.
 auto cast2 = safe_q_cast<i16q2<>, Overflow::assert>(a);  // Safe cast will always perform checks.
-                                                         // Overflow:noCheck is not permitted.
+                                                         // Overflow:unchecked is not permitted.
 // Forced cast doesn't perform any scaling or overflow checks! Value is simply reused.
 // Can overflow! (E.g. useful if an overflow is required as part of an algorithm.)
 auto cast3 = force_q_cast<i16q2<40., 100.>>(b);

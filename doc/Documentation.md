@@ -24,7 +24,7 @@ The goal is to enable calculations within a specified value range and precision 
 - Explicit construction from integer-based variables with scaled values at runtime.
 - Disallow runtime construction from floating-point variables to maintain integrity in resource-constrained environments.
 - Implement compile-time overflow checks where feasible, with runtime checks as necessary.
-- Various overflow handling strategies (e.g., clamp, assert, or allow unchecked overflow).
+- Various overflow handling strategies (e.g., error, assert, clamp, or allow unchecked overflow).
 - Implicit conversions between types of the same base type only if it results in higher precision; explicit conversion for downscaling or changing precision.
 - Conversion between different base types only through explicit casts (static cast, safe cast, force cast).
 - Straightforward, easy-to-debug formulas without obscuring scaling corrections.
@@ -93,13 +93,13 @@ These examples illustrate the utility of `v2s` and `s2s` in fixed-point calculat
 
 The `fpm` library provides a robust handling of overflow scenarios through different behaviors that can be specified during the type definition of `Q`. Understanding and selecting the appropriate overflow behavior is critical to ensure that your application handles edge cases in a predictable and controlled manner. The library currently implements four types of overflow behaviors:
 
-- **Forbidden (`Ovf::forbidden`)**: This behavior causes a compiler error if overflow is possible. It is the **default setting**, ensuring that potential overflow scenarios are addressed during development rather than at runtime.
+- **Error (`Ovf::error`)**: This behavior causes a compiler error if overflow is possible. It is the **default setting**, ensuring that potential overflow scenarios are addressed during development rather than at runtime.
 
 - **Assert (`Ovf::assert`)**: This overflow behavior triggers a runtime assertion if overflow occurs, which is useful for debugging and development phases where catching errors immediately is crucial.
 
-- **Clamp (`Ovf::clamp`)**: With this behavior, values that would normally overflow are clamped to the maximum or minimum value within the range defined for the `Q` type. This prevents overflow while still allowing the application to continue running.
+- **Clamp (`Ovf::clamp`)**: With this behavior, values that would normally overflow are clamped at runtime to the maximum or minimum value within the range defined for the `Q` type. This prevents overflow while still allowing the application to continue running.
 
-- **No Check (`Ovf::noCheck`), Allowed (`Ovf::allowed`)**: This setting disables overflow checking entirely. It allows the value to wrap around according to the standard behavior of the underlying data type. "No Check" and "Allowed" refer to the same behavior, however, the choice of term may fit better semantically depending on the context or usage within specific parts of your application.
+- **Unchecked (`Ovf::unchecked`), Allowed (`Ovf::allowed`)**: This setting disables overflow checking entirely. It allows the value to wrap around according to the standard behavior of the underlying data type. "Unchecked" and "Allowed" refer to the same behavior, however, the choice of term may fit better semantically depending on the context or usage within specific parts of your application.
 
 Choosing the right overflow behavior depends on your application’s requirements for safety, debugging, and performance.
 
@@ -114,7 +114,7 @@ Just like the enigmatic Q from Star Trek, the `Q` type in the Fixed-Point Math L
 
 ```cpp
 template< std::integral base_t, fpm::scaling_t f, double realMin, double realMax,
-          fpm::Overflow ovfBx = fpm::Ovf::forbidden >
+          fpm::Overflow ovfBx = fpm::Ovf::error >
 class Q {
     public:
     // ...
@@ -126,15 +126,15 @@ class Q {
 
 - `base_t`: Refers to the underlying integral type that holds the scaled value. Within the `Q` class, the scaled value, which represents the fixed-point number, is declared as a private member. This value is the only element that is stored in runtime memory for the `Q` instance.
 - `realMin` and `realMax`: These specify the minimum and maximum values of the real value range that `Q` can represent, effectively setting the bounds for compile-time computation.
-- `ovfBx`: Dictates the overflow behavior for operations that exceed the designated value range. The default overflow behavior is `Ovf::forbidden`, which means the code will not compile if a potential overflow scenario is detected. This is particularly common when a conversion from a wider to a narrower real value range is attempted, safeguarding against inadvertent data loss or corruption.
+- `ovfBx`: Dictates the overflow behavior for operations that exceed the designated value range. The default overflow behavior is `Ovf::error`, which means the code will not compile if a potential overflow scenario is detected. This is particularly common when a conversion from a wider to a narrower real value range is attempted, safeguarding against inadvertent data loss or corruption.
 
 ### Construction
 
 The `Q` class can be instantiated using various integral types and scaling factors to fit specific application requirements. Here are some examples of how `Q` types can be defined:
 
-- `Q<int8_t, 4, -10., 10.>` represents a `Q8.4` fixed-point type, covering a real value range from -10 to +10. The default overflow behavior is set to `Ovf::forbidden`, meaning any operation leading to overflow will not compile.
+- `Q<int8_t, 4, -10., 10.>` represents a `Q8.4` fixed-point type, covering a real value range from -10 to +10. The default overflow behavior is set to `Ovf::error`, meaning any operation leading to overflow will not compile.
 - `Q<uint32_t, 12, 0., 1000., Ovf::clamp>` defines a `UQ32.12` fixed-point type with a real value range from 0 to 1000. Overflow behavior is set to `Ovf::clamp`, meaning values that exceed the range are adjusted to the nearest boundary.
-- `Q<in16_t, 8>` defines a `Q16.8` fixed-point type that uses `Ovf::forbidden` as the default overflow behavior and the largest possible **symmetric** value range. This symmetric range excludes `INT16_MIN` as scaled value to avoid issues such as overflow when taking the absolute value.
+- `Q<in16_t, 8>` defines a `Q16.8` fixed-point type that uses `Ovf::error` as the default overflow behavior and the largest possible **symmetric** value range. This symmetric range excludes `INT16_MIN` as scaled value to avoid issues such as overflow when taking the absolute value.
 
 `Q` cannot be constructed directly from floating-point values to maintain type safety and prevent inadvertent data loss or misinterpretations at runtime. Instead, `Q` provides static constructor methods to create instances from real values, ensuring conversions are explicit and controlled:
 
@@ -160,7 +160,7 @@ The library provides alias templates as syntax sugar for common Q types, looking
 - `i32q16<realMin, realMax, Ovf::clamp>` is a `Q<int32_t, 16, realMin, realMax, Ovf::clamp>`
 - `u16q8<realMin, realMax>` is a `Q<uint16_t, 8, realMin, realMax>`
 - `i32qm7<realMin, realMax>` is a `Q<int32_t, -7, realMin, realMax`
-- `i16q6<>` is a `Q<int16_t, 6>`, with the largest possible symmetric value range and `Ovf::forbidden`
+- `i16q6<>` is a `Q<int16_t, 6>`, with the largest possible symmetric value range and `Ovf::error`
 
 Construction of `Q` instances using these aliases looks as follows:
 ```cpp

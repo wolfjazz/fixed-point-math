@@ -24,18 +24,18 @@ namespace fpm {
  * \{ */
 
 /** Overflow behavior.
- * \note Prioritized order: highest priority at top (forbidden), lowest at bottom (no_check). */
+ * \note Prioritized order: highest priority at top (error), lowest at bottom (unchecked). */
 enum class Overflow : uint8_t {
     /// Default. Code must not compile if an overflow check is required.
     /// \note: It is best practice to keep this default behavior when possible, because this way the
     /// compiler will complain if an overflow check is required at some point, and the developer can
     /// then decide which overflow behavior fits best, or change the implementation if an overflow
     /// check is not desired at all.
-    forbidden = 0u,
+    error = 0u,
 
     /// If an overflow check is needed, it will be included. In case of an overflow the assert
     /// function will be called at runtime.
-    /// \note This can be used e.g. in a debug build on types where 'forbidden' is not possible by design.
+    /// \note This can be used e.g. in a debug build on types where 'error' is not possible by design.
     assert = 1u,
 
     /// In case of an overflow, the value will be clamped to the closest limit at runtime.
@@ -45,8 +45,8 @@ enum class Overflow : uint8_t {
 
     /// Do not perform any overflow checks (i.e. overflow is explicitly allowed).
     /// \warning The value can overflow in this case!
-    noCheck = 3u,
-    allowed = noCheck,
+    unchecked = 3u,
+    allowed = unchecked,
 };
 
 /// Overflow type alias.
@@ -363,7 +363,7 @@ namespace detail {
                 else { /* okay */ }
             }
         }
-        else { /* Overflow::allowed, Overflow::noCheck: no checks performed */ }
+        else { /* Overflow::allowed, Overflow::unchecked: no checks performed */ }
     }
 
     /** Calculates the given integer power of the given number.
@@ -619,7 +619,7 @@ namespace detail {
      * \note If this fails, a runtime overflow check is needed but not allowed for the desired Q type.
      *       Allow for type, or specify the overflow-override template argument (to be preferred)! */
     template< Overflow ovfBx, bool checkNeeded >
-    concept OvfCheckAllowedWhenNeeded = ( !checkNeeded || Overflow::forbidden != ovfBx );
+    concept OvfCheckAllowedWhenNeeded = ( !checkNeeded || Overflow::error != ovfBx );
 
     /** Concept: Compile-time construction of a Q type is allowed.
      * \note If this fails, a compile-time overflow check is needed but not allowed for the desired Q type.
@@ -627,7 +627,7 @@ namespace detail {
     template< Overflow ovfBx >
     concept CompileTimeConstructionAllowed = (
         ovfBx != Overflow::assert  // assert() is runtime, not compile-time
-        && ovfBx != Overflow::forbidden
+        && ovfBx != Overflow::error
     );
 
     /** Concept of a valid difference between two integral types and two scaling factors to support
@@ -662,7 +662,7 @@ namespace detail {
         SqOrQType<From> && SqOrQType<To>
         && std::is_same_v<typename From::base_t, typename To::base_t>
         && Scalable<typename From::base_t, From::f, typename To::base_t, To::f>
-        && ((QType<To> && !is_ovf_stricter_v<To::ovfBx, Ovf::noCheck>)
+        && ((QType<To> && !is_ovf_stricter_v<To::ovfBx, Ovf::unchecked>)
             || (To::realMin <= From::realMin && From::realMax <= To::realMax))
     );
 

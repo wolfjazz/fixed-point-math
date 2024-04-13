@@ -35,7 +35,7 @@ template<
     scaling_t f_,         ///< number of fraction bits (precision 2^(-f))
     double realMin_ = fpm::realMin<BaseT, f_>,  ///< minimum real value represented by the type
     double realMax_ = fpm::realMax<BaseT, f_>,  ///< maximum real value represented by the type
-    Overflow ovfBx_ = Overflow::forbidden >  ///< overflow behavior; overflow is forbidden by default
+    Overflow ovfBx_ = Overflow::error >  ///< overflow behavior
 requires fpm::detail::QRequirements<BaseT, f_, realMin_, realMax_, ovfBx_>
 class Q final {
 public:
@@ -78,7 +78,7 @@ private:
         static constexpr double realMin = Q::realMin;
         static constexpr double realMax = Q::realMax;
         static constexpr base_t scaled = fpm::scaled<Q>(real);
-        static constexpr Overflow ovfBx = (Q::scaledMin <= scaled && scaled <= Q::scaledMax) ? Overflow::noCheck : ovfBxOvrd;
+        static constexpr Overflow ovfBx = (Q::scaledMin <= scaled && scaled <= Q::scaledMax) ? Overflow::unchecked : ovfBxOvrd;
         static constexpr base_t value() noexcept { return fpm::scaled<Q>(real); }
     };
 
@@ -89,7 +89,7 @@ private:
         static constexpr scaling_t f = Q::f;
         static constexpr double realMin = Q::realMin;
         static constexpr double realMax = Q::realMax;
-        static constexpr Overflow ovfBx = (Q::scaledMin <= scaled && scaled <= Q::scaledMax) ? Overflow::noCheck : ovfBxOvrd;
+        static constexpr Overflow ovfBx = (Q::scaledMin <= scaled && scaled <= Q::scaledMax) ? Overflow::unchecked : ovfBxOvrd;
         static constexpr base_t value() noexcept { return scaled; }
     };
 
@@ -217,7 +217,7 @@ private:
     /// Implements a safe case from Q type to QC type. The overflow check is always performed.
     template< QType QC, Overflow ovfBxOvrd = QC::ovfBx >
     requires ( fpm::detail::Scalable<typename Q::base_t, Q::f, typename QC::base_t, QC::f>
-               && ovfBxOvrd != Overflow::noCheck )
+               && ovfBxOvrd != Overflow::unchecked )
     struct SafeCast {
         using base_t = typename QC::base_t;
         // cast type is twice the size of the target type to allow for proper cropping
@@ -261,11 +261,11 @@ public:
     static constexpr
     Q fromReal() { return Q::template construct< FromR<real, ovfBxOvrd>::ovfBx >( FromR<real, ovfBxOvrd>::value() ); }
 
-    /// Alias for Q::fromReal<., Overflow::forbidden>()
+    /// Alias for Q::fromReal<., Overflow::error>()
     template< double real >
-    requires requires { { Q::template fromReal<real, Overflow::forbidden>() } -> std::same_as<Q>; }
+    requires requires { { Q::template fromReal<real, Overflow::error>() } -> std::same_as<Q>; }
     static constexpr
-    Q fromRealNOvf() { return fromReal<real, Overflow::forbidden>(); }
+    Q fromRealNOvf() { return fromReal<real, Overflow::error>(); }
 
     /// Alias for Q::fromReal<., Overflow::clamp>()
     template< double real >
@@ -273,11 +273,11 @@ public:
     static constexpr
     Q fromRealClamp() { return fromReal<real, Overflow::clamp>(); }
 
-    /// Alias for Q::fromReal<., Overflow::noCheck>() and Q::fromReal<., Overflow::allowed>()
+    /// Alias for Q::fromReal<., Overflow::unchecked>() and Q::fromReal<., Overflow::allowed>()
     template< double real >
-    requires requires { { Q::template fromReal<real, Overflow::noCheck>() } -> std::same_as<Q>; }
+    requires requires { { Q::template fromReal<real, Overflow::unchecked>() } -> std::same_as<Q>; }
     static constexpr
-    Q fromRealOvf() { return fromReal<real, Overflow::noCheck>(); }
+    Q fromRealOvf() { return fromReal<real, Overflow::unchecked>(); }
 
     /// Named compile-time-only "constructor" from a scaled integer value. This can be used to
     /// construct a well-behaved Q value at compile-time without a redundant overflow check.
@@ -290,11 +290,11 @@ public:
     static constexpr
     Q fromScaled() { return Q::template construct< FromS<scaled, ovfBxOvrd>::ovfBx >( FromS<scaled, ovfBxOvrd>::value() ); }
 
-    /// Alias for Q::fromScaled<., Overflow::forbidden>
+    /// Alias for Q::fromScaled<., Overflow::error>
     template< base_t scaled >
-    requires requires { { Q::template fromScaled<scaled, Overflow::forbidden>() } -> std::same_as<Q>; }
+    requires requires { { Q::template fromScaled<scaled, Overflow::error>() } -> std::same_as<Q>; }
     static constexpr
-    Q fromScaledNOvf() { return fromScaled<scaled, Overflow::forbidden>(); }
+    Q fromScaledNOvf() { return fromScaled<scaled, Overflow::error>(); }
 
     /// Alias for Q::fromScaled<., Overflow::clamp>
     template< base_t scaled >
@@ -302,11 +302,11 @@ public:
     static constexpr
     Q fromScaledClamp() { return fromScaled<scaled, Overflow::clamp>(); }
 
-    /// Alias for Q::fromScaled<., Overflow::noCheck> and Q::fromScaled<., Overflow::allowed>
+    /// Alias for Q::fromScaled<., Overflow::unchecked> and Q::fromScaled<., Overflow::allowed>
     template< base_t scaled >
-    requires requires { { Q::template fromScaled<scaled, Overflow::noCheck>() } -> std::same_as<Q>; }
+    requires requires { { Q::template fromScaled<scaled, Overflow::unchecked>() } -> std::same_as<Q>; }
     static constexpr
-    Q fromScaledOvf() { return fromScaled<scaled, Overflow::noCheck>(); }
+    Q fromScaledOvf() { return fromScaled<scaled, Overflow::unchecked>(); }
 
     /// Named "Copy-Constructor" from another Q type with the same base type.
     /// \note When a Q value is up-scaled to a larger resolution, the initial representation error
@@ -331,11 +331,11 @@ public:
     static constexpr
     Q fromSq(SqFrom const &fromSq) noexcept { return Q( FromSq<SqFrom, ovfBxOvrd>::value(fromSq.value) ); }
 
-    /// Alias for Q::fromSq<Overflow::forbidden>(.)
+    /// Alias for Q::fromSq<Overflow::error>(.)
     template< /* deduced: */ SqType SqFrom >
-    requires requires(SqFrom const &sqFrom) { { Q::template fromSq<Overflow::forbidden>(sqFrom) } -> std::same_as<Q>; }
+    requires requires(SqFrom const &sqFrom) { { Q::template fromSq<Overflow::error>(sqFrom) } -> std::same_as<Q>; }
     static constexpr
-    Q fromSqNOvf(SqFrom const &fromSq) noexcept { return Q::template fromSq<Overflow::forbidden>(fromSq); }
+    Q fromSqNOvf(SqFrom const &fromSq) noexcept { return Q::template fromSq<Overflow::error>(fromSq); }
 
     /// Alias for Q::fromSq<Overflow::clamp>(.)
     template< /* deduced: */ SqType SqFrom >
@@ -343,11 +343,11 @@ public:
     static constexpr
     Q fromSqClamp(SqFrom const &fromSq) noexcept { return Q::template fromSq<Overflow::clamp>(fromSq); }
 
-    /// Alias for Q::fromSq<Overflow::noCheck>(.) and Q::fromSq<Overflow::allowed>(.)
+    /// Alias for Q::fromSq<Overflow::unchecked>(.) and Q::fromSq<Overflow::allowed>(.)
     template< /* deduced: */ SqType SqFrom >
-    requires requires(SqFrom const &sqFrom) { { Q::template fromSq<Overflow::noCheck>(sqFrom) } -> std::same_as<Q>; }
+    requires requires(SqFrom const &sqFrom) { { Q::template fromSq<Overflow::unchecked>(sqFrom) } -> std::same_as<Q>; }
     static constexpr
-    Q fromSqOvf(SqFrom const &fromSq) noexcept { return Q::template fromSq<Overflow::noCheck>(fromSq); }
+    Q fromSqOvf(SqFrom const &fromSq) noexcept { return Q::template fromSq<Overflow::unchecked>(fromSq); }
 
     /// Explicit conversion to the related Sq type.
     /// \note If the limits are the same and the overflow behavior is not overridden, the unary plus
@@ -429,7 +429,7 @@ public:
     explicit constexpr
     operator QC() const noexcept {
         // discard overflow check when QC is constructed to avoid that value is checked again
-        return QC::template construct<Overflow::noCheck>( Cast<QC>::value(this->value) );
+        return QC::template construct<Overflow::unchecked>( Cast<QC>::value(this->value) );
     }
 
     /// Explicit (static-) cast to another Q type with a potentially different base type.
@@ -444,7 +444,7 @@ public:
         // if overflow override is specified, use StaticCast implementation type
         else {
             // discard overflow check when QC is constructed to avoid that value is checked again
-            return QC::template construct<Overflow::noCheck>( StaticCast<QC, ovfBxOvrd>::value(from.value) );
+            return QC::template construct<Overflow::unchecked>( StaticCast<QC, ovfBxOvrd>::value(from.value) );
         }
     }
 
@@ -457,7 +457,7 @@ public:
     friend constexpr
     QC safe_q_cast(Q const &from) noexcept {
         // discard overflow check when QC is constructed to avoid that value is checked again
-        return QC::template construct<Overflow::noCheck>( SafeCast<QC, ovfBxOvrd>::value(from.value) );
+        return QC::template construct<Overflow::unchecked>( SafeCast<QC, ovfBxOvrd>::value(from.value) );
     }
 
     /// Explicit, force cast of a Q type to a different Q type.
@@ -466,7 +466,7 @@ public:
     template< QType QC >
     friend constexpr
     QC force_q_cast(Q const &from) noexcept {
-        return QC::template construct<Overflow::noCheck>( static_cast<typename QC::base_t>(from.value) );
+        return QC::template construct<Overflow::unchecked>( static_cast<typename QC::base_t>(from.value) );
     }
 
     /// Reveals the scaled integer value stored in memory.

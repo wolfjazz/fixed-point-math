@@ -49,7 +49,7 @@ int main() {
     auto d = i32q12_t::fromSq<Ovf::clamp>(c);  // scaled: 819200, real: 200.0
 
     // cast to unsigned type
-    auto s = static_q_cast<u32q11_t, Ovf::noCheck>(d);  // sc: 409600, re: 200.0
+    auto s = static_q_cast<u32q11_t, Ovf::unchecked>(d);  // sc: 409600, re: 200
 
     // multiplication
     auto p = a2 * d;  // i32q14<-20000.,40000.>; scaled: 345538400, real: 21090

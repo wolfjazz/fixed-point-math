@@ -58,7 +58,7 @@ concept CanCastQToQ = requires (QSrc qSrc) {
 
 class QTest_Construct : public ::testing::Test {
 protected:
-    using i16q6_t = i16q6<-500., 500.>;  // overflow forbidden by default
+    using i16q6_t = i16q6<-500., 500.>;  // compiler error on overflow by default
     using i16q6_clamp_t = i16q6<-500., 500., fpm::Ovf::clamp>;
     using i16q6_ovf_t = i16q6<-500., 500., fpm::Ovf::allowed>;
 
@@ -387,7 +387,7 @@ TEST_F(QTest_Sq, q_to_sq__same_value_range__no_overflow_check_performed) {
 TEST_F(QTest_Sq, q_to_sq__different_value_range_overflow_forbidden__does_not_compile) {
     // Note: Although the value is inside the value range in this case, the compiler will add
     //       overflow checks as soon as the value range for sq is narrower (because the value of q
-    //       might be changed before toSq() is called). Due to fpm::Ovf::forbidden, this must not compile.
+    //       might be changed before toSq() is called). Due to fpm::Ovf::error, this must not compile.
     using SqT = i32q20_t::Sq<i32q20_t::realMin + 1., i32q20_t::realMax - 1.>;
     ASSERT_FALSE(( CanConvertQToSq< i32q20_t, SqT > ));
 }
@@ -859,7 +859,7 @@ TEST_F(QTest_Casting, q_static_cast__positive_real_value_signed__unsigned_type_s
     auto d = static_q_cast<u32qm2_clamp_t>(a);
 
     // static cast from i32q4_t to u32q4_t must not work here because first range is wider than second
-    // and types have fpm::Ovf::forbidden
+    // and types have fpm::Ovf::error
     ASSERT_FALSE(( CanCastQToQ< i32q4_t, u32qm2_t > ));
 
     ASSERT_NEAR(realA, b.real(), i32q4_t::resolution + u32qm2_clamp_t::resolution);
@@ -916,7 +916,7 @@ TEST_F(QTest_Casting, q_static_cast__positive_real_value_signed__smaller_unsigne
     auto d = static_q_cast<u16q6_clamp_t>(a);
 
     // static cast from i32q4_t to u16q6_t must not work here because first range is wider than second
-    // and types have fpm::Ovf::forbidden
+    // and types have fpm::Ovf::error
     ASSERT_FALSE(( CanCastQToQ< i32q4_t, u16q6_t > ));
 
     ASSERT_NEAR(realA, b.real(), u16q6_clamp_t::resolution);

@@ -24,7 +24,7 @@ FPM_Q_BIND_LITERAL(mtime_t, s);
 
 
 void accel(pos_t &position, speed_t &velocity, accel_t const acceleration, mtime_t const forTime, i32q20<0., .1> const dt) {
-    for (mtime_t t = 0_s; t < forTime; t = mtime_t::fromSq<Ovf::noCheck>(t + dt)) {
+    for (mtime_t t = 0_s; t < forTime; t = mtime_t::fromSq<Ovf::unchecked>(t + dt)) {
         auto dv = +acceleration * dt;
         auto ds = velocity * dt;
         velocity = speed_t::fromSq<Ovf::clamp>(velocity + dv);

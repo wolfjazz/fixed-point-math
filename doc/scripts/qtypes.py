@@ -31,12 +31,12 @@ class QType(NamedTuple):
     defOvf: str
 
 qTypeList = [
-    QType('int8_t', 'i8', 8, -4, 7, 'forbidden'),
-    QType('uint8_t', 'u8', 8, -4, 7, 'forbidden'),
-    QType('int16_t', 'i16', 16, -8, 15, 'forbidden'),
-    QType('uint16_t', 'u16', 16, -8, 15, 'forbidden'),
-    QType('int32_t', 'i32', 32, -16, 31, 'forbidden'),
-    QType('uint32_t', 'u32', 32, -16, 31, 'forbidden'),
+    QType('int8_t', 'i8', 8, -4, 7, 'error'),
+    QType('uint8_t', 'u8', 8, -4, 7, 'error'),
+    QType('int16_t', 'i16', 16, -8, 15, 'error'),
+    QType('uint16_t', 'u16', 16, -8, 15, 'error'),
+    QType('int32_t', 'i32', 32, -16, 31, 'error'),
+    QType('uint32_t', 'u32', 32, -16, 31, 'error'),
 ]
 
 
@@ -62,7 +62,7 @@ def print_q_types():
     for q in qTypeList:
         f_range = get_f_from_range(q.fFrom, q.fTo)
         for f, fStr in f_range:
-            print("template< double lower = fpm::realMin<%8s, %3s>(), double upper = fpm::realMax<%8s, %3s>(), Overflow ovfBx = Ovf::%-9s > using %7s = q<%8s, %3s, lower, upper, ovfBx>;" % (q.type, f, q.type, f, q.defOvf, q.short + "q" + fStr, q.type, f))
+            print("template< double lower = fpm::realMin<%8s, %3s>(), double upper = fpm::realMax<%8s, %3s>(), Overflow ovfBx = Ovf::%s > using %7s = q<%8s, %3s, lower, upper, ovfBx>;" % (q.type, f, q.type, f, q.defOvf, q.short + "q" + fStr, q.type, f))
 
 def print_q_literals():
     for q in qTypeList:
