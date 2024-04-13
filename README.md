@@ -36,8 +36,8 @@ int main() {
               << "i32q14_t::res: " << i32q14_t::resolution << ", "
               << "u32q11_t::res: " << u32q11_t::resolution << std::endl;
 
-    auto a = i32q12_t::fromReal<105.45>();   // scaled to 431923
-    auto b = i32q14_t::fromReal<123.456>();  // scaled to 2022703
+    auto a = i32q12_t::fromReal<105.45>();  // scaled to 431923
+    i32q14_t b = 123.456_i32q14;  // via literal; scaled to 2022703
     i32q14_t a2 = a;  // copy-upscale from q12 to q14; scaled to 1727692
 
     /* do some math: math results have static-Q (Sq) types */
