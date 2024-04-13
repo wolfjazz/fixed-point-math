@@ -7,7 +7,6 @@
 
 #include <algorithm>
 #include <bit>
-#include <cassert>
 #include <cctype>
 #include <cmath>
 #include <cstdint>
@@ -57,6 +56,10 @@ template< Overflow a, Overflow b >
 struct is_ovf_stricter { static constexpr bool value = a < b; };
 template< Overflow a, Overflow b >
 static constexpr bool is_ovf_stricter_v = is_ovf_stricter<a, b>::value;
+
+/** Overflow assert trap function. Must not return!
+ * \note Needs to be implemented in the application if Ovf::assert is used. */
+[[noreturn]] extern void ovfAssertTrap();
 
 
 /// Scaling factor type.
@@ -319,7 +322,7 @@ namespace detail {
 
         if constexpr (Overflow::assert == ovfBx) {
             if (value < min || value > max) {
-                assert(false);  // value is out of range
+                ovfAssertTrap();  // value is out of range; this does not return!
             }
         }
         else if constexpr (Overflow::clamp == ovfBx) {

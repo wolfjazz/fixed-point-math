@@ -44,13 +44,14 @@ To begin using the Fixed-Point Math Library in your project, start by including 
 #include <fpm.hpp>
 ```
 
-Next, make use of the library's types by adding the following namespace directive to your source files:
+Next, make use of the library's definitions and types by adding the following namespace directives to your source files:
 
 ```cpp
 using namespace fpm::types;
+using Ovf = fpm::Ovf;  // optional
 ```
 
-This setup will allow you to easily access and utilize the various fixed-point types provided by the library in your applications. For clarity, the initial examples in this document may include these two lines of prefix explicitly. Moving forward, these lines will not be shown in any further examples within this document.
+This setup will allow you to easily access and utilize the various fixed-point types provided by the library in your applications. For clarity, the initial examples in this document may include these lines of prefix explicitly. Moving forward, these lines will not be shown in any further examples within this document, unless they are part of what is shown.
 
 ### Helper functions
 
