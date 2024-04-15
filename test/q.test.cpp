@@ -656,7 +656,7 @@ TEST_F(QTest_CopyScale, q_assignment__same_q_type__value_is_copied) {
     ASSERT_NEAR(realA, b.real(), i32q4_t::resolution);
 }
 
-TEST_F(QTest_CopyScale, q_assignment__different_q_type__value_is_scaled_and_assigned_only_downscale) {
+TEST_F(QTest_CopyScale, q_assignment__different_q_type__value_is_scaled_and_assigned) {
     constexpr double realA = -1024.2;
     auto a = i32q4_t::fromReal<realA>();
     auto b = i32qm2_t::fromScaled<0>();
@@ -775,7 +775,7 @@ TEST_F(QTest_CopyScale, q_assignment__same_q_type_literal__value_is_copied) {
     ASSERT_NEAR((1024_i32q4).real(), a.real(), i32q4_t::resolution);
 }
 
-TEST_F(QTest_CopyScale, q_assignment__different_q_type_literal__value_is_scaled_and_assigned_only_downscale) {
+TEST_F(QTest_CopyScale, q_assignment__different_q_type_literal__value_is_scaled_and_assigned) {
     auto a = i32qm2_t::fromScaled<0>();
     auto b = i32q8_t::fromScaled<0>();
     a = 1024_i32q4;  // downscale-assignment (no runtime checks needed here)

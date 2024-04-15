@@ -4,7 +4,8 @@ This library introduces a fixed-point mathematical system designed specifically 
 
 ## Motivation
 
-In embedded systems programmed with C/C++, it is typical to avoid built-in floating-point types like `float` and `double` due to their significant impact on code size and execution time—critical factors in microcontrollers. A common solution is to use integers scaled by a fixed power of two, allowing representation of fractional values. For instance, a 32-bit unsigned integer scaled by the factor 2^16 splits the integer into 16 bits for the whole numbers (0-65535) and 16 bits for the fractional part, offering a precision of 2^-16. This `UQ16.16` fixed-point type, prevalent in ARM's Q notation, can represent values from 0 to 65535.99998474. Negative values are typically handled using signed integers in two's complement form, like the `Q14.2` type, which spans from -8192.00 to 8191.75.
+In embedded systems programmed with C/C++, it is typical to avoid built-in floating-point types like `float` and `double` due to their significant impact on code size and execution time—critical factors in microcontrollers. A common solution is to use integers scaled by a fixed power of two, allowing representation of fractional values. For instance, a 32-bit unsigned integer scaled by the factor $2^{16}$ splits the integer into 16 bits for the whole numbers (0-65535) and 16 bits for the fractional part, offering a precision of $2^{-16}$
+. This `UQ16.16` fixed-point type, prevalent in ARM's Q notation, can represent values from 0 to 65535.99998474. Negative values are typically handled using signed integers in two's complement form, like the `Q14.2` type, which spans from -8192.00 to 8191.75.
 
 ### Problems and Expectations
 
@@ -57,8 +58,8 @@ This setup will allow you to easily access and utilize the various fixed-point t
 
 The library includes a set of helper functions designed to facilitate the manipulation of values at compile-time, ensuring that they are correctly scaled for use with different Q types. These functions are critical for creating and converting scaled values accurately and efficiently.
 
-- **Value to Scale (`v2s`)**: This function is used to convert a real floating-point value into a scaled integer value at compile time. It multiplies the given `ValueT` value by 2^to, allowing for precise initialization of fixed-point variables from real numbers within the resolution of `TargetT`.
-- **Scale to Scale (`s2s`)**: This function changes the scaling of a given scaled integer value. It multiplies the value by 2^(to-from), enabling the conversion of a value from one fixed-point scale to another without losing precision relative to the scaling factor.
+- **Value to Scale (`v2s`)**: This function is used to convert a real floating-point value into a scaled integer value at compile time. It multiplies the given `ValueT` value by $2^{to}$, allowing for precise initialization of fixed-point variables from real numbers within the resolution of `TargetT`.
+- **Scale to Scale (`s2s`)**: This function changes the scaling of a given scaled integer value. It multiplies the value by $2^{to-from}$, enabling the conversion of a value from one fixed-point scale to another without losing precision relative to the scaling factor.
 
 ```cpp
 namespace fpm {
@@ -241,7 +242,7 @@ To obtain the real value as a floating-point number, you can use the `real()` fu
   ```
 
 - **Accessing the Real Value as an Integer:**
-  For accessing the real value in any integer format, use `real<typename>()`. This method converts the unscaled real value to the given integral type by truncating it according to C++ rules, discarding any fractional digits. This truncation must be handled with care to avoid unintended data loss, especially when the type has a large fraction part.
+  For accessing the real value in any integer format, use `real<typename>()`. This method converts the unscaled real value to the given integral type by truncating it according to C++ rules, discarding any fractional digits. This truncation must be handled with care to avoid unintended data loss, especially when the type has a large fractional part.
 
   ```cpp
   // Get the real value as an integer, truncating fractional digits
@@ -250,7 +251,57 @@ To obtain the real value as a floating-point number, you can use the `real()` fu
 
 ### Rescaling
 
-TODO
+In situations where the base type remains the same but the fractional part (`f`) differs between two `Q` types, rescaling is necessary. This process is referred to as "upscaling" when `f` increases, and "downscaling" when `f` decreases.
+
+- **Upscaling**: Upscaling is achieved by **multiplying** the source value by $2^{to-from}$, effectively increasing the number of fractional bits to fit the higher resolution of the target type. While this process is technically lossless because no data is discarded, it doesn't enhance the actual resolution or detail of the original data; the additional fractional bits are essentially filled with zeros.
+
+- **Downscaling**: Downscaling reduces the number of fractional bits by **dividing** the source value by $2^{from-to}$. This operation is inherently lossy as it involves discarding the least significant bits of the fractional part. Consequently, the precision of the original value is reduced to match the lower resolution of the target type, resulting in a loss of detail that reflects the decreased fractional granularity.
+
+To rescale a `Q` type to another with the same base type but different `f`, you can use the  
+`Q<base_t, f_to, ...>::fromQ<ovfBxOverride: Ovf>(source: Q<base_t, f_from, ...>)` constructor function, which handles the scaling adjustments internally:
+
+```cpp
+auto sourceValue = i32q10<-500., 1500.>::fromReal< 1024. >();
+
+// Rescale from f=10 to f=8 and clamp to the narrower value range
+auto targetValue = i32q8<-450., 1450.>::fromQ<Ovf::clamp>( sourceQValue );
+```
+
+The `fromQ` function automatically adjusts the scaling and applies the appropriate overflow check if specified. This overflow check is unnecessary if the value range of the target type is the same or wider than that of the source type, or if the overflow behavior of the target type is `Ovf::unchecked`. However, if the target range is narrower and the target type checks for overflow, or if the overflow behavior of the target type is stricter than that of the source type, you must specify a different overflow behavior with the `fromQ<ovfBx>(.)` function. Importantly, this does not permanently change the behavior of the target type but instead applies the specified overflow handling solely for the conversion to the target type.
+
+
+#### More Examples
+
+```cpp
+using source_t = i32q10<-500., 1500.>;   // i32q10, Ovf::error
+using overflow_t = i32q10<-500., 1500., Ovf::allowed>;
+using coarser_t = i32q8<-500., 1500.>;   // i32q8, same value range as source_t
+using wider_t = i32q8<-600., 1600.>;     // i32q8, wider value range
+using narrower_t = i32q8<-400., 1500.>;  // i32q8, narrower value range
+
+auto source1 = source_t::fromReal< 1024.7 >();
+auto source2 = overflow_t::fromReal< -555.5 >();  // value out of range
+
+// same value range: direct assignment can be used if ovf behavior allows it
+coarser_t a1 = source1;                        // ok
+auto a2 = coarser_t::fromQ( source1 );         // also ok
+// coarser_t a3 = source2;                     // error (stricter ovf behavior)
+auto a4 = coarser_t::fromQ<Ovf::clamp>( source2 );  // ok (runtime clamp needed)
+i32q8<-500., 1500., Ovf::clamp> a5 = source2;  // ok (clamping target)
+
+// wider value range: direct assignment can be used if ovf behavior allows it
+wider_t b1 = source1;                             // ok
+auto b2 = wider_t::fromQ( source1 );              // also ok
+// wider_t b3 = source2;                          // error (stricter ovf beh.)
+auto b4 = wider_t::fromQ<Ovf::clamp>( source2 );  // ok (runtime clamp needed)
+i32q8<-600., 1600., Ovf::clamp> b5 = source2;     // ok (clamping target)
+
+// narrower value range: fromQ<>() is required unless target type checks anyway
+// narrower_t c1 = source1;  // error (narrower range)
+auto c2 = narrower_t::fromQ<Ovf::clamp>( source1 );  // ok
+auto c3 = narrower_t::fromQ<Ovf::clamp>( source2 );  // ok
+i32q8<-400., 1500., Ovf::unchecked> c4 = source2;    // ok (check discarded)
+```
 
 ### Casting
 
