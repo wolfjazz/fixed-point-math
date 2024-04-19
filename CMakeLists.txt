@@ -38,6 +38,10 @@ add_compile_options(-Wall -Wextra -pedantic -ffunction-sections -fdata-sections)
 #add_link_options(-Wl,-static -Wl,--gc-sections -Wl,-s)  # no debug info
 add_link_options(-Wl,-static)  # with debug info
 
+if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
+add_compile_options(-fconcepts-diagnostics-depth=2)
+endif()
+
 add_library(${ThisShortLib} STATIC ${Headers})
 set_target_properties(${ThisShortLib} PROPERTIES LINKER_LANGUAGE CXX)
 target_compile_options(${ThisShortLib} PRIVATE -g -Oz)  # optimize for size

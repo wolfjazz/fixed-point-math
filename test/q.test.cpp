@@ -14,42 +14,51 @@ using namespace fpm::types;
 /// Concept which checks whether a value with the given Q type can be constructed from the given real value.
 template< class Q, double real, fpm::Overflow ovfBxOvrd = Q::ovfBx >
 concept CanConstructQFromReal = requires {
-    { Q::template fromReal<real, ovfBxOvrd>() } -> std::same_as<Q>;  // false if expression cannot be compiled
+    { Q::template fromReal<real, ovfBxOvrd>() } -> std::same_as<Q>;
 };
 
 /// Concept which checks whether a value with the given Q type can be constructed from the given scaled value.
 template< class Q, Q::base_t scaled, fpm::Overflow ovfBxOvrd = Q::ovfBx >
 concept CanConstructQFromScaled = requires {
-    { Q::template fromScaled<scaled, ovfBxOvrd>() } -> std::same_as<Q>;  // false if expression cannot be compiled
+    { Q::template fromScaled<scaled, ovfBxOvrd>() } -> std::same_as<Q>;
 };
 
 /// Concept which checks whether an instance of a given Q type can be converted to an instance of a
 // given Sq type.
 template< class Q, class Sq, fpm::Overflow ovfBxOvrd = Q::ovfBx >
 concept CanConvertQToSq = requires (Q q) {
-    { q.template toSq<Sq::realMin, Sq::realMax, ovfBxOvrd>() } -> std::same_as<Sq>;  // false if expression cannot be compiled
+    { q.template toSq<Sq::realMin, Sq::realMax, ovfBxOvrd>() } -> std::same_as<Sq>;
 };
 
 /// Concept which checks whether an instance of a given Sq type can be converted to an instance of a
 /// given Q type via explicit conversion.
 template< class Sq, class Q >
 concept CanConvertSqToQExplicitly = requires (Sq sq) {
-    { Q::template fromSq(sq) } -> std::same_as<Q>;  // false if expression cannot be compiled
+    { Q::template fromSq(sq) } -> std::same_as<Q>;
 };
 
 /// Concept which checks whether an instance of a given Sq type can be converted to an instance of a
 /// given Q type via implicit conversion.
 template< class Sq, class Q >
 concept CanConvertSqToQImplicitly = requires (Q q, Sq sq) {
-    q = sq;  // false if expression cannot be compiled
+    q = sq;
 };
 
 /// Concept which checks whether an instance of a given Q type can be static_cast to an instance of
 /// another given Q type.
 /// \note If this returns false, try static_q_cast with an overflow override option.
 template< class QSrc, class QTarget >
-concept CanCastQToQ = requires (QSrc qSrc) {
-    { static_cast<QTarget>(qSrc) } -> std::same_as<QTarget>;  // false if expression cannot be compiled
+concept StaticCastable = requires (QSrc qSrc) {
+    { static_cast<QTarget>(qSrc) } -> std::same_as<QTarget>;
+    { static_q_cast<QTarget>(qSrc) } -> std::same_as<QTarget>;
+};
+
+/// Concept which checks whether an instance of a given Q type can be static_cast to an instance of
+/// another given Q type.
+/// \note If this returns false, try static_q_cast with an overflow override option.
+template< class QSrc, class QTarget, fpm::Ovf ovfBx >
+concept SafeCastable = requires (QSrc qSrc) {
+    { safe_q_cast<QTarget, ovfBx>(qSrc) } -> std::same_as<QTarget>;
 };
 
 
@@ -847,7 +856,7 @@ TEST_F(QTest_Casting, q_static_cast__positive_real_value_signed__unsigned_type_s
 
     // static cast from i32q4_t to u32q4_t must not work here because first range is wider than second
     // and types have fpm::Ovf::error
-    ASSERT_FALSE(( CanCastQToQ< i32q4_t, u32qm2_t > ));
+    ASSERT_FALSE(( StaticCastable< i32q4_t, u32qm2_t > ));
 
     ASSERT_NEAR(realA, b.real(), i32q4_t::resolution + u32qm2_clamp_t::resolution);
     ASSERT_NEAR(realA, c.real(), i32q4_t::resolution + u32qm2_t::resolution);
@@ -865,7 +874,7 @@ TEST_F(QTest_Casting, q_static_cast__positive_real_value_unsigned__larger_signed
     auto d = static_q_cast<i32q20_clamp_t>(a);
 
     // static cast from u16q6_t to i32q20_t works here, because the signed type includes the range of the unsigned type
-    ASSERT_TRUE(( CanCastQToQ< u16q6_t, i32q20_t > ));
+    ASSERT_TRUE(( StaticCastable< u16q6_t, i32q20_t > ));
 
     // note: for up-scaling to a larger integral type, the resulting resolution is the resolution
     //       of the source type (because the base type of both target and source is integral)
@@ -885,7 +894,7 @@ TEST_F(QTest_Casting, q_static_cast__positive_real_value_unsigned__larger_signed
     auto d = static_q_cast<i32qm2_clamp_t>(a);
 
     // static cast from u16q6_t to i32qm2_t works here, because the signed type includes the range of the unsigned type
-    ASSERT_TRUE(( CanCastQToQ< u16q6_t, i32qm2_t > ));
+    ASSERT_TRUE(( StaticCastable< u16q6_t, i32qm2_t > ));
 
     ASSERT_NEAR(realA, b.real(), u16q6_t::resolution + i32qm2_clamp_t::resolution);
     ASSERT_NEAR(realA, c.real(), u16q6_t::resolution + i32qm2_t::resolution);
@@ -904,7 +913,7 @@ TEST_F(QTest_Casting, q_static_cast__positive_real_value_signed__smaller_unsigne
 
     // static cast from i32q4_t to u16q6_t must not work here because first range is wider than second
     // and types have fpm::Ovf::error
-    ASSERT_FALSE(( CanCastQToQ< i32q4_t, u16q6_t > ));
+    ASSERT_FALSE(( StaticCastable< i32q4_t, u16q6_t > ));
 
     ASSERT_NEAR(realA, b.real(), u16q6_clamp_t::resolution);
     ASSERT_NEAR(realA, c.real(), u16q6_t::resolution);
@@ -1870,6 +1879,11 @@ TEST_F(QTest_Casting, q_safe_cast__larger_unsigned_type_2_smaller_unsigned_type_
     ASSERT_NEAR( 90000., dc.real(), u16qm2_t::resolution);
     ASSERT_NEAR(u16qm2_t::realMax, ec.real(), u16qm2_t::resolution);
     ASSERT_NEAR(u16qm2_t::realMax, fc.real(), u16qm2_t::resolution);
+}
+
+TEST_F(QTest_Casting, q_safe_cast__various_invalid_casts__cast_does_not_work) {
+    ASSERT_FALSE(( SafeCastable< u32q14<>, u16qm2<>, fpm::Ovf::error > ));
+    ASSERT_FALSE(( SafeCastable< u32q14<>, u16qm2<>, fpm::Ovf::unchecked > ));
 }
 
 TEST_F(QTest_Casting, q_force_cast__positive_scaled_value_signed__unsigned_type_smallerF_same_value) {

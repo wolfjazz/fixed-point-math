@@ -14,11 +14,12 @@ set(Sources
 set(Headers
 )
 
-# GCC options
-#add_compile_options(-Wall -Wextra -pedantic -fconcepts-diagnostics-depth=2)
 
-# Clang options
 add_compile_options(-Wall -Wextra -pedantic -static)  # -v for verbose
+
+if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
+add_compile_options(-fconcepts-diagnostics-depth=4)
+endif()
 
 add_executable(${This} ${Sources} ${Headers})
 target_link_libraries(${This} PUBLIC ${CMAKE_THREAD_LIBS_INIT}

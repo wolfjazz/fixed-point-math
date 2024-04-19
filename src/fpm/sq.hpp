@@ -47,9 +47,8 @@ public:
     static constexpr scaling_t f = f_;           ///< number of fraction bits
     static constexpr double realMin = realMin_;  ///< minimum real value
     static constexpr double realMax = realMax_;  ///< maximum real value
-    // note: Sq type is incomplete at this point, fpm::scaled<>() does not work here
-    static constexpr base_t scaledMin = v2s<base_t, f>(realMin_);   ///< minimum value of integer value range
-    static constexpr base_t scaledMax = v2s<base_t, f>(realMax_);   ///< maximum value of integer value range
+    static constexpr base_t scaledMin = fpm::scaled<base_t, f>(realMin_);   ///< minimum value of integer value range
+    static constexpr base_t scaledMax = fpm::scaled<base_t, f>(realMax_);   ///< maximum value of integer value range
     static constexpr double resolution = fpm::resolution<f>();  ///< real resolution
 
     /// Create a new Sq type with the same base type and scaling but a different real value range.
@@ -71,7 +70,7 @@ public:
     template< double real >
     requires ( realMin <= real && real <= realMax )  // must not overflow
     static constexpr
-    Sq fromReal() { return Sq( fpm::scaled<Sq>(real) ); }
+    Sq fromReal() { return Sq( fpm::scaled<base_t, f>(real) ); }
 
     /// Named compile-time-only "constructor" from a scaled integer value.
     /// \note Does not compile if the value is outside the value range.
@@ -134,7 +133,7 @@ public:
     template< typename TargetT = double >
 #   endif
     constexpr
-    TargetT real() const noexcept { return fpm::real<Sq, TargetT>(this->value); }
+    TargetT real() const noexcept { return fpm::real<base_t, f, TargetT>(this->value); }
 
     /// Implicit conversion of a Sq value back into its double representation at compile-time.
     /// Allows using a value+unit literal where a double is expected.
@@ -218,15 +217,24 @@ private:
 
     /// Implements the multiplication operators for the multiplication of Sq with an integer constant.
     template< std::integral T, T ic >
-    struct MultIc {
+    struct MultIcR {
         static constexpr scaling_t f = Sq::f;
         static constexpr double realMin = std::min(Sq::realMin * ic, Sq::realMax * ic);
         static constexpr double realMax = std::max(Sq::realMin * ic, Sq::realMax * ic);
         using base_t = fpm::detail::common_q_base_t<typename Sq::base_t, T, f, realMin, realMax>;
-        static constexpr base_t valueR(typename Sq::base_t const lv, std::integral_constant<T, ic>) noexcept {
+        static constexpr base_t value(typename Sq::base_t const lv, std::integral_constant<T, ic>) noexcept {
             return static_cast<base_t>(lv) * static_cast<base_t>(ic);  // multiply lhs value with the integral constant
         }
-        static constexpr base_t valueL(std::integral_constant<T, ic>, typename Sq::base_t const rv) noexcept {
+    };
+
+    /// Implements the multiplication operators for the multiplication of Sq with an integer constant.
+    template< std::integral T, T ic >
+    struct MultIcL {
+        static constexpr scaling_t f = Sq::f;
+        static constexpr double realMin = std::min(Sq::realMin * ic, Sq::realMax * ic);
+        static constexpr double realMax = std::max(Sq::realMin * ic, Sq::realMax * ic);
+        using base_t = fpm::detail::common_q_base_t<typename Sq::base_t, T, f, realMin, realMax>;
+        static constexpr base_t value(std::integral_constant<T, ic>, typename Sq::base_t const rv) noexcept {
             return static_cast<base_t>(ic) * static_cast<base_t>(rv);  // multiply rhs value with the integral constant
         }
     };
@@ -274,7 +282,8 @@ private:
         using base_t = fpm::detail::common_q_base_t<typename Sq::base_t, T, f, realMin, realMax>;
         using common_t = fpm::detail::common_base_t<typename Sq::base_t, T>;
         using calc_t = fpm::detail::fit_type_t< sizeof(T) + fpm::detail::div_ceil(2*f, CHAR_BIT), std::is_signed_v<common_t> >;
-        static constexpr base_t value(std::integral_constant<T, ic>, typename Sq::base_t rv) noexcept {
+        static constexpr base_t value(std::integral_constant<T, ic>, typename Sq::base_t rv) noexcept
+        requires ( v2s<calc_t, 2*f>(ic) <= std::numeric_limits<calc_t>::max() ) {
             // ic * 2^(2f) / (v*2^f) = ic/v * 2^f
             return static_cast<base_t>( v2s<calc_t, 2*f>(ic) / static_cast<calc_t>(rv) );
         }
@@ -339,8 +348,8 @@ private:
         using base_t = typename Sq::base_t;
         static constexpr scaling_t f = Sq::f;
         using calc_t = fpm::detail::fit_type_t< sizeof(base_t) + fpm::detail::div_ceil(ic, CHAR_BIT), std::is_signed_v<base_t> >;
-        static constexpr double realMin = fpm::real<Sq>(static_cast<calc_t>(Sq::scaledMin) << ic);
-        static constexpr double realMax = fpm::real<Sq>(static_cast<calc_t>(Sq::scaledMax) << ic);
+        static constexpr double realMin = fpm::real<base_t, f>(static_cast<calc_t>(Sq::scaledMin) << ic);
+        static constexpr double realMax = fpm::real<base_t, f>(static_cast<calc_t>(Sq::scaledMax) << ic);
         static constexpr base_t value(typename Sq::base_t lv, std::integral_constant<T, ic>) noexcept {
             return lv << ic;  // left-shift value
         }
@@ -352,8 +361,8 @@ private:
     struct ShiftR {
         using base_t = typename Sq::base_t;
         static constexpr scaling_t f = Sq::f;
-        static constexpr double realMin = fpm::real<Sq>(Sq::scaledMin >> ic);
-        static constexpr double realMax = fpm::real<Sq>(Sq::scaledMax >> ic);
+        static constexpr double realMin = fpm::real<base_t, f>(Sq::scaledMin >> ic);
+        static constexpr double realMax = fpm::real<base_t, f>(Sq::scaledMax >> ic);
         static constexpr base_t value(typename Sq::base_t lv, std::integral_constant<T, ic>) noexcept {
             return lv >> ic;  // right-shift value
         }
@@ -367,7 +376,8 @@ private:
             ? 0.0  // use 0 as new minimum if signed input type has a range of negative and positive values
             : std::min(fpm::detail::abs(Sq::realMin), fpm::detail::abs(Sq::realMax));
         static constexpr double realMax = std::max(fpm::detail::abs(Sq::realMin), fpm::detail::abs(Sq::realMax));
-        static constexpr base_t value(typename Sq::base_t v) noexcept {
+        static constexpr base_t value(typename Sq::base_t v) noexcept
+        requires fpm::detail::Absolutizable<typename Sq::base_t, Sq::scaledMin> {
             if constexpr (std::is_unsigned_v<typename Sq::base_t>) { return v; }
             else { return std::abs(v); }  // take absolute value
         }
@@ -419,9 +429,9 @@ private:
         using calc_t = fpm::detail::fit_type_t< sizeof(base_t) + fpm::detail::div_ceil(f, CHAR_BIT), std::is_signed_v<base_t> >;
         static constexpr auto value(typename Sq::base_t v) noexcept {
             // too small number results in theoretical maximum; this is the case if x*2^f <= (2^f / max^2)
-            constexpr base_t limit = fpm::scaled<Sq>( 1. / thMax / thMax );
+            constexpr base_t limit = fpm::scaled<base_t, f>( 1. / thMax / thMax );
             return v < limit
-                ? fpm::scaled<Sq>(thMax)
+                ? fpm::scaled<base_t, f>(thMax)
                 // 1/sqrt(x) <=> [ 2^(2f) / ((x*2^f) * 2^f)^1/2 ] = 2^f / sqrt(x)
                 : static_cast<base_t>( v2s<calc_t, 2*f>(1) / static_cast<calc_t>( Sqrt::value(v) ) );
         }
@@ -492,8 +502,8 @@ private:
         static constexpr scaling_t f = Sq::f;
         static constexpr double realMin = realLo;
         static constexpr double realMax = realHi;
-        static constexpr base_t lo = fpm::scaled<Sq>(realMin);
-        static constexpr base_t hi = fpm::scaled<Sq>(realMax);
+        static constexpr base_t lo = fpm::scaled<base_t, f>(realMin);
+        static constexpr base_t hi = fpm::scaled<base_t, f>(realMax);
         static constexpr base_t range(typename Sq::base_t v) noexcept {
             return (v < lo) ? lo : (hi < v) ? hi : v;
         };
@@ -537,7 +547,7 @@ public:
     /// target value range is equal to or larger than the value range of this class.
     /// \note If a cast does not work it's most probably due to unfulfilled requirements.
     template< /* deduced: */ SqType SqC >
-    requires fpm::detail::ValidImplType< Cast<SqC> >
+    requires fpm::detail::ValidImplType< Cast<SqC>, base_t >
     explicit constexpr
     operator SqC() const noexcept { return SqC( Cast<SqC>::value(this->value) ); }
 
@@ -581,7 +591,7 @@ public:
     /// that can hold the lowest and highest value of the resulting value range.
     // Note: Passing lhs by value helps optimize chained a+b+c.
     template< /* deduced: */ SqType SqRhs >
-    requires fpm::detail::ValidImplType< Add<SqRhs> >
+    requires fpm::detail::ValidImplType< Add<SqRhs>, base_t, typename SqRhs::base_t >
     friend constexpr
     auto operator +(Sq const lhs, SqRhs const &rhs) noexcept {
         return Sq< UNPACK(Add<SqRhs>) >( Add<SqRhs>::value(lhs.value, rhs.value) );
@@ -595,7 +605,7 @@ public:
     /// representation error of the initial value.
     // Note: Passing lhs by value helps optimize chained a-b-c.
     template< /* deduced: */ SqType SqRhs >
-    requires fpm::detail::ValidImplType< Sub<SqRhs> >
+    requires fpm::detail::ValidImplType< Sub<SqRhs>, base_t, typename SqRhs::base_t >
     friend constexpr
     auto operator -(Sq const lhs, SqRhs const &rhs) noexcept {
         return Sq< UNPACK(Sub<SqRhs>) >( Sub<SqRhs>::value(lhs.value, rhs.value) );
@@ -611,7 +621,7 @@ public:
     /// are very close to 0 (when f is large enough) and can be ignored.
     // Note: Passing lhs by value helps optimize chained a*b*c.
     template< /* deduced: */ SqType SqRhs >
-    requires fpm::detail::ValidImplType< Mult<SqRhs> >
+    requires fpm::detail::ValidImplType< Mult<SqRhs>, base_t, typename SqRhs::base_t >
     friend constexpr
     auto operator *(Sq const lhs, SqRhs const &rhs) noexcept {
         return Sq< UNPACK(Mult<SqRhs>) >( Mult<SqRhs>::value(lhs.value, rhs.value) );
@@ -622,20 +632,20 @@ public:
     /// scaled by the same integral constant.
     // Note: Passing lhs by value helps optimize chained a*b*c.
     template< /* deduced: */ std::integral T, T ic >
-    requires fpm::detail::ValidImplType< MultIc<T,ic> >
+    requires fpm::detail::ValidImplType< MultIcR<T,ic>, base_t, std::integral_constant<T, ic> >
     friend constexpr
     auto operator *(Sq const lhs, std::integral_constant<T, ic> iv) noexcept {
-        return Sq< UNPACK(MultIc<T,ic>) >( MultIc<T,ic>::valueR(lhs.value, iv) );
+        return Sq< UNPACK(MultIcR<T,ic>) >( MultIcR<T,ic>::value(lhs.value, iv) );
     }
 
     /// Multiplies the lhs integral constant with the rhs Sq value.
     /// \returns the product, wrapped in a new Sq type with the common base type and a value range
     /// scaled by the same integral constant.
     template< /* deduced: */ std::integral T, T ic >
-    requires fpm::detail::ValidImplType< MultIc<T,ic> >
+    requires fpm::detail::ValidImplType< MultIcL<T,ic>, std::integral_constant<T, ic>, base_t >
     friend constexpr
     auto operator *(std::integral_constant<T, ic> iv, Sq const &rhs) noexcept {
-        return Sq< UNPACK(MultIc<T,ic>) >( MultIc<T,ic>::valueL(iv, rhs.value) );
+        return Sq< UNPACK(MultIcL<T,ic>) >( MultIcL<T,ic>::value(iv, rhs.value) );
     }
 
     /// Divides the lhs value by the rhs value.
@@ -655,7 +665,7 @@ public:
     /// However, for |x| >= 1 and n >= 2 the error can be approximated reasonably well with 3*n*2^(-f).
     // Note: Passing lhs by value helps optimize chained a/b/c.
     template< /* deduced: */ SqType SqRhs >
-    requires fpm::detail::ValidImplType< Div<SqRhs> >
+    requires fpm::detail::ValidImplType< Div<SqRhs>, base_t, typename SqRhs::base_t >
     friend constexpr
     auto operator /(Sq const lhs, SqRhs const &rhs) noexcept {
         return Sq< UNPACK(Div<SqRhs>) >( Div<SqRhs>::value(lhs.value, rhs.value) );
@@ -669,7 +679,7 @@ public:
     ///          not be 0.
     // Note: Passing lhs by value helps optimize chained a/b/c.
     template< /* deduced: */ std::integral T, T ic >
-    requires fpm::detail::ValidImplType< DivIcR<T,ic> >
+    requires fpm::detail::ValidImplType< DivIcR<T,ic>, base_t, std::integral_constant<T, ic> >
     friend constexpr
     auto operator /(Sq const lhs, std::integral_constant<T, ic> iv) noexcept {
         return Sq< UNPACK(DivIcR<T,ic>) >( DivIcR<T,ic>::value(lhs.value, iv) );
@@ -682,8 +692,7 @@ public:
     /// \warning To ensure that compile-time overflow checks are not required, the rhs type must not
     ///          have values between -1 and +1 in its value range.
     template< /* deduced: */ std::integral T, T ic >
-    requires ( fpm::detail::ValidImplType< DivIcL<T,ic> >
-               && v2s<typename DivIcL<T,ic>::calc_t, 2*f>(ic) <= std::numeric_limits<typename DivIcL<T,ic>::calc_t>::max() )
+    requires fpm::detail::ValidImplType< DivIcL<T,ic>, std::integral_constant<T, ic>, base_t >
     friend constexpr
     auto operator /(std::integral_constant<T, ic> iv, Sq const &rhs) noexcept {
         return Sq< UNPACK(DivIcL<T,ic>) >( DivIcL<T,ic>::value(iv, rhs.value) );
@@ -702,7 +711,7 @@ public:
     /// \note The error propagation is similar to that of the division operator.
     // Note: Passing lhs by value helps optimize chained a%b%c.
     template< /* deduced: */ SqType SqRhs >
-    requires fpm::detail::ValidImplType< Mod<SqRhs> >
+    requires fpm::detail::ValidImplType< Mod<SqRhs>, base_t, typename SqRhs::base_t >
     friend constexpr
     auto operator %(Sq const lhs, SqRhs const &rhs) noexcept {
         return Sq< UNPACK(Mod<SqRhs>) >( Mod<SqRhs>::value(lhs.value, rhs.value) );
@@ -717,7 +726,7 @@ public:
     /// \warning If two real values ​​are compared that are closer together than the higher resolution,
     ///          the result may be true instead of false.
     template< /* deduced: */ SqType SqRhs >
-    requires fpm::detail::ValidImplType< Equal<SqRhs> >
+    requires fpm::detail::ValidOpImplType< Equal<SqRhs>, bool, base_t, typename SqRhs::base_t >
     constexpr
     bool operator ==(SqRhs const &rhs) const noexcept { return Equal<SqRhs>::op(this->value, rhs.value); }
 
@@ -730,7 +739,7 @@ public:
     /// \warning If two real values ​​are ordered that are closer together than the resolution, the
     ///          result may be false instead of true (i.e. the values may be considered equal).
     template< /* deduced: */ SqType SqRhs >
-    requires fpm::detail::ValidImplType< Equal<SqRhs> >
+    requires fpm::detail::ValidOpImplType< Spaceship<SqRhs>, std::strong_ordering, base_t, typename SqRhs::base_t >
     constexpr
     std::strong_ordering operator <=>(SqRhs const &rhs) const noexcept {
         return Spaceship<SqRhs>::op(this->value, rhs.value);
@@ -741,7 +750,7 @@ public:
     /// \warning Arithmetic underflow can happen if the result is smaller than the target resolution.
     /// \returns the shifted value, wrapped into a new Sq type with shifted limits.
     template< /* deduced: */ std::integral T, T ic >
-    requires fpm::detail::ValidImplType< ShiftL<T,ic> >
+    requires fpm::detail::ValidImplType< ShiftL<T,ic>, base_t, std::integral_constant<T, ic> >
     constexpr
     auto operator <<(std::integral_constant<T, ic> iv) const noexcept {
         return Sq< UNPACK(ShiftL<T,ic>) >( ShiftL<T,ic>::value(this->value, iv) );
@@ -751,7 +760,7 @@ public:
     /// \note Shifting is possible if the shifted limits do not exceed the base type's value range.
     /// \returns the shifted value, wrapped into a new Sq type with shifted limits.
     template< /* deduced: */ std::integral T, T ic >
-    requires fpm::detail::ValidImplType< ShiftR<T,ic> >
+    requires fpm::detail::ValidImplType< ShiftR<T,ic>, base_t, std::integral_constant<T, ic> >
     constexpr
     auto operator >>(std::integral_constant<T, ic> iv) const noexcept {
         return Sq< UNPACK(ShiftR<T,ic>) >( ShiftR<T,ic>::value(this->value, iv) );
@@ -761,10 +770,9 @@ public:
     /// \note The absolute value of a signed type can be taken if the corresponding INT_MIN value is
     /// not in the value range of the Sq type.
     /// \returns the absolute value, wrapped into a new unsigned Sq type with a modified range.
-    template< SqType SqT = Sq >
-    requires ( fpm::detail::Absolutizable<base_t, scaledMin> && fpm::detail::ValidImplType< Abs > )
     friend constexpr
-    auto abs(Sq const &of) noexcept {
+    auto abs(Sq const &of) noexcept
+    requires fpm::detail::ValidImplType< Abs, base_t > {
         return Sq< UNPACK(Abs) >( Abs::value(of.value) );
     }
 
@@ -776,7 +784,7 @@ public:
     /// For the square function (n=1) this gives 2x * 2^(-f) at most.
     friend constexpr
     auto square(Sq const &x) noexcept
-    requires fpm::detail::ValidImplType< Square > {
+    requires fpm::detail::ValidImplType< Square, base_t > {
         return Sq< UNPACK(Square) >( Square::value(x.value) );
     }
 
@@ -785,7 +793,7 @@ public:
     /// \note A binary search algorithm is used to calculate the square root in logarithmic time.
     friend constexpr
     auto sqrt(Sq const &x) noexcept
-    requires ( fpm::detail::CanBePassedToSqrt< Sq > && fpm::detail::ValidImplType< Sqrt > ) {
+    requires ( fpm::detail::CanBePassedToSqrt<Sq> && fpm::detail::ValidImplType< Sqrt, base_t > ) {
         return Sq< UNPACK(Sqrt) >( Sqrt::value(x.value) );
     }
 
@@ -798,7 +806,7 @@ public:
     /// error with the resolution of the given number.
     friend constexpr
     auto rsqrt(Sq const &x) noexcept
-    requires ( fpm::detail::CanBePassedToRSqrt< Sq > && fpm::detail::ValidImplType< RSqrt > ) {
+    requires ( fpm::detail::CanBePassedToRSqrt<Sq> && fpm::detail::ValidImplType< RSqrt, base_t > ) {
         return Sq< UNPACK(RSqrt) >( RSqrt::value(x.value) );
     }
 
@@ -810,7 +818,7 @@ public:
     /// For the cube function (n=2) this gives 3x^2 * 2^(-f) at most.
     friend constexpr
     auto cube(Sq const &x) noexcept
-    requires fpm::detail::ValidImplType< Cube > {
+    requires fpm::detail::ValidImplType< Cube, base_t > {
         return Sq< UNPACK(Cube) >( Cube::value(x.value) );
     }
 
@@ -820,7 +828,7 @@ public:
     /// of the limits is approximated via binary search.
     friend constexpr
     auto cbrt(Sq const &x) noexcept
-    requires ( fpm::detail::CanBePassedToCbrt< Sq > && fpm::detail::ValidImplType< Cbrt > ) {
+    requires ( fpm::detail::CanBePassedToCbrt<Sq> && fpm::detail::ValidImplType< Cbrt, base_t > ) {
         return Sq< UNPACK(Cbrt) >( Cbrt::value(x.value) );
     }
 
@@ -829,7 +837,7 @@ public:
     /// \returns clamped v, wrapped into a new Sq type with the lower limit of SqLo and the upper
     /// limit of SqHi.
     template< /* deduced: */ SqType SqLo, SqType SqHi >
-    requires fpm::detail::ValidImplType< Clamp<SqLo, SqHi> >
+    requires fpm::detail::ValidClampImplType< Clamp<SqLo, SqHi>, Sq, SqLo, SqHi >
     friend constexpr
     auto clamp(Sq const &v, SqLo const &lo, SqHi const &hi) noexcept {
         return Sq< UNPACK(Clamp<SqLo, SqHi>) >( Clamp<SqLo, SqHi>::range(v, lo, hi) );
@@ -838,7 +846,7 @@ public:
     /// If v compares less than lo, lo is returned; otherwise v is returned.
     /// \returns clamped v, wrapped into a new Sq type with the lower limit of SqLo.
     template< /* deduced: */ SqType SqLo >
-    requires fpm::detail::ValidImplType< Clamp<SqLo, Sq> >
+    requires fpm::detail::ValidClampImplType< Clamp<SqLo, Sq>, Sq, SqLo, Sq >
     friend constexpr
     auto clampLower(Sq const &v, SqLo const &lo) noexcept {
         return Sq< UNPACK(Clamp<SqLo, Sq>) >( Clamp<SqLo, Sq>::lower(v, lo) );
@@ -847,7 +855,7 @@ public:
     /// If hi compares less than v, hi is returned; otherwise v is returned.
     /// \returns clamped v, wrapped into a new Sq type with the upper limit of SqHi.
     template< /* deduced: */ SqType SqHi >
-    requires fpm::detail::ValidImplType< Clamp<Sq, SqHi> >
+    requires fpm::detail::ValidClampImplType< Clamp<Sq, SqHi>, Sq, Sq, SqHi >
     friend constexpr
     auto clampUpper(Sq const &v, SqHi const &hi) noexcept {
         return Sq< UNPACK(Clamp<Sq, SqHi>) >( Clamp<Sq, SqHi>::upper(v, hi) );
@@ -857,7 +865,7 @@ public:
     /// otherwise if hi compares less than v, hi is returned; otherwise v is returned.
     /// \returns clamped v, wrapped into a new Sq type with the value range from the template parameters.
     template< double realLo, double realHi >
-    requires fpm::detail::ValidImplType< CTClamp<realLo, realHi> >
+    requires fpm::detail::ValidCTClampImplType< CTClamp<realLo, realHi> >
     friend constexpr
     auto clamp(Sq const &v) noexcept {
         return Sq< UNPACK(CTClamp<realLo, realHi>) >( CTClamp<realLo, realHi>::range(v.value) );
@@ -867,7 +875,7 @@ public:
     /// lo is returned; otherwise v is returned.
     /// \returns clamped v, wrapped into a new Sq type with the template parameter as lower limit.
     template< double realLo >
-    requires fpm::detail::ValidImplType< CTClamp<realLo, realMax> >
+    requires fpm::detail::ValidCTClampImplType< CTClamp<realLo, realMax> >
     friend constexpr
     auto clampLower(Sq const &v) noexcept {
         return Sq< UNPACK(CTClamp<realLo, realMax>) >( CTClamp<realLo, realMax>::lower(v.value) );
@@ -877,7 +885,7 @@ public:
     /// hi is returned; otherwise v is returned.
     /// \returns clamped v, wrapped into a new Sq type with the template parameter as upper limit.
     template< double realHi >
-    requires fpm::detail::ValidImplType< CTClamp<realMin, realHi> >
+    requires fpm::detail::ValidCTClampImplType< CTClamp<realMin, realHi> >
     friend constexpr
     auto clampUpper(Sq const &v) noexcept {
         return Sq< UNPACK(CTClamp<realMin, realHi>) >( CTClamp<realMin, realHi>::upper(v.value) );
@@ -886,7 +894,7 @@ public:
     /// \returns the minimum value of the two given values, wrapped into a new Sq type with the minimum
     /// of the limits. If both values are equivalent, the first value is returned.
     template< /* deduced: */ SqType Sq2 >
-    requires fpm::detail::ValidImplType< Min<Sq2> >
+    requires fpm::detail::ValidImplType< Min<Sq2>, base_t, typename Sq2::base_t >
     friend constexpr
     auto min(Sq const &v, Sq2 const &v2) noexcept {
         return Sq< UNPACK(Min<Sq2>) >( Min<Sq2>::value(v.value, v2.value) );
@@ -895,7 +903,7 @@ public:
     /// \returns the maximum value of the two given values, wrapped into a new Sq type with the maximum
     /// of the limits. If both values are equivalent, the first value is returned.
     template< /* deduced: */ SqType Sq2 >
-    requires fpm::detail::ValidImplType< Max<Sq2> >
+    requires fpm::detail::ValidImplType< Max<Sq2>, base_t, typename Sq2::base_t >
     friend constexpr
     auto max(Sq const &v, Sq2 const &v2) noexcept {
         return Sq< UNPACK(Max<Sq2>) >( Max<Sq2>::value(v.value, v2.value) );
@@ -958,7 +966,7 @@ public:
     /// to its base type and scaling. This can be significantly smaller that the actual user minimum.
     template< typename T = double >
     static constexpr T min() noexcept {
-        return fpm::real<SqT, T>( numeric_limits<typename SqT::base_t>::min() );
+        return fpm::real<typename SqT::base_t, SqT::f, T>( numeric_limits<typename SqT::base_t>::min() );
     }
 
     /// \returns the maximum real value that can be represented by the Sq type.
@@ -967,7 +975,7 @@ public:
     /// to its base type and scaling. This can be significantly larger that the actual user maximum.
     template< typename T = double >
     static constexpr T max() noexcept {
-        return fpm::real<SqT, T>( numeric_limits<typename SqT::base_t>::max() );
+        return fpm::real<typename SqT::base_t, SqT::f, T>( numeric_limits<typename SqT::base_t>::max() );
     }
 
     constexpr static bool is_specialized = true;
