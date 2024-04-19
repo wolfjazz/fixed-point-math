@@ -608,60 +608,15 @@ namespace detail {
         && realMin <= realMax
     );
 
-    /** Concept of an implementation type that gives a valid Q or Sq type. Used to check a value-
-     * implementation type before a Sq or Q type is constructed.
-     * \note If this fails, the ImplType does not exist, or the real value limits exceed the value
-     * range of the base type when scaled with the desired scaling factor. Double-check the constraints
-     * and the desired type properties and limits! */
-    template< typename ImplType, typename... ValueArgs >
-    concept ValidImplType = requires {
-        requires RealLimitsInRangeOfBaseType<typename ImplType::base_t, ImplType::f, ImplType::realMin, ImplType::realMax>;
-        requires requires (ValueArgs&&... args) {
-            { ImplType::value(args...) } -> std::same_as<typename ImplType::base_t>;
-        };
-    };
-
-    /** Concept of an operator implementation type that gives a valid Q or Sq type. Used to check a
-     * comparison operator implementation type before a Sq or Q type is constructed.
-     * \note If this fails, the ImplType does not exist, or the real value limits exceed the value
-     * range of the base type when scaled with the desired scaling factor. Double-check the constraints
-     * and the desired type properties and limits! */
-    template< typename ImplType, typename RType, typename... OpArgs >
-    concept ValidOpImplType = requires {
-        requires RealLimitsInRangeOfBaseType<typename ImplType::base_t, ImplType::f, ImplType::realMin, ImplType::realMax>;
-        requires requires (OpArgs&&... args) {
-            { ImplType::op(args...) } -> std::same_as<RType>;
-        };
-    };
-
-    /** Concept of a clamp implementation type that gives a valid Q or Sq type. Used to check a
-     * clamp implementation type before a Sq or Q type is constructed.
-     * \note If this fails, the ImplType does not exist, or the real value limits exceed the value
-     * range of the base type when scaled with the desired scaling factor. Double-check the constraints
-     * and the desired type properties and limits! */
-    template< typename ImplType, typename T, typename Lo, typename Hi >
-    concept ValidClampImplType = requires {
-        requires RealLimitsInRangeOfBaseType<typename ImplType::base_t, ImplType::f, ImplType::realMin, ImplType::realMax>;
-        requires requires(T &t, Lo &l, Hi &h) {
-            { ImplType::range(t, l, h) } -> std::same_as<typename ImplType::base_t>;
-            { ImplType::lower(t, l) } -> std::same_as<typename ImplType::base_t>;
-            { ImplType::upper(t, h) } -> std::same_as<typename ImplType::base_t>;
-        };
-    };
-
-    /** Concept of a clamp implementation type with compile-time limits that gives a valid Q or Sq type.
-     * Used to check a clamp implementation type before a Sq or Q type is constructed.
+    /** Concept of a constrained implementation type that gives a valid Q or Sq type. Used to check
+     * an implementation type before a Sq or Q type is constructed.
      * \note If this fails, the ImplType does not exist, or the real value limits exceed the value
      * range of the base type when scaled with the desired scaling factor. Double-check the constraints
      * and the desired type properties and limits! */
     template< typename ImplType >
-    concept ValidCTClampImplType = requires {
+    concept ValidImplType = requires {
+        { std::bool_constant<ImplType::innerConstraints>() } -> std::same_as<std::true_type>;
         requires RealLimitsInRangeOfBaseType<typename ImplType::base_t, ImplType::f, ImplType::realMin, ImplType::realMax>;
-        requires requires (typename ImplType::base_t v) {
-            { ImplType::range(v) } -> std::same_as<typename ImplType::base_t>;
-            { ImplType::lower(v) } -> std::same_as<typename ImplType::base_t>;
-            { ImplType::upper(v) } -> std::same_as<typename ImplType::base_t>;
-        };
     };
 
     /** Concept: Runtime overflow check is allowed when needed.
