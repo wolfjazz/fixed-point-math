@@ -283,7 +283,7 @@ private:
         using common_t = fpm::detail::common_base_t<typename Sq::base_t, T>;
         using calc_t = fpm::detail::fit_type_t< sizeof(T) + fpm::detail::div_ceil(2*f, CHAR_BIT), std::is_signed_v<common_t> >;
         static constexpr base_t value(std::integral_constant<T, ic>, typename Sq::base_t rv) noexcept
-        requires ( v2s<calc_t, 2*f>(ic) <= std::numeric_limits<calc_t>::max() ) {
+        requires ( (v2s<calc_t, 2*f>(ic) <= std::numeric_limits<calc_t>::max()) ) {
             // ic * 2^(2f) / (v*2^f) = ic/v * 2^f
             return static_cast<base_t>( v2s<calc_t, 2*f>(ic) / static_cast<calc_t>(rv) );
         }
