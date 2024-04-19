@@ -291,7 +291,7 @@ TEST_F(QTest_Construct, q_construct__constexpr_positive_int16_positiveF_overflow
 
 TEST_F(QTest_Construct, q_construct__variable_negative_int16_positiveF_clamp__expected_value) {
     constexpr double real = -511.;
-    int16_t volatile value = fpm::v2s<int16_t,6>(real);
+    int16_t volatile value = fpm::v2s<6,int16_t>(real);
     auto qValue = i16q6_t::construct<fpm::Ovf::clamp>(value);
     auto qValueClamp = i16q6_clamp_t::construct(value);
 
@@ -303,7 +303,7 @@ TEST_F(QTest_Construct, q_construct__variable_negative_int16_positiveF_clamp__ex
 
 TEST_F(QTest_Construct, q_construct__variable_positive_int16_positiveF_clamp__expected_value) {
     constexpr double real = +511.;
-    int16_t volatile value = fpm::v2s<int16_t,6>(real);
+    int16_t volatile value = fpm::v2s<6,int16_t>(real);
     auto qValue = i16q6_t::construct<fpm::Ovf::clamp>(value);
     auto qValueClamp = i16q6_clamp_t::construct(value);
 
@@ -315,7 +315,7 @@ TEST_F(QTest_Construct, q_construct__variable_positive_int16_positiveF_clamp__ex
 
 TEST_F(QTest_Construct, q_construct__variable_negative_int16_positiveF_overflow_allowed__expected_value) {
     constexpr double real = -511.;
-    int16_t volatile value = fpm::v2s<int16_t,6>(real);
+    int16_t volatile value = fpm::v2s<6,int16_t>(real);
     auto qValue = i16q6_t::construct<fpm::Ovf::allowed>(value);
     auto qValueOvf = i16q6_ovf_t::construct(value);
 
@@ -328,7 +328,7 @@ TEST_F(QTest_Construct, q_construct__variable_negative_int16_positiveF_overflow_
 
 TEST_F(QTest_Construct, q_construct__variable_positive_int16_positiveF_overflow_allowed__expected_value) {
     constexpr double real = +511.;
-    int16_t volatile value = fpm::v2s<int16_t,6>(real);
+    int16_t volatile value = fpm::v2s<6,int16_t>(real);
     auto qValue = i16q6_t::construct<fpm::Ovf::allowed>(value);
     auto qValueOvf = i16q6_ovf_t::construct(value);
 

@@ -533,7 +533,7 @@ TEST_F(SQTest_Unary, sq_unary_minus__some_signed_sq_value_with_full_range__negat
 }
 
 TEST_F(SQTest_Unary, sq_unary_minus__some_signed_sq_type_with_intmin__does_not_compile) {
-    constexpr double typeMinimum = fpm::v2s<double, -4>( std::numeric_limits<int16_t>::min() );
+    constexpr double typeMinimum = fpm::v2s<-4, double>( std::numeric_limits<int16_t>::min() );
     using i16sq4_t = i16sq4< typeMinimum, i16sq4<>::realMax >;
 
     ASSERT_FALSE(( Negatable< i16sq4_t > ));
@@ -613,7 +613,7 @@ TEST_F(SQTest_Unary, sq_unary_abs__some_signed_positive_sq_value__same_value_abs
 }
 
 TEST_F(SQTest_Unary, sq_unary_abs__some_signed_sq_type_with_intmin__does_not_compile) {
-    constexpr double typeMinimum = fpm::v2s<double, -8>( std::numeric_limits<int32_t>::min() );
+    constexpr double typeMinimum = fpm::v2s<-8, double>( std::numeric_limits<int32_t>::min() );
     using i32sq8_t = i32sq8< typeMinimum, i32sq8<>::realMax >;
 
     ASSERT_FALSE(( Absolutizable< i32sq8_t > ));

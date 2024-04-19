@@ -37,19 +37,19 @@ using fpm::detail::SqType;
 template<
     std::integral BaseT,  ///< type of the scaled integer stored in memory
     scaling_t f_,         ///< number of fraction bits (precision 2^(-f))
-    double realMin_ = fpm::realMin<BaseT, f_>,   ///< minimum real value represented by the type
-    double realMax_ = fpm::realMax<BaseT, f_> >  ///< maximum real value represented by the type
+    double realMin_ = fpm::detail::realMin<BaseT, f_>,   ///< minimum real value represented by the type
+    double realMax_ = fpm::detail::realMax<BaseT, f_> >  ///< maximum real value represented by the type
 requires fpm::detail::SqRequirements<BaseT, f_, realMin_, realMax_>
 class Sq final {
 public:
-    static constexpr bool isSqType = true;  ///< identifier for the SqType concept
+    static constexpr bool isSqType = true;       ///< identifier for the SqType concept
     using base_t = BaseT;                        ///< integral base type
     static constexpr scaling_t f = f_;           ///< number of fraction bits
     static constexpr double realMin = realMin_;  ///< minimum real value
     static constexpr double realMax = realMax_;  ///< maximum real value
-    static constexpr base_t scaledMin = fpm::scaled<base_t, f>(realMin_);   ///< minimum value of integer value range
-    static constexpr base_t scaledMax = fpm::scaled<base_t, f>(realMax_);   ///< maximum value of integer value range
-    static constexpr double resolution = fpm::resolution<f>();  ///< real resolution
+    static constexpr base_t scaledMin = fpm::scaled<f, base_t>(realMin_);  ///< minimum value of integer value range
+    static constexpr base_t scaledMax = fpm::scaled<f, base_t>(realMax_);  ///< maximum value of integer value range
+    static constexpr double resolution = fpm::detail::resolution<f>();     ///< real resolution
 
     /// Create a new Sq type with the same base type and scaling but a different real value range.
     template< double newRealMin, double newRealMax >
@@ -70,7 +70,7 @@ public:
     template< double real >
     requires ( realMin <= real && real <= realMax )  // must not overflow
     static constexpr
-    Sq fromReal() { return Sq( fpm::scaled<base_t, f>(real) ); }
+    Sq fromReal() { return Sq( fpm::scaled<f, base_t>(real) ); }
 
     /// Named compile-time-only "constructor" from a scaled integer value.
     /// \note Does not compile if the value is outside the value range.
@@ -90,7 +90,7 @@ public:
     requires fpm::detail::ImplicitlyConvertible<SqFrom, Sq>
     static constexpr
     Sq fromSq(SqFrom const &from) noexcept {
-        return Sq( s2s<base_t, SqFrom::f, f>(from.scaled()) );
+        return Sq( s2s<SqFrom::f, f, base_t>(from.scaled()) );
     }
 
     /// Copy-Constructor from another Sq type value with the same base type.
@@ -105,7 +105,7 @@ public:
     requires ( !std::is_same_v< Sq, SqFrom >  // when the same, default copy constructor should be used
                && fpm::detail::ImplicitlyConvertible<SqFrom, Sq> )
     constexpr
-    Sq(SqFrom const &from) noexcept : value( s2s<base_t, SqFrom::f, f>(from.scaled()) ) {}
+    Sq(SqFrom const &from) noexcept : value( s2s<SqFrom::f, f, base_t>(from.scaled()) ) {}
 
     /// Copy-Constructor from the same type.
     constexpr
@@ -133,7 +133,7 @@ public:
     template< typename TargetT = double >
 #   endif
     constexpr
-    TargetT real() const noexcept { return fpm::real<base_t, f, TargetT>(this->value); }
+    TargetT real() const noexcept { return fpm::real<f, TargetT>(this->value); }
 
     /// Implicit conversion of a Sq value back into its double representation at compile-time.
     /// Allows using a value+unit literal where a double is expected.
@@ -159,7 +159,7 @@ private:
         static constexpr double realMax = SqC::realMax;
         static constexpr bool innerConstraints = true;
         static constexpr base_t value(typename Sq::base_t from) noexcept {
-            return s2s<base_t, Sq::f, f>(from);  // scale value
+            return s2s<Sq::f, f, base_t>(from);  // scale value
         }
     };
 
@@ -184,7 +184,7 @@ private:
         using base_t = fpm::detail::common_q_base_t<typename Sq::base_t, typename SqRhs::base_t, f, realMin, realMax>;
         static constexpr bool innerConstraints = true;
         static constexpr base_t value(typename Sq::base_t lv, typename SqRhs::base_t rv) noexcept {
-            return static_cast<base_t>( s2s<base_t, Sq::f, f>(lv) + s2s<base_t, SqRhs::f, f>(rv) );  // add values
+            return static_cast<base_t>( s2s<Sq::f, f, base_t>(lv) + s2s<SqRhs::f, f, base_t>(rv) );  // add values
         }
     };
 
@@ -197,7 +197,7 @@ private:
         using base_t = fpm::detail::common_q_base_t<typename Sq::base_t, typename SqRhs::base_t, f, realMin, realMax>;
         static constexpr bool innerConstraints = true;
         static constexpr base_t value(typename Sq::base_t lv, typename SqRhs::base_t rv) noexcept {
-            return static_cast<base_t>( s2s<base_t, Sq::f, f>(lv) - s2s<base_t, SqRhs::f, f>(rv) );  // subtract rv from lv
+            return static_cast<base_t>( s2s<Sq::f, f, base_t>(lv) - s2s<SqRhs::f, f, base_t>(rv) );  // subtract rv from lv
         }
     };
 
@@ -216,7 +216,7 @@ private:
         static constexpr base_t value(typename Sq::base_t lv, typename SqRhs::base_t rv) noexcept {
             // multiply lhs with rhs in calculation type and correct scaling to obtain result
             // a*b <=> (a * 2^f) * (b * 2^f) / 2^f = a*b * 2^f
-            return s2s<base_t, 2*f, f>( s2s<calc_t, Sq::f, f>(lv) * s2s<calc_t, SqRhs::f, f>(rv) );
+            return s2s<2*f, f, base_t>( s2s<Sq::f, f, calc_t>(lv) * s2s<SqRhs::f, f, calc_t>(rv) );
         }
     };
 
@@ -263,7 +263,7 @@ private:
         static constexpr base_t value(typename Sq::base_t lv, typename SqRhs::base_t rv) noexcept {
             // divide lhs by rhs in calculation type and correct scaling to obtain result
             // a/b <=> (a * 2^(2f)) / (b * 2^f) = a/b * 2^f
-            return static_cast<base_t>( s2s<calc_t, Sq::f, 2*f>(lv) / s2s<calc_t, SqRhs::f, f>(rv) );
+            return static_cast<base_t>( s2s<Sq::f, 2*f, calc_t>(lv) / s2s<SqRhs::f, f, calc_t>(rv) );
         };
     };
 
@@ -291,10 +291,10 @@ private:
         using base_t = fpm::detail::common_q_base_t<typename Sq::base_t, T, f, realMin, realMax>;
         using common_t = fpm::detail::common_base_t<typename Sq::base_t, T>;
         using calc_t = fpm::detail::fit_type_t< sizeof(T) + fpm::detail::div_ceil(2*f, CHAR_BIT), std::is_signed_v<common_t> >;
-        static constexpr bool innerConstraints = ( v2s<calc_t, 2*f>(ic) <= std::numeric_limits<calc_t>::max() );
+        static constexpr bool innerConstraints = ( v2s<2*f, calc_t>(ic) <= std::numeric_limits<calc_t>::max() );
         static constexpr base_t value(std::integral_constant<T, ic>, typename Sq::base_t rv) noexcept {
             // ic * 2^(2f) / (v*2^f) = ic/v * 2^f
-            return static_cast<base_t>( v2s<calc_t, 2*f>(ic) / static_cast<calc_t>(rv) );
+            return static_cast<base_t>( v2s<2*f, calc_t>(ic) / static_cast<calc_t>(rv) );
         }
     };
 
@@ -315,7 +315,7 @@ private:
         static constexpr base_t value(typename Sq::base_t lv, typename SqRhs::base_t rv) noexcept {
             // divide lhs by rhs in calculation type and correct scaling to obtain result
             // a%b <=> (a * 2^f) % (b * 2^f) = a%b * 2^f
-            return static_cast<base_t>( s2s<calc_t, Sq::f, f>(lv) % s2s<calc_t, SqRhs::f, f>(rv) );
+            return static_cast<base_t>( s2s<Sq::f, f, calc_t>(lv) % s2s<SqRhs::f, f, calc_t>(rv) );
         }
     };
 
@@ -332,7 +332,7 @@ private:
         static constexpr bool innerConstraints = true;
         static constexpr bool op(typename Sq::base_t lv, typename SqRhs::base_t rv) noexcept {
             // two values are considered equal if the values, scaled to the higher resolution, are equivalent
-            return s2s<base_t, Sq::f, f>(lv) == s2s<base_t, SqRhs::f, f>(rv);
+            return s2s<Sq::f, f, base_t>(lv) == s2s<SqRhs::f, f, base_t>(rv);
         }
     };
 
@@ -349,7 +349,7 @@ private:
         static constexpr bool innerConstraints = true;
         static constexpr std::strong_ordering op(typename Sq::base_t lv, typename SqRhs::base_t rv) noexcept {
             // the two values are ordered with the higher resolution
-            return s2s<base_t, Sq::f, f>(lv) <=> s2s<base_t, SqRhs::f, f>(rv);
+            return s2s<Sq::f, f, base_t>(lv) <=> s2s<SqRhs::f, f, base_t>(rv);
         }
     };
 
@@ -360,8 +360,8 @@ private:
         using base_t = typename Sq::base_t;
         static constexpr scaling_t f = Sq::f;
         using calc_t = fpm::detail::fit_type_t< sizeof(base_t) + fpm::detail::div_ceil(ic, CHAR_BIT), std::is_signed_v<base_t> >;
-        static constexpr double realMin = fpm::real<base_t, f>(static_cast<calc_t>(Sq::scaledMin) << ic);
-        static constexpr double realMax = fpm::real<base_t, f>(static_cast<calc_t>(Sq::scaledMax) << ic);
+        static constexpr double realMin = fpm::real<f>(static_cast<calc_t>(Sq::scaledMin) << ic);
+        static constexpr double realMax = fpm::real<f>(static_cast<calc_t>(Sq::scaledMax) << ic);
         static constexpr bool innerConstraints = true;
         static constexpr base_t value(typename Sq::base_t lv, std::integral_constant<T, ic>) noexcept {
             return lv << ic;  // left-shift value
@@ -374,8 +374,8 @@ private:
     struct ShiftR {
         using base_t = typename Sq::base_t;
         static constexpr scaling_t f = Sq::f;
-        static constexpr double realMin = fpm::real<base_t, f>(Sq::scaledMin >> ic);
-        static constexpr double realMax = fpm::real<base_t, f>(Sq::scaledMax >> ic);
+        static constexpr double realMin = fpm::real<f>(Sq::scaledMin >> ic);
+        static constexpr double realMax = fpm::real<f>(Sq::scaledMax >> ic);
         static constexpr bool innerConstraints = true;
         static constexpr base_t value(typename Sq::base_t lv, std::integral_constant<T, ic>) noexcept {
             return lv >> ic;  // right-shift value
@@ -410,7 +410,7 @@ private:
         static constexpr base_t value(typename Sq::base_t v) noexcept {
             // x^2 <=> [ (x*2^f)*(x*2^f) / 2^f ] = x*x*2^f
             auto const vIntm = static_cast<calc_t>(v);
-            constexpr auto fPower = v2s<calc_t, f>(1);
+            constexpr auto fPower = v2s<f, calc_t>(1);
             return static_cast<base_t>( vIntm*vIntm / fPower );
         }
     };
@@ -429,7 +429,7 @@ private:
                 // take root of corrected number; result can be cast to base_t without truncation
                 // sqrt(x) <=> [ ((x*2^f) * 2^f)^1/2 ] = x^1/2 * 2^f
                 auto xIntm = static_cast<calc_t>(v);
-                constexpr auto fPower = v2s<calc_t, f>(1);
+                constexpr auto fPower = v2s<f, calc_t>(1);
                 return static_cast<base_t>( fpm::detail::isqrt( xIntm * fPower ) );
             }
         }
@@ -439,18 +439,18 @@ private:
     struct RSqrt {
         using base_t = typename Sq::base_t;
         static constexpr scaling_t f = Sq::f;
-        static constexpr double thMax = fpm::realMax<base_t, f>();
+        static constexpr double thMax = fpm::detail::realMax<base_t, f>();
         static constexpr double realMin = fpm::detail::floor( fpm::detail::rsqrt(Sq::realMax) );
         static constexpr double realMax = std::min( thMax, fpm::detail::ceil( fpm::detail::rsqrt(Sq::realMin) ) );
         using calc_t = fpm::detail::fit_type_t< sizeof(base_t) + fpm::detail::div_ceil(f, CHAR_BIT), std::is_signed_v<base_t> >;
         static constexpr bool innerConstraints = fpm::detail::CanBePassedToRSqrt<Sq>;
         static constexpr auto value(typename Sq::base_t v) noexcept {
             // too small number results in theoretical maximum; this is the case if x*2^f <= (2^f / max^2)
-            constexpr base_t limit = fpm::scaled<base_t, f>( 1. / thMax / thMax );
+            constexpr base_t limit = fpm::scaled<f, base_t>( 1. / thMax / thMax );
             return v < limit
-                ? fpm::scaled<base_t, f>(thMax)
+                ? fpm::scaled<f, base_t>(thMax)
                 // 1/sqrt(x) <=> [ 2^(2f) / ((x*2^f) * 2^f)^1/2 ] = 2^f / sqrt(x)
-                : static_cast<base_t>( v2s<calc_t, 2*f>(1) / static_cast<calc_t>( Sqrt::value(v) ) );
+                : static_cast<base_t>( v2s<2*f, calc_t>(1) / static_cast<calc_t>( Sqrt::value(v) ) );
         }
     };
 
@@ -470,7 +470,7 @@ private:
             // x^3 <=> [ (x*2^f)*(x*2^f) / 2^f * (x*2^f) / 2^f ] = [ square(x)*(x*2^f) / 2^f ] = x*x*x*2^f
             auto xIntm = static_cast<calc_t>(v);
             auto xSqr = static_cast<calc_t>( Square::value(v) );
-            constexpr auto fPower = v2s<calc_t, f>(1);
+            constexpr auto fPower = v2s<f, calc_t>(1);
             return static_cast<base_t>( xSqr*xIntm / fPower );
         }
     };
@@ -488,7 +488,7 @@ private:
             else {
                 // cbrt(x) <=> [ ((x*2^f) * 2^f * 2^f)^1/3 ] = x^1/3 * 2^f
                 auto xIntm = static_cast<calc_t>(v);
-                constexpr auto fPower = v2s<calc_t, f>(1);
+                constexpr auto fPower = v2s<f, calc_t>(1);
                 return static_cast<base_t>( fpm::detail::icbrt( xIntm * fPower * fPower ) );
             }
         }
@@ -505,13 +505,13 @@ private:
         static constexpr double realMax = SqHi::realMax;
         static constexpr bool innerConstraints = true;
         static constexpr base_t range(Sq const &v, SqLo const &lo, SqHi const &hi) noexcept {
-            return (v < lo) ? s2s<base_t, SqLo::f, f>(lo.value) : (hi < v) ? s2s<base_t, SqHi::f, f>(hi.value) : v.value;
+            return (v < lo) ? s2s<SqLo::f, f, base_t>(lo.value) : (hi < v) ? s2s<SqHi::f, f, base_t>(hi.value) : v.value;
         };
         static constexpr base_t lower(Sq const &v, SqLo const &lo) noexcept {
-            return (v < lo) ? s2s<base_t, SqLo::f, f>(lo.value) : v.value;  // clamp to lo
+            return (v < lo) ? s2s<SqLo::f, f, base_t>(lo.value) : v.value;  // clamp to lo
         };
         static constexpr base_t upper(Sq const &v, SqHi const &hi) noexcept {
-            return (hi < v) ? s2s<base_t, SqHi::f, f>(hi.value) : v.value;  // clamp to hi
+            return (hi < v) ? s2s<SqHi::f, f, base_t>(hi.value) : v.value;  // clamp to hi
         };
     };
 
@@ -522,8 +522,8 @@ private:
         static constexpr scaling_t f = Sq::f;
         static constexpr double realMin = realLo;
         static constexpr double realMax = realHi;
-        static constexpr base_t lo = fpm::scaled<base_t, f>(realMin);
-        static constexpr base_t hi = fpm::scaled<base_t, f>(realMax);
+        static constexpr base_t lo = fpm::scaled<f, base_t>(realMin);
+        static constexpr base_t hi = fpm::scaled<f, base_t>(realMax);
         static constexpr bool innerConstraints = true;
         static constexpr base_t range(typename Sq::base_t v) noexcept {
             return (v < lo) ? lo : (hi < v) ? hi : v;
@@ -989,7 +989,7 @@ public:
     /// to its base type and scaling. This can be significantly smaller that the actual user minimum.
     template< typename T = double >
     static constexpr T min() noexcept {
-        return fpm::real<typename SqT::base_t, SqT::f, T>( numeric_limits<typename SqT::base_t>::min() );
+        return fpm::real<SqT::f, T>( numeric_limits<typename SqT::base_t>::min() );
     }
 
     /// \returns the maximum real value that can be represented by the Sq type.
@@ -998,7 +998,7 @@ public:
     /// to its base type and scaling. This can be significantly larger that the actual user maximum.
     template< typename T = double >
     static constexpr T max() noexcept {
-        return fpm::real<typename SqT::base_t, SqT::f, T>( numeric_limits<typename SqT::base_t>::max() );
+        return fpm::real<SqT::f, T>( numeric_limits<typename SqT::base_t>::max() );
     }
 
     constexpr static bool is_specialized = true;

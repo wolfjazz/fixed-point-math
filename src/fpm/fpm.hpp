@@ -100,7 +100,7 @@ consteval auto scale_factor() {
  * Besides, floating-point types are also possible this way.
  * \warning Floating-point types are possible, however quite expensive at runtime!
  *          Use carefully! */
-template< typename TargetT, scaling_t from, scaling_t to, /* deduced: */ typename ValueT >
+template< scaling_t from, scaling_t to, typename TargetT, /* deduced: */ typename ValueT >
 [[nodiscard]] constexpr
 TargetT s2smd(ValueT value) noexcept {
     // use common type for calculation to avoid loss of precision
@@ -125,7 +125,7 @@ TargetT s2smd(ValueT value) noexcept {
  * \warning Be aware that arithmetic right shift always rounds down. Consequently, the scaled result
  *          is not symmetric for the same value with a different sign
  *          (e.g. -514 >> 4u is -33 but +514 >> 4u is +32). */
-template< std::integral TargetT, scaling_t from, scaling_t to, /* deduced: */ std::integral ValueT >
+template< scaling_t from, scaling_t to, std::integral TargetT, /* deduced: */ std::integral ValueT >
 [[nodiscard]] constexpr
 TargetT s2sh(ValueT value) noexcept {
     // use common type for shift to avoid loss of precision
@@ -147,13 +147,13 @@ TargetT s2sh(ValueT value) noexcept {
  * \note FPM_USE_SH can be predefined before this header is included into a source file.
  * \note constexpr implies inline. */
 #if !defined FPM_USE_SH
-template< typename TargetT, scaling_t from, scaling_t to, /* deduced: */ typename ValueT >
+template< scaling_t from, scaling_t to, typename TargetT, /* deduced: */ typename ValueT >
 [[nodiscard]] constexpr
-TargetT s2s(ValueT value) noexcept { return s2smd<TargetT, from, to>(value); }
+TargetT s2s(ValueT value) noexcept { return s2smd<from, to, TargetT, ValueT>(value); }
 #else
-template< std::integral TargetT, scaling_t from, scaling_t to, /* deduced: */ std::integral ValueT >
+template< scaling_t from, scaling_t to, std::integral TargetT, /* deduced: */ std::integral ValueT >
 [[nodiscard]] constexpr
-TargetT s2s(ValueT value) noexcept { return s2sh<TargetT, from, to>(value); }
+TargetT s2s(ValueT value) noexcept { return s2sh<from, to, TargetT, ValueT>(value); }
 #endif
 
 
@@ -161,7 +161,7 @@ TargetT s2s(ValueT value) noexcept { return s2sh<TargetT, from, to>(value); }
  * Used to scale a given compile-time floating-point value to a scaled runtime value of target type.
  * \warning Floating-point target types are possible, however quite expensive at runtime!
  *          Use carefully! */
-template< typename TargetT, scaling_t to, /* deduced: */ typename ValueT >
+template< scaling_t to, typename TargetT, /* deduced: */ typename ValueT >
 [[nodiscard]] constexpr
 TargetT v2smd(ValueT value) noexcept {
     // use common type for shift to avoid loss of precision
@@ -184,7 +184,7 @@ TargetT v2smd(ValueT value) noexcept {
  * \warning Be aware that arithmetic right shift always rounds down. Consequently, the scaled result
  *          is not symmetric for the same value with a different sign
  *          (e.g. -514 >> 4u is -33 but +514 >> 4u is +32). */
-template< std::integral TargetT, scaling_t to, /* deduced: */ std::integral ValueT >
+template< scaling_t to, std::integral TargetT, /* deduced: */ std::integral ValueT >
 [[nodiscard]] constexpr
 TargetT v2sh(ValueT value) noexcept {
     // use common type for calculation to avoid loss of precision
@@ -206,18 +206,51 @@ TargetT v2sh(ValueT value) noexcept {
  * \note FPM_USE_SH can be predefined before this header is included into a source file.
  * \note constexpr implies inline. */
 #if !defined FPM_USE_SH
-template< typename TargetT, scaling_t to, /* deduced: */ typename ValueT >
+template< scaling_t to, typename TargetT, /* deduced: */ typename ValueT >
 [[nodiscard]] constexpr
-TargetT v2s(ValueT value) noexcept { return v2smd<TargetT, to>(value); }
+TargetT v2s(ValueT value) noexcept { return v2smd<to, TargetT, ValueT>(value); }
 #else
-template< std::integral TargetT, scaling_t to, /* deduced: */ std::integral ValueT >
+template< scaling_t to, std::integral TargetT, /* deduced: */ std::integral ValueT >
 [[nodiscard]] constexpr
-TargetT v2s(ValueT value) noexcept { return v2sh<TargetT, to>(value); }
+TargetT v2s(ValueT value) noexcept { return v2sh<to, TargetT, ValueT>(value); }
 #endif
+
+
+/** \returns the scaled integral value that corresponds to a given real double value. */
+template< scaling_t f, std::integral TargetT >
+[[nodiscard]] constexpr
+TargetT scaled(double real) noexcept { return v2s<f, TargetT>(real); }
+
+
+/** \returns the real value (double) that corresponds to the given scaled integral value. */
+template< scaling_t f, /* optional */ typename TargetT = double, /* deduced: */ std::integral T >
+[[nodiscard]] constexpr
+TargetT real(T scaled) noexcept { return v2s<-f, TargetT>(scaled); }
 
 
 // Internal implementations.
 namespace detail {
+
+    /** \returns the real minimum value for the given integral type and scaling that can safely be
+     * used in operations like negation or taking the absolute value (i.e. 0u for unsigned, INT_MIN + 1
+     * for signed).
+     * \note Prefer Q<>::realMin and Sq<>::realMin on concrete Q or Sq types. */
+    template< std::integral T, scaling_t f >
+    consteval
+    double realMin() noexcept {
+        return v2s<-f, double>( std::is_unsigned_v<T> ? static_cast<T>(0) : std::numeric_limits<T>::min() + 1 );
+    }
+
+    /** \returns the real maximum value for the given integral type and scaling.
+     * \note Prefer Q<>::realMax and Sq<>::realMax on concrete Q or Sq types. */
+    template< std::integral T, scaling_t f >
+    consteval
+    double realMax() noexcept { return v2s<-f, double>( std::numeric_limits<T>::max() ); }
+
+    /** \returns the resolution of the given scaling. */
+    template< scaling_t f >
+    [[nodiscard]] constexpr
+    double resolution() noexcept { return v2s<-f, double>(1); }
 
     /** \returns +1 if the given value is positive, -1 if it is negative and 0 if the value is 0. */
     template <typename T>
@@ -474,8 +507,8 @@ namespace detail {
         static constexpr bool isSigned = std::is_signed_v<T1> || std::is_signed_v<T2>;
         static constexpr size_t size = std::min(sizeof(T1), sizeof(T2));
         using scaled_t = std::conditional_t<isSigned, int64_t, uint64_t>;
-        static constexpr auto scaledMin = v2s<scaled_t, f>(realMin);
-        static constexpr auto scaledMax = v2s<scaled_t, f>(realMax);
+        static constexpr auto scaledMin = v2s<f, scaled_t>(realMin);
+        static constexpr auto scaledMax = v2s<f, scaled_t>(realMax);
     public:
         using type =
             std::conditional_t< isSigned && sizeof( int8_t ) >= size && in_range_v< int8_t,  scaled_t, scaledMin, scaledMax>,  int8_t,
@@ -591,10 +624,10 @@ namespace detail {
     template< typename BaseT, scaling_t f, double real >
     concept ScaledFitsBaseType = (
         // check if double is too large for 64-bit maximum supported calculation type
-        ((real < 0. && real >= std::numeric_limits<fit_type_t<8u, std::is_signed_v<BaseT>>>::min() / v2s<double, f>(1))
-         || (real >= 0. && real <= std::numeric_limits<fit_type_t<8u, std::is_signed_v<BaseT>>>::max() / v2s<double, f>(1)))
+        ((real < 0. && real >= std::numeric_limits<fit_type_t<8u, std::is_signed_v<BaseT>>>::min() / v2s<f, double>(1))
+         || (real >= 0. && real <= std::numeric_limits<fit_type_t<8u, std::is_signed_v<BaseT>>>::max() / v2s<f, double>(1)))
         // check whether scaled double fits base type
-        && std::in_range<BaseT>(v2s<fit_type_t<8u, std::is_signed_v<BaseT>>, f>(real))
+        && std::in_range<BaseT>(v2s<f, fit_type_t<8u, std::is_signed_v<BaseT>>>(real))
     );
 
     /** Concept of a valid (S)Q type value range that fits the specified base type.
@@ -765,42 +798,10 @@ namespace detail {
 }  // end of detail
 
 
-/** \returns the scaled integral value that corresponds to a given real double value. */
-template< std::integral T, scaling_t f >
-[[nodiscard]] constexpr
-T scaled(double real) noexcept { return v2s<T, f>(real); }
-
-/** \returns the real value (double) that corresponds to the given scaled integral value. */
-template< std::integral T, scaling_t f, typename TargetT = double >
-[[nodiscard]] constexpr
-TargetT real(T scaled) noexcept { return v2s<TargetT, -f>(scaled); }
-
-/** \returns the real minimum value for the given integral type and scaling that can safely be
- * used in operations like negation or taking the absolute value (i.e. 0u for unsigned, INT_MIN + 1
- * for signed).
- * \note Prefer Q<>::realMin and Sq<>::realMin on concrete Q or Sq types. */
-template< std::integral T, scaling_t f >
-consteval
-double realMin() noexcept {
-    return v2s<double, -f>( std::is_unsigned_v<T> ? static_cast<T>(0) : std::numeric_limits<T>::min() + 1 );
-}
-
-/** \returns the real maximum value for the given integral type and scaling.
- * \note Prefer Q<>::realMax and Sq<>::realMax on concrete Q or Sq types. */
-template< std::integral T, scaling_t f >
-consteval
-double realMax() noexcept { return v2s<double, -f>( std::numeric_limits<T>::max() ); }
-
-/** \returns the resolution of the given scaling. */
-template< scaling_t f >
-[[nodiscard]] constexpr
-double resolution() noexcept { return v2s<double, -f>(1); }
-
-
 /** Static assertion of the base type of the given Sq (or Q) type. */
 template< std::integral TExpected, detail::SqOrQType QSq >
 consteval
-void static_assert_basetype() noexcept {
+void static_assert_base() noexcept {
     static_assert(std::is_same_v<TExpected, typename QSq::base_t>,
         "The given Q or Sq type does not comply with the expected base type.");
 }
@@ -808,7 +809,7 @@ void static_assert_basetype() noexcept {
 /** Static assertion of the scaling of the given Sq (or Q) type. */
 template< scaling_t expectedF, detail::SqOrQType QSq >
 consteval
-void static_assert_scaling() noexcept {
+void static_assert_scale() noexcept {
     static_assert(QSq::f == expectedF,
         "The given Q or Sq type does not comply with the expected scaling.");
 }
@@ -816,7 +817,7 @@ void static_assert_scaling() noexcept {
 /** Static assertion of the real value range of the given Sq (or Q) type. */
 template< double expectedMin, double expectedMax, detail::SqOrQType QSq >
 consteval
-void static_assert_range() noexcept {
+void static_assert_limits() noexcept {
     static_assert(
            detail::lib::abs(QSq::realMin - expectedMin) < QSq::resolution
         && detail::lib::abs(QSq::realMax - expectedMax) < QSq::resolution,
@@ -826,7 +827,7 @@ void static_assert_range() noexcept {
 /** Static assertion of the core properties of the given Sq (or Q) type. */
 template< std::integral TExpected, scaling_t expectedF, double expectedMin, double expectedMax, detail::SqOrQType QSq >
 consteval
-void static_assert_properties() noexcept {
+void static_assert_specs() noexcept {
     static_assert(
         std::is_same_v<TExpected, typename QSq::base_t>
         && QSq::f == expectedF

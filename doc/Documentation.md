@@ -54,42 +54,81 @@ using Ovf = fpm::Ovf;  // optional
 
 This setup will allow you to easily access and utilize the various fixed-point types provided by the library in your applications. For clarity, the initial examples in this document may include these lines of prefix explicitly. Moving forward, these lines will not be shown in any further examples within this document, unless they are part of what is shown.
 
-### Helper functions
+### Utilities
+
+One of the foundational declarations is the definition of `scaling_t` as an alias for `int`. The decision to make `scaling_t` signed is strategic because the framework needs to support both positive and negative fractional values:
+
+- **Positive Scaling Values**: These are used to represent fractional parts, where positive scaling factors enhance the precision of the fractional component by specifying how many bits are dedicated to values below the integer point.
+- **Negative Scaling Values**: Negative scaling is used to represent larger numbers than those typically representable with the given bits of the used integral base type. By scaling the real number by $2^f$, where $f$ is negative, large numbers can be represented at the cost of reducing the precision of the integral part of the number by $2^{|f|}$, effectively balancing the range and precision according to specific needs.
+
+This flexibility ensures that the framework can adapt to a variety of numerical ranges and precision requirements, making it highly versatile for different applications.
+
+#### Helper Functions
 
 The library includes a set of helper functions designed to facilitate the manipulation of values at compile-time, ensuring that they are correctly scaled for use with different Q types. These functions are critical for creating and converting scaled values accurately and efficiently.
 
-- **Value to Scale (`v2s`)**: This function is used to convert a real floating-point value into a scaled integer value at compile time. It multiplies the given `ValueT` value by $2^{to}$, allowing for precise initialization of fixed-point variables from real numbers within the resolution of `TargetT`.
-- **Scale to Scale (`s2s`)**: This function changes the scaling of a given scaled integer value. It multiplies the value by $2^{to-from}$, enabling the conversion of a value from one fixed-point scale to another without losing precision relative to the scaling factor.
+- **`v2s` (Value to Scale)**: This function is used to convert a real floating-point value into a scaled integer value at compile time. It multiplies the given `ValueT` value by $2^{to}$, allowing for precise initialization of fixed-point variables from real numbers within the resolution of `TargetT`.
+- **`s2s` (Scale to Scale)**: This function changes the scaling of a given scaled integer value. It multiplies the value by $2^{to-from}$, enabling the conversion of a value from one fixed-point scale to another without losing precision relative to the scaling factor.
+- **`scaled`**: Converts a given real value (double) to its scaled representation, using the specified scaling factor `f`. This function is effectively an alias for `v2s<f, base_t>(real)`, streamlining the process of initializing `Q` types with precise scaled values derived from real numbers.
+- **`real`**: Converts a scaled integral value back to its real (double) representation using the given scaling factor `f`. This function serves as an alias for `s2s<f, 0, double>(scaled)` (or `v2s<-f, double>(scaled)`), facilitating the conversion of scaled values into their real, human-readable forms, particularly useful for outputs and debugging.
+
+The functions are declared as follows:
 
 ```cpp
 namespace fpm {
 
-template<typename TargetT, fpm::scaling_t to, typename ValueT>
-constexpr
-TargetT v2s(ValueT value) noexcept { /* ... */ }
+template< scaling_t to, typename TargetT, typename ValueT >
+constexpr TargetT v2s(ValueT value) noexcept { /* ... */ }
 
-template<typename TargetT, fpm::scaling_t from, fpm::scaling_t to, typename ValueT>
-constexpr
-TargetT s2s(ValueT value) noexcept { /* ... */ }
+template< scaling_t from, scaling_t to, typename TargetT, typename ValueT >
+constexpr TargetT s2s(ValueT value) noexcept { /* ... */ }
+
+template< scaling_t f, std::integral TargetT >
+constexpr TargetT scaled(double real) noexcept { /* ... */ }
+
+template< scaling_t f, typename TargetT = double >
+constexpr TargetT real(std::integral auto scaled) noexcept { /* ... */ }
 
 }
 ```
 
-Here are practical examples demonstrating how to use the helper functions `v2s` and `s2s` provided by the library:
+Here are practical examples demonstrating how to use the helper functions provided by the library:
 
-- Using `v2s` to convert a floating-point number to a scaled integer value:
+- Using `fpm::v2s` to convert a floating-point number to a scaled integer value:
   ```cpp
   // Converts 10.5 to a scaled integer using a scale factor of 2^3
-  auto scaledValue = fpm::v2s<int8_t, 3>(10.5);  // 84: int8_t
+  auto scaledValue = fpm::v2s<3, int8_t>(10.5);  // 84: int8_t
   ```
 
-- Using `s2s` to change the scaling of an already scaled integer value:
+- Using `fpm::s2s` to change the scaling of an already scaled integer value:
   ```cpp
   // Converts a value scaled by 2^8 to a scaling of 2^4
-  auto rescaledValue = fpm::s2s<uint16_t, 8, 4>(256u);  // 16: uint16_t
+  auto rescaledValue = fpm::s2s<8, 4, uint16_t>(256u);  // 16: uint16_t
   ```
 
-These examples illustrate the utility of `v2s` and `s2s` in fixed-point calculations, allowing for compile-time and runtime scaling adjustments that are crucial for maintaining precision in embedded systems programming.
+- Using `fpm::scaled` to convert a real number to a scaled integer representation:
+  ```cpp
+  // Converts 25.5 to a scaled integer with a scaling factor of 2^10
+  auto scaledValue = fpm::scaled<10, int16_t>(25.5);
+  ```
+
+- Using `fpm::real` to convert a scaled integer value back to its real number representation:
+  ```cpp
+  // Converts a scaled value 26112 back to its real value using a scaling factor
+  // of 2^-10
+  double realValue = fpm::real<10>(26112);
+  ```
+
+These examples illustrate the utility of `v2s`, `s2s`, `scaled`, and `real` in fixed-point calculations, enabling crucial scaling adjustments for maintaining precision in embedded systems programming. These functions simplify the conversion between real numbers and scaled representations, enhancing both accuracy and efficiency.
+
+Furthermore, the library defines four compile-time-only static-assertion functions to ensure that `Q` types conform to expected specifications:
+
+- `static_assert_base<std::integral T, class QSq>()`: This function static-asserts whether the `base_t` of `QSq` matches the specified type `T`.
+- `static_assert_scale<scaling_t f, class QSq>()`: This function static-asserts that the scaling factor `f` of `QSq` is as specified.
+- `static_assert_limits<double min, double max, class QSq>()`: This function static-asserts that the real value range of `QSq` falls within the specified `min` and `max` values.
+- `static_assert_specs<std::integral T, scaling_t f, double min, double max, class QSq>()`: This comprehensive function static-asserts all critical properties - `base_t`, `f`, and value range - of `QSq`.
+
+These assertions are especially useful for verifying the type of intermediate results after calculations with `Sq` types. If the core types of an application are changed, these assertions might trigger a compilation error, even if the formulas and calculations still compile. This ensures that certain type properties remain consistent throughout the development process, and any changes to the underlying type definitions are immediately flagged.
 
 ### Overflow Behaviors
 
@@ -130,6 +169,14 @@ class Q {
 - `realMin` and `realMax`: These specify the minimum and maximum values of the real value range that `Q` can represent, effectively setting the bounds for compile-time computation.
 - `ovfBx`: Dictates the overflow behavior for operations that exceed the designated value range. The default overflow behavior is `Ovf::error`, which means the code will not compile if a potential overflow scenario is detected. This is particularly common when a conversion from a wider to a narrower real value range is attempted, safeguarding against inadvertent data loss or corruption.
 
+These parameters are integral to the structure of each Q type and are set as static constexpr members, allowing them to be accessed directly for various computations or validations.
+
+Additionally, a Q type provides the following static constexpr members to aid in precise and effective data manipulation:
+
+- `scaledMin`: This member stores the minimum value that can be represented in the scaled format, calculated based on the *realMin* and the scaling factor.
+- `scaledMax`: This member stores the maximum value that can be represented in the scaled format, calculated based on the *realMax* and the scaling factor.
+- `resolution`: This represents the effective resolution of the Q type, defined as $2^{-f}$. It indicates the smallest difference between two representable real values within the type, providing clarity on the granularity and precision at which values can be manipulated or interpreted.
+
 ### Construction
 
 The `Q` class can be instantiated using various integral types and scaling factors to fit specific application requirements. Here are some examples of how `Q` types can be defined:
@@ -150,10 +197,10 @@ The `Q` class can be instantiated using various integral types and scaling facto
   ```cpp
   // Construct from scaled value
   auto b = Q<uint32_t, 8, 1000., 2000.>::fromScaled< 307200 >();
-  auto c = Q<int32_t, 18, 1000., 1500.>::fromScaled< fpm::v2s<int32_t, 18>(1200.) >();
+  auto c = Q<int32_t, 18, 1000., 1500.>::fromScaled< fpm::v2s<18, int32_t>(1200.) >();
   ```
 
-These construction methods provide precise control over how values are initialized in the Q type, ensuring adherence to the defined numerical ranges and overflow behaviors. Note that the values are specified at compile-time between the `<>` characters. The `()` at the end should not be forgotten because `Q<...>::fromReal<.>()` and `Q<...>::fromScaled<.>()` are static functions.
+These construction methods provide precise control over how values are initialized in the Q type, ensuring adherence to the defined numerical ranges and overflow behaviors. Values are defined within the `< >` brackets at compile-time. It's important not to forget the `()` at the end, as `Q<...>::fromReal<.>()` and `Q<...>::fromScaled<.>()` are static functions and require parentheses to invoke them.
 
 #### Type Aliases
 

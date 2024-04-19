@@ -37,10 +37,10 @@ void playground() {
     pos_t position = -10.2_mm * 2_ic;
     speed_t velocity = 0_mm_p_s;
 
-    fpm::static_assert_basetype<int32_t, decltype(velocity)>();
-    fpm::static_assert_scaling<16, decltype(velocity)>();
-    fpm::static_assert_range<-300., +300., decltype(velocity)>();
-    fpm::static_assert_properties<int32_t, 16, -300., +300., decltype(velocity)>();
+    fpm::static_assert_base<int32_t, decltype(velocity)>();
+    fpm::static_assert_scale<16, decltype(velocity)>();
+    fpm::static_assert_limits<-300., +300., decltype(velocity)>();
+    fpm::static_assert_specs<int32_t, 16, -300., +300., decltype(velocity)>();
 
     accel(position, velocity, max(-100_mm_p_s2, -120_mm_p_s2), 1_s, min(1e-3_s, 1e-2_s));
 
