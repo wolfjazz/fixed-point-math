@@ -14,11 +14,16 @@
 #include "fpm/q_types.hpp"
 
 /// Namespace providing all predefined types.
-namespace fpm::types {
-    using namespace fpm::q::types;
-    using namespace fpm::sq::types;
-    using fpm::operator ""_ic;
-    using fpm::operator-;
+namespace fpm {
+using q::Q;
+using sq::Sq;
+
+namespace types {
+using namespace fpm::q::types;
+using namespace fpm::sq::types;
+using fpm::operator ""_ic;
+using fpm::operator-;
+}
 }
 
 #endif

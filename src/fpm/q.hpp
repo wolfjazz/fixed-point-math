@@ -95,7 +95,7 @@ private:
     };
 
     /// Implements the conversion from another Q type with the same base type.
-    template< QType QFrom, Overflow ovfBxOvrd >
+    template< QType QFrom, Overflow ovfBxOvrd = Q::ovfBx >
     requires ( std::is_same_v<Q::base_t, typename QFrom::base_t>
                && fpm::detail::Scalable<typename QFrom::base_t, QFrom::f, typename Q::base_t, Q::f> )
     struct FromQ {
@@ -107,9 +107,18 @@ private:
         // include overflow check if value range of from-type is not fully within range of target type,
         // or if different overflow properties could result in overflow if not checked
         static constexpr bool ovfCheckNeeded = (QFrom::realMin < realMin || realMax < QFrom::realMax
-                                                || is_ovf_stricter_v<ovfBx, QFrom::ovfBx> || is_ovf_stricter_v<Q::ovfBx, ovfBx>);
+                                                || is_ovf_stricter_v<Q::ovfBx, QFrom::ovfBx> || is_ovf_stricter_v<ovfBx, QFrom::ovfBx>);
         static constexpr bool innerConstraints = fpm::detail::OvfCheckAllowedWhenNeeded<ovfBx, ovfCheckNeeded>;
-        static constexpr base_t value(typename QFrom::base_t from) noexcept {
+
+        // misuse deprecated attribute to show a compiler warning if specified Ovf override is ignored
+        static constexpr bool isOvfOvrdIgnored = ( !ovfCheckNeeded && is_ovf_stricter_v<Q::ovfBx, ovfBx> );
+        [[deprecated("WARNING: Unnecessary overflow override ignored. Omit, or use safe_q_cast for enforced checks.")]]
+        static constexpr base_t value(typename QFrom::base_t from) noexcept requires ( isOvfOvrdIgnored ) {
+            base_t value = s2s<QFrom::f, f, base_t>( from );
+            return value;
+        }
+
+        static constexpr base_t value(typename QFrom::base_t from) noexcept requires ( !isOvfOvrdIgnored ) {
             base_t value = s2s<QFrom::f, f, base_t>( from );
             // perform overflow check if needed
             if constexpr (ovfCheckNeeded) {
@@ -177,8 +186,7 @@ private:
         // include overflow check if value range of source type Q is not fully within range of target
         // type QC, or if different overflow properties could result in overflow if not checked
         //       cannot be compared so easily
-        static constexpr bool ovfCheckNeeded = (Q::realMin < realMin || realMax < Q::realMax
-                                                || is_ovf_stricter_v<ovfBx, Q::ovfBx>);
+        static constexpr bool ovfCheckNeeded = (Q::realMin < realMin || realMax < Q::realMax);
         static constexpr bool innerConstraints = fpm::detail::OvfCheckAllowedWhenNeeded<ovfBx, ovfCheckNeeded>;
         static constexpr base_t value(typename Q::base_t from) noexcept {
             // scale source value and cast it to the cast type with the sign of the target type
@@ -206,9 +214,18 @@ private:
         // include overflow check if value range of source type Q is not fully within range of target
         // type QC, or if different overflow properties could result in overflow if not checked
         static constexpr bool ovfCheckNeeded = (Q::realMin < QC::realMin || QC::realMax < Q::realMax
-                                                || is_ovf_stricter_v<ovfBx, Q::ovfBx> || is_ovf_stricter_v<QC::ovfBx, ovfBxOvrd>);
+                                                || is_ovf_stricter_v<QC::ovfBx, Q::ovfBx> || is_ovf_stricter_v<ovfBx, Q::ovfBx>);
         static constexpr bool innerConstraints = fpm::detail::OvfCheckAllowedWhenNeeded<ovfBx, ovfCheckNeeded>;
-        static constexpr base_t value(typename Q::base_t from) noexcept {
+
+        // misuse deprecated attribute to show a compiler warning if specified Ovf override is ignored
+        static constexpr bool isOvfOvrdIgnored = ( !ovfCheckNeeded && is_ovf_stricter_v<QC::ovfBx, ovfBx> );
+        [[deprecated("WARNING: Unnecessary overflow override ignored. Omit, or use safe_q_cast for enforced checks.")]]
+        static constexpr base_t value(typename Q::base_t from) noexcept requires ( isOvfOvrdIgnored ) {
+            auto cValue = s2s<Q::f, f, cast_t>(from);
+            return static_cast<base_t>(cValue);
+        }
+
+        static constexpr base_t value(typename Q::base_t from) noexcept requires ( !isOvfOvrdIgnored ) {
             // scale source value and cast it to the cast type with the sign of the target type
             auto cValue = s2s<Q::f, f, cast_t>(from);
             // perform overflow check if needed

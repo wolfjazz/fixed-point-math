@@ -217,7 +217,7 @@ TargetT v2s(ValueT value) noexcept { return v2sh<to, TargetT, ValueT>(value); }
 
 
 /** \returns the scaled integral value that corresponds to a given real double value. */
-template< scaling_t f, std::integral TargetT >
+template< scaling_t f, /* optional: */ std::integral TargetT = int >
 [[nodiscard]] constexpr
 TargetT scaled(double real) noexcept { return v2s<f, TargetT>(real); }
 
@@ -648,7 +648,7 @@ namespace detail {
      * and the desired type properties and limits! */
     template< typename ImplType >
     concept ValidImplType = requires {
-        { std::bool_constant<ImplType::innerConstraints>() } -> std::same_as<std::true_type>;
+        requires ImplType::innerConstraints;
         requires RealLimitsInRangeOfBaseType<typename ImplType::base_t, ImplType::f, ImplType::realMin, ImplType::realMax>;
     };
 

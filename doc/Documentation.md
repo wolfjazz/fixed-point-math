@@ -26,7 +26,7 @@ The goal is to enable calculations within a specified value range and precision 
 - Disallow runtime construction from floating-point variables to maintain integrity in resource-constrained environments.
 - Implement compile-time overflow checks where feasible, with runtime checks as necessary.
 - Various overflow handling strategies (e.g., error, assert, clamp, or allow unchecked overflow).
-- Implicit conversions between types of the same base type only if it results in higher precision; explicit conversion for downscaling or changing precision.
+- Implicit conversions between types of the same base type only if it results in higher precision; explicit conversion for down-scaling to lower precision.
 - Conversion between different base types only through explicit casts (static cast, safe cast, force cast).
 - Straightforward, easy-to-debug formulas without obscuring scaling corrections.
 - Implementation of standard mathematical operations and specialized functions such as square, sqrt, cube and cbrt using adapted formulas to maintain integer-only calculations.
@@ -83,7 +83,7 @@ constexpr TargetT v2s(ValueT value) noexcept { /* ... */ }
 template< scaling_t from, scaling_t to, typename TargetT, typename ValueT >
 constexpr TargetT s2s(ValueT value) noexcept { /* ... */ }
 
-template< scaling_t f, std::integral TargetT >
+template< scaling_t f, std::integral TargetT = int >
 constexpr TargetT scaled(double real) noexcept { /* ... */ }
 
 template< scaling_t f, typename TargetT = double >
@@ -109,32 +109,33 @@ Here are practical examples demonstrating how to use the helper functions provid
 - Using `fpm::scaled` to convert a real number to a scaled integer representation:
   ```cpp
   // Converts 25.5 to a scaled integer with a scaling factor of 2^10
-  auto scaledValue = fpm::scaled<10, int16_t>(25.5);
+  auto scaledValue = fpm::scaled<10, int16_t>(25.5);  // 26112: int16_t
+  int scaledValueInt = fpm::scaled<10>(25.5);  // 26112: int (default type)
   ```
 
 - Using `fpm::real` to convert a scaled integer value back to its real number representation:
   ```cpp
-  // Converts a scaled value 26112 back to its real value using a scaling factor
-  // of 2^-10
-  double realValue = fpm::real<10>(26112);
+  // Converts the scaled value 26112 back to its real value, scaling f=10
+  double realValue = fpm::real<10>(26112);  // 25.5: double (default type)
+  auto realValueInt = fpm::real<10, int>(26112);  // 25: int
   ```
 
 These examples illustrate the utility of `v2s`, `s2s`, `scaled`, and `real` in fixed-point calculations, enabling crucial scaling adjustments for maintaining precision in embedded systems programming. These functions simplify the conversion between real numbers and scaled representations, enhancing both accuracy and efficiency.
 
 Furthermore, the library defines four compile-time-only static-assertion functions to ensure that `Q` types conform to expected specifications:
 
-- `static_assert_base<std::integral T, class QSq>()`: This function static-asserts whether the `base_t` of `QSq` matches the specified type `T`.
-- `static_assert_scale<scaling_t f, class QSq>()`: This function static-asserts that the scaling factor `f` of `QSq` is as specified.
-- `static_assert_limits<double min, double max, class QSq>()`: This function static-asserts that the real value range of `QSq` falls within the specified `min` and `max` values.
-- `static_assert_specs<std::integral T, scaling_t f, double min, double max, class QSq>()`: This comprehensive function static-asserts all critical properties - `base_t`, `f`, and value range - of `QSq`.
+- `static_assert_base< std::integral T, class QSq >()`: This function static-asserts whether the `base_t` of `QSq` matches the specified type `T`.
+- `static_assert_scale< scaling_t f, class QSq >()`: This function static-asserts that the scaling factor `f` of `QSq` is as specified.
+- `static_assert_limits< double min, double max, class QSq >()`: This function static-asserts that the real value range of `QSq` falls within the specified `min` and `max` values.
+- `static_assert_specs< std::integral T, scaling_t f, double min, double max, class QSq >()`: This comprehensive function static-asserts all critical properties - `base_t`, `f`, and value range - of `QSq`.
 
 These assertions are especially useful for verifying the type of intermediate results after calculations with `Sq` types. If the core types of an application are changed, these assertions might trigger a compilation error, even if the formulas and calculations still compile. This ensures that certain type properties remain consistent throughout the development process, and any changes to the underlying type definitions are immediately flagged.
 
 ### Overflow Behaviors
 
-The `fpm` library provides a robust handling of overflow scenarios through different behaviors that can be specified during the type definition of `Q`. Understanding and selecting the appropriate overflow behavior is critical to ensure that your application handles edge cases in a predictable and controlled manner. The library currently implements four types of overflow behaviors:
+The `fpm` library provides a robust handling of overflow scenarios through different behaviors that can be specified during the type definition of `Q`. Understanding and selecting the appropriate overflow behavior is critical to ensure that your application handles edge cases in a predictable and controlled manner. The library currently implements four types of overflow behaviors (from strictest to most lenient):
 
-- **Error (`Ovf::error`)**: This behavior causes a compiler error if overflow is possible. It is the **default setting**, ensuring that potential overflow scenarios are addressed during development rather than at runtime.
+- **Error (`Ovf::error`)**: This behavior causes a compiler error if overflow is possible. It is the strictest behavior and the **default setting**, ensuring that potential overflow scenarios are addressed during development rather than at runtime.
 
 - **Assert (`Ovf::assert`)**: This overflow behavior triggers a runtime assertion if overflow occurs, which is useful for debugging and development phases where catching errors immediately is crucial.
 
@@ -147,13 +148,15 @@ Choosing the right overflow behavior depends on your application’s requirement
 
 ## Q-Type
 
-Just like the enigmatic Q from Star Trek, the `Q` type in the Fixed-Point Math Library possesses its own set of powerful capabilities, albeit more grounded in the realm of arithmetic precision than in galactic mischief. The main purpose of our `Q` is to provide robust overflow protection and checks, along with facilitating conversions to and from other `Q` types. It stores a scaled integer value that can be stored and modified at runtime.
+Just like the enigmatic **Q** from Star Trek, the `Q` type in the Fixed-Point Math Library possesses its own set of powerful capabilities, albeit more grounded in the realm of arithmetic precision than in galactic mischief. The primary purpose of our `Q` is to efficiently wrap around a scaled integer value that can be stored and modified at runtime, ensuring dynamic and precise arithmetic operations. Additionally, `Q` provides robust overflow protection and facilitates seamless conversions to and from other `Q` types.
 
 ### Implementation
 
 `Q` is defined by the following template:
 
 ```cpp
+namespace fpm {
+
 template< std::integral base_t, fpm::scaling_t f, double realMin, double realMax,
           fpm::Overflow ovfBx = fpm::Ovf::error >
 class Q {
@@ -163,59 +166,72 @@ class Q {
     private:
         base_t value;  ///< actual integer value stored in runtime memory
 };
+
+}
 ```
 
 - `base_t`: Refers to the underlying integral type that holds the scaled value. Within the `Q` class, the scaled value, which represents the fixed-point number, is declared as a private member. This value is the only element that is stored in runtime memory for the `Q` instance.
 - `realMin` and `realMax`: These specify the minimum and maximum values of the real value range that `Q` can represent, effectively setting the bounds for compile-time computation.
 - `ovfBx`: Dictates the overflow behavior for operations that exceed the designated value range. The default overflow behavior is `Ovf::error`, which means the code will not compile if a potential overflow scenario is detected. This is particularly common when a conversion from a wider to a narrower real value range is attempted, safeguarding against inadvertent data loss or corruption.
 
-These parameters are integral to the structure of each Q type and are set as static constexpr members, allowing them to be accessed directly for various computations or validations.
+These parameters are integral to the structure of each `Q` type and are set as static constexpr members, allowing them to be accessed directly for various computations or validations.
 
-Additionally, a Q type provides the following static constexpr members to aid in precise and effective data manipulation:
+Additionally, a `Q` type provides the following static constexpr members to aid in precise and effective data manipulation:
 
 - `scaledMin`: This member stores the minimum value that can be represented in the scaled format, calculated based on the *realMin* and the scaling factor.
 - `scaledMax`: This member stores the maximum value that can be represented in the scaled format, calculated based on the *realMax* and the scaling factor.
-- `resolution`: This represents the effective resolution of the Q type, defined as $2^{-f}$. It indicates the smallest difference between two representable real values within the type, providing clarity on the granularity and precision at which values can be manipulated or interpreted.
+- `resolution`: This represents the real resolution (double) of the `Q` type, defined as $2^{-f}$. It indicates the smallest difference between two representable real values within the type, providing clarity on the granularity and precision at which values can be manipulated or interpreted.
 
 ### Construction
 
 The `Q` class can be instantiated using various integral types and scaling factors to fit specific application requirements. Here are some examples of how `Q` types can be defined:
 
-- `Q<int8_t, 4, -10., 10.>` represents a `Q8.4` fixed-point type, covering a real value range from -10 to +10. The default overflow behavior is set to `Ovf::error`, meaning any operation leading to overflow will not compile.
-- `Q<uint32_t, 12, 0., 1000., Ovf::clamp>` defines a `UQ32.12` fixed-point type with a real value range from 0 to 1000. Overflow behavior is set to `Ovf::clamp`, meaning values that exceed the range are adjusted to the nearest boundary.
-- `Q<in16_t, 8>` defines a `Q16.8` fixed-point type that uses `Ovf::error` as the default overflow behavior and the largest possible **symmetric** value range. This symmetric range excludes `INT16_MIN` as scaled value to avoid issues such as overflow when taking the absolute value.
+- `fpm::Q<int8_t, 4, -10., 10.>` represents a `Q8.4` fixed-point type, covering a real value range from -10 to +10. The default overflow behavior is set to `Ovf::error`, meaning any operation leading to overflow will not compile.
+- `fpm::Q<uint32_t, 12, 0., 1000., Ovf::clamp>` defines a `UQ32.12` fixed-point type with a real value range from 0 to 1000. Overflow behavior is set to `Ovf::clamp`, meaning values that exceed the range are adjusted to the nearest boundary.
+- `fpm::Q<in16_t, 8>` defines a `Q16.8` fixed-point type that uses `Ovf::error` as the default overflow behavior and the largest possible **symmetric** value range. This symmetric range excludes `INT16_MIN` as scaled value to avoid issues such as overflow when taking the absolute value.
 
 `Q` cannot be constructed directly from floating-point values to maintain type safety and prevent inadvertent data loss or misinterpretations at runtime. Instead, `Q` provides static constructor methods to create instances from real values, ensuring conversions are explicit and controlled:
 
-- To construct a `Q` instance from a real value, you can use the static `fromReal<.>()` constructor function, which converts a floating-point number to the corresponding fixed-point representation. For example:
+- To construct a `Q` instance from a real constexpr value, you can use the static `fromReal< real >()` constructor function, which converts a floating-point number to the corresponding fixed-point representation. For example:
   ```cpp
   // Construct from real value
-  auto a = Q<uint16_t, 8, 100., 200.>::fromReal< 155. >();
+  auto a = fpm::Q<uint16_t, 8, 100., 200.>::fromReal< 155. >();
   ```
   The `auto` keyword is very handy here because it spares us from needing to specify the type twice, as the compiler deduces the type at compile time.
-- Additionally, Q supports construction from scaled integer values through the static `fromScaled<.>()` constructor function, which takes an integer already scaled to the fixed-point format:
+- Additionally, Q supports construction from scaled constexpr integer values through the static `fromScaled< scaled >()` constructor function, which takes an integer already scaled to the fixed-point format:
   ```cpp
   // Construct from scaled value
-  auto b = Q<uint32_t, 8, 1000., 2000.>::fromScaled< 307200 >();
-  auto c = Q<int32_t, 18, 1000., 1500.>::fromScaled< fpm::v2s<18, int32_t>(1200.) >();
+  auto b = fpm::Q<uint32_t, 8, 1000., 2000.>::fromScaled< 307200 >();
+  auto c = fpm::Q<int32_t, 18, 100., 150.>::fromScaled< fpm::scaled<18>(120.) >();
   ```
 
-These construction methods provide precise control over how values are initialized in the Q type, ensuring adherence to the defined numerical ranges and overflow behaviors. Values are defined within the `< >` brackets at compile-time. It's important not to forget the `()` at the end, as `Q<...>::fromReal<.>()` and `Q<...>::fromScaled<.>()` are static functions and require parentheses to invoke them.
+- For creating instances of `Q` types with scaled integral runtime values, the constructor function  
+`construct<ovfBxOvrd>( scaled )` is essential. It conducts a runtime overflow check as desired, adhering to the overflow behavior of the `Q` type, or, if specified, the behavior override provided via the template parameter `ovfBxOvrd`. This function ensures that values are instantiated safely, respecting the defined overflow strategies to prevent data corruption or unexpected behavior. It's important to note that this method can only be used with `scaled` integer values, as the runtime construction from double values is explicitly prohibited by the library's design to maintain type safety (no floats at runtime).
+  ```cpp
+  // Construct with runtime scaled value, clamped to target value range
+  int32_t rtScaled = 123456;  // scaled value, q16; real=1.88379
+  auto qValue = fpm::Q<int32_t, 16, -100., 100.>::construct<Ovf::clamp>(rtScaled);
+
+  // Overflow override not necessary if target type inherently clamps
+  auto qValue2 = fpm::Q<int32_t, 16, -100., 100., Ovf::clamp>::construct(rtScaled);
+  ```
+
+These construction methods provide precise control over how values are initialized in the `Q` type, ensuring adherence to the defined numerical ranges and overflow behaviors. Values are defined within the `< >` brackets at compile-time, and within the `( )` at runtime. It's important not to forget the `()` at the end of the static functions `Q<...>::fromReal<.>()` and `Q<...>::fromScaled<.>()`, as functions require parentheses to invoke them.
 
 #### Type Aliases
 
-The library provides alias templates as syntax sugar for common Q types, looking similarly to standard integer types, in the namespace `fpm::types`. This simplifies the usage and readability of the types in your code. For instance:
+The library provides alias templates as syntax sugar for common `Q` types, looking similarly to standard integer types, in the namespace `fpm::types`. This simplifies the usage and readability of the types in your code. For instance:
 
-- `i32q16<realMin, realMax, Ovf::clamp>` is a `Q<int32_t, 16, realMin, realMax, Ovf::clamp>`
-- `u16q8<realMin, realMax>` is a `Q<uint16_t, 8, realMin, realMax>`
-- `i32qm7<realMin, realMax>` is a `Q<int32_t, -7, realMin, realMax`
+- `i32q16< realMin, realMax, Ovf::clamp >` is a `Q<int32_t, 16, realMin, realMax, Ovf::clamp>`
+- `u16q8< realMin, realMax >` is a `Q<uint16_t, 8, realMin, realMax>`
+- `i32qm7< realMin, realMax >` is a `Q<int32_t, -7, realMin, realMax`
 - `i16q6<>` is a `Q<int16_t, 6>`, with the largest possible symmetric value range and `Ovf::error`
 
 Construction of `Q` instances using these aliases looks as follows:
 ```cpp
-using namespace fpm::types;
+using namespace fpm::types;  // predefined type alias templates
 
-// user-defined type aliases
+// user-defined type aliases with specific value ranges
 using i32qm7_t = i32qm7<4e10, 5e10, Ovf::clamp>;
 using i16q6_t = i16q6<>;
 
@@ -249,7 +265,7 @@ This approach not only makes the code more readable but also reduces the risk of
 
 While user-defined literals offer a significant advantage in code clarity and type safety, there is a limitation to their usage. Each literal can only be bound once per compilation unit to a specific `Q` type. This restriction ensures that literals are consistently associated with their respective types throughout a single file, preventing conflicts and ambiguities.
 
-However, it is often practical for certain literals to be used across the entire application. To accommodate this, such literals should be defined in a core header file. This centralized approach allows for the universal application of the literal across multiple files, ensuring consistent usage and behavior throughout the application.
+Nevertheless, it is often practical for certain literals to be used across the entire application. To accommodate this, such literals should be defined in a core header file. This centralized approach allows for the universal application of the literal across multiple files, ensuring consistent usage and behavior throughout the application.
 
 ##### Provided Literals in fpm Library
 
@@ -264,7 +280,7 @@ Here are examples of how these literals can be utilized:
 using namespace fpm::types;
 
 i32q8<-1000., 1000.> distance = -150.0_i32q8;
-u16q4<0., 2000.> pressure = 1023_u16q4;
+u16q4<0., 2000.> pressure = 1023.0_u16q4;
 u8q4<0., 15.> smallValue = 14.5_u8q4;
 ```
 
@@ -298,26 +314,29 @@ To obtain the real value as a floating-point number, you can use the `real()` fu
 
 ### Rescaling
 
-In situations where the base type remains the same but the fractional part (`f`) differs between two `Q` types, rescaling is necessary. This process is referred to as "upscaling" when `f` increases, and "downscaling" when `f` decreases.
+In situations where the base type remains the same but the fractional part `f` differs between two `Q` types, rescaling is necessary. This process is referred to as "up-scaling" when `f` increases, and "down-scaling" when `f` decreases.
 
-- **Upscaling**: Upscaling is achieved by **multiplying** the source value by $2^{to-from}$, effectively increasing the number of fractional bits to fit the higher resolution of the target type. While this process is technically lossless because no data is discarded, it doesn't enhance the actual resolution or detail of the original data; the additional fractional bits are essentially filled with zeros.
+- **Up-Scaling**: Up-scaling is achieved by **multiplying** the source value by $2^{to-from}$, effectively increasing the number of fractional bits to fit the higher resolution of the target type. While this process is technically lossless because no data is discarded, it doesn't enhance the actual resolution or detail of the original data; the additional fractional bits are essentially filled with zeros.
 
-- **Downscaling**: Downscaling reduces the number of fractional bits by **dividing** the source value by $2^{from-to}$. This operation is inherently lossy as it involves discarding the least significant bits of the fractional part. Consequently, the precision of the original value is reduced to match the lower resolution of the target type, resulting in a loss of detail that reflects the decreased fractional granularity.
+- **Down-Scaling**: Down-scaling reduces the number of fractional bits by **dividing** the source value by $2^{from-to}$. This operation is inherently lossy as it involves discarding the least significant bits of the fractional part. Consequently, the precision of the original value is reduced to match the lower resolution of the target type, resulting in a loss of detail that reflects the decreased fractional granularity.
 
-To rescale a `Q` type to another with the same base type but different `f`, you can use the  
-`Q<base_t, f_to, ...>::fromQ<ovfBxOverride: Ovf>(source: Q<base_t, f_from, ...>)` constructor function, which handles the scaling adjustments internally:
+To rescale a `Q` type to another with the same base type but different `f`, you can use simple assignment, or, if necessary, the `QTo::fromQ<ovfBxOvrd>( qFrom )` constructor function, both of which handle the scaling adjustments internally:
 
 ```cpp
 auto sourceValue = i32q10<-500., 1500.>::fromReal< 1024. >();
 
-// Rescale from f=10 to f=8 and clamp to the narrower value range
-auto targetValue = i32q8<-450., 1450.>::fromQ<Ovf::clamp>( sourceQValue );
+// Rescale from f=10 to f=8 and a wider value range via assignment
+i32q8<-510., 1500.> targetValue1 = sourceValue;  // automatically rescaled
+
+// Rescale from f=10 to f=8 and clamp to the narrower value range via fromQ<>()
+auto targetValue2 = i32q8<-450., 1450.>::fromQ<Ovf::clamp>( sourceValue );
 ```
 
-The `fromQ` function automatically adjusts the scaling and applies the appropriate overflow check if specified. This overflow check is unnecessary if the value range of the target type is the same or wider than that of the source type, or if the overflow behavior of the target type is `Ovf::unchecked`. However, if the target range is narrower and the target type checks for overflow, or if the overflow behavior of the target type is stricter than that of the source type, you must specify a different overflow behavior with the `fromQ<ovfBx>(.)` function. Importantly, this does not permanently change the behavior of the target type but instead applies the specified overflow handling solely for the conversion to the target type.
+Overflow checks during scaling adjustments are unnecessary if the real value range of the target type is the same as or wider than that of the source type, and if the overflow behavior of the target type is the same or less strict than that of the source type. Under these conditions, values can be directly assigned.
 
+However, if the target value range is narrower than the source's, or if the target type implements a stricter overflow behavior than the source type, you may need to use the `fromQ<ovfBx>(.)` function to specify a different overflow behavior. Typically, the value is clamped to fit within the target type's range, ensuring correct handling of potential overflow situations without causing compilation errors or runtime assertions. This adjustment does not permanently change the overflow behavior of the target type but applies the specified overflow handling only for the conversion to the target type.
 
-#### More Examples
+#### Examples
 
 ```cpp
 using source_t = i32q10<-500., 1500.>;   // i32q10, Ovf::error
@@ -326,30 +345,85 @@ using coarser_t = i32q8<-500., 1500.>;   // i32q8, same value range as source_t
 using wider_t = i32q8<-600., 1600.>;     // i32q8, wider value range
 using narrower_t = i32q8<-400., 1500.>;  // i32q8, narrower value range
 
-auto source1 = source_t::fromReal< 1024.7 >();
-auto source2 = overflow_t::fromReal< -555.5 >();  // value out of range
+auto source = source_t::fromReal< 1024.7 >();
+auto ovfSrc = overflow_t::fromReal< -555.5 >();  // value out of range
 
-// same value range: direct assignment can be used if ovf behavior allows it
-coarser_t a1 = source1;                        // ok
-auto a2 = coarser_t::fromQ( source1 );         // also ok
-// coarser_t a3 = source2;                     // error (stricter ovf behavior)
-auto a4 = coarser_t::fromQ<Ovf::clamp>( source2 );  // ok (runtime clamp needed)
-i32q8<-500., 1500., Ovf::clamp> a5 = source2;  // ok (clamping target)
+/* same value range: direct assignment can be used if ovf behavior allows it */
+coarser_t a1 = source;                        // ok
+auto a2 = coarser_t::fromQ( source );         // also ok
+// coarser_t a3 = ovfSrc;                     // error (stricter ovf behavior)
+auto a4 = coarser_t::fromQ<Ovf::clamp>( ovfSrc );  // ok (runtime clamp needed)
+i32q8<-500., 1500., Ovf::clamp> a5 = ovfSrc;  // ok (clamping target)
 
-// wider value range: direct assignment can be used if ovf behavior allows it
-wider_t b1 = source1;                             // ok
-auto b2 = wider_t::fromQ( source1 );              // also ok
-// wider_t b3 = source2;                          // error (stricter ovf beh.)
-auto b4 = wider_t::fromQ<Ovf::clamp>( source2 );  // ok (runtime clamp needed)
-i32q8<-600., 1600., Ovf::clamp> b5 = source2;     // ok (clamping target)
+/* wider value range: direct assignment can be used if ovf behavior allows it */
+wider_t b1 = source;                             // ok
+auto b2 = wider_t::fromQ( source );              // also ok
+// wider_t b3 = ovfSrc;                          // error (stricter ovf beh.)
+auto b4 = wider_t::fromQ<Ovf::clamp>( ovfSrc );  // ok (runtime clamp needed)
+i32q8<-600., 1600., Ovf::clamp> b5 = ovfSrc;     // ok (clamping target)
 
-// narrower value range: fromQ<>() is required unless target type checks anyway
-// narrower_t c1 = source1;  // error (narrower range)
-auto c2 = narrower_t::fromQ<Ovf::clamp>( source1 );  // ok
-auto c3 = narrower_t::fromQ<Ovf::clamp>( source2 );  // ok
-i32q8<-400., 1500., Ovf::unchecked> c4 = source2;    // ok (check discarded)
+/* narrower value range: fromQ<>() is required unless target type checks anyway */
+// narrower_t c1 = source;  // error (narrower range)
+auto c2 = narrower_t::fromQ<Ovf::clamp>( source );  // ok
+auto c3 = narrower_t::fromQ<Ovf::clamp>( ovfSrc );  // ok
+i32q8<-400., 1500., Ovf::clamp> c4 = ovfSrc;        // ok (clamping target)
+i32q8<-400., 1500., Ovf::unchecked> c5 = ovfSrc;    // ok (check discarded)
 ```
 
 ### Casting
 
-TODO
+In the `Q` type framework, casting between different `Q` types with varying base types necessitates explicit type conversion. The simplest form of casting involves using `static_cast< QTo >( qFrom )`, which is straightforward when scaling adjustments are feasible and the target value range is either the same or wider than the source's, and if the target type's overflow behavior is the same or less strict.
+
+```cpp
+auto sourceValue = i32q10<0., 1500.>::fromReal< 1024. >();
+
+// cast i32q10 to unsigned u32q12
+auto cast1 = static_cast< u32q12<0., 1500.> >(sourceValue);
+
+// cast i32q10 to i16q4, explicitly dropping any overflow check in target type
+// (not recommended though, as target type will drop any overflow check this way)
+auto cast2 = static_cast< i16q4<0., 1030., Ovf::unchecked> >(sourceValue);
+```
+
+However, if the target range is narrower and the target type incorporates overflow checks, or if the target type's overflow behavior is more restrictive than that of the source, `static_cast` may not be sufficient. In cases where overflow could occur, and unless the target type handles overflow with `Ovf::clamp` or `Ovf::assert` when constructed, a simple `static_cast` will not properly address potential overflow issues and thus not compile.
+
+To manage potential overflow effectively, `Q` provides three specialized casting functions:
+
+- `static_q_cast< QTo, ovfBxOvrd >( qFrom )`: This function applies the overflow handling as specified by the target type or uses the overridden overflow behavior if provided. It ensures that the conversion adheres to the designated overflow protocols, **performing runtime checks only when necessary** from a static point of view.
+
+- `safe_q_cast< QTo, ovfBxOvrd >( qFrom )`: This function performs a runtime overflow check regardless of whether it is strictly necessary. It requires that the overflow behavior is set to a runtime check `Ovf::clamp` or `Ovf::assert`, and does not permit `Ovf::unchecked` and the compile-time check `Ovf::error`. This method is designed for scenarios where ensuring data integrity is critical, and overflow must be actively managed.
+
+- `force_q_cast< QTo >( qFrom )`: This casting function performs no checks and simply takes the scaled value from the source type, constructing the specified `ToQ` type around it. This is essentially a forced value reinterpretation and should be used with caution, as it bypasses all overflow and range checks.
+
+These casting functions provide robust tools for managing different fixed-point types, ensuring that conversions are both safe and efficient, depending on the operational requirements and data integrity needs.
+
+```cpp
+auto value = i32q10<0., 1500.>::fromReal< 1234. >();
+
+// cast value to unsigned u32q12 (identical to static_cast)
+auto cast1 = static_q_cast< u32q12<0., 1500.> >( value );  // 1234.
+
+// cast value to i16q4 with narrower range, overflow check is dropped explicitly
+// --> value is out of range!
+auto cast2 = static_q_cast< i16q4<0., 1000.>, Ovf::unchecked >( value );  // 1234.
+
+// static-cast cast2 (potentially out of range) to a wider range;
+// note: no overflow checks are performed (wider range, identical ovf behavior)
+auto cast3static = static_q_cast< i16q4<-100., 1100.> >( cast2 );  // 1234.
+
+// safe-cast of cast2 is needed to really catch and clamp the out-of-range value
+auto cast3safe = safe_q_cast< i16q4<-100., 1100.>, Ovf::clamp >( cast2 );  // 1100.
+
+// force-cast cast2 (i16q4) into a u8q1
+auto forced = force_q_cast< u8q1<0., 100.> >( cast2 );  // 16.
+```
+
+#### Range Clamping
+
+The `Q` type framework includes a specialized feature known as "range clamping" to address the nuances of casting between differently signed types of different sizes. This feature ensures that conversions between signed and unsigned types adhere to intuitive expectations regarding value ranges:
+
+- **From Signed to Unsigned**: When a `Q` type with a signed base type is cast to a `Q` type with an unsigned base type of the same or smaller size, any values in the negative range of the signed type are clamped to the lower limit of the unsigned type. This clamping is crucial to avoid underflow and to ensure values remain within the legitimate range of the unsigned type.
+- **From Unsigned to Signed**: Similarly, when a `Q` type with an unsigned base type is cast to a `Q` type with a signed base type of the same or smaller size, values that fall in the upper half of the unsigned range are clamped to the upper limit of the signed type. This measure prevents potential overflow, ensuring that the values do not exceed the maximum positive value of the signed type.
+These adjustments are driven by internal logic designed to mirror what would typically be expected from the real values during such type conversions. By incorporating this feature, the framework helps preserve data integrity and provides a logical, safe transition between signed and unsigned `Q` types, reflecting the expected behavior of real-world values.
+
+TODO: examples

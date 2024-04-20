@@ -869,39 +869,35 @@ TEST_F(QTest_Casting, q_static_cast__positive_real_value_signed__unsigned_type_s
 TEST_F(QTest_Casting, q_static_cast__positive_real_value_unsigned__larger_signed_type_largerF_same_value) {
     constexpr double realA = 498.7;
     auto a = u16q6_t::fromReal<realA>();
-    auto b = static_cast<i32q20_clamp_t>(a);
-    auto c = static_q_cast<i32q20_t, fpm::Ovf::clamp>(a);
-    auto d = static_q_cast<i32q20_clamp_t>(a);
+    auto b = static_cast<i32q20_t>(a);
+    auto c = static_q_cast<i32q20_t>(a);  // no ovf. check performed (wider value range, same ovfBx)
 
-    // static cast from u16q6_t to i32q20_t works here, because the signed type includes the range of the unsigned type
+    // static cast from u16q6_t to i32q20_t works here, because the signed type includes the range
+    // of the unsigned type
     ASSERT_TRUE(( StaticCastable< u16q6_t, i32q20_t > ));
 
     // note: for up-scaling to a larger integral type, the resulting resolution is the resolution
     //       of the source type (because the base type of both target and source is integral)
     ASSERT_NEAR(realA, b.real(), u16q6_t::resolution);
     ASSERT_NEAR(realA, c.real(), u16q6_t::resolution);
-    ASSERT_NEAR(realA, d.real(), u16q6_t::resolution);
-    ASSERT_TRUE((std::is_same_v<i32q20_clamp_t, decltype(b)>));
+    ASSERT_TRUE((std::is_same_v<i32q20_t, decltype(b)>));
     ASSERT_TRUE((std::is_same_v<i32q20_t, decltype(c)>));
-    ASSERT_TRUE((std::is_same_v<i32q20_clamp_t, decltype(d)>));
 }
 
 TEST_F(QTest_Casting, q_static_cast__positive_real_value_unsigned__larger_signed_type_smallerF_same_value) {
     constexpr double realA = 498.7;
     auto a = u16q6_t::fromReal<realA>();
-    auto b = static_cast<i32qm2_clamp_t>(a);
-    auto c = static_q_cast<i32qm2_t, fpm::Ovf::clamp>(a);
-    auto d = static_q_cast<i32qm2_clamp_t>(a);
+    auto b = static_cast<i32qm2_t>(a);
+    auto c = static_q_cast<i32qm2_t>(a);
 
-    // static cast from u16q6_t to i32qm2_t works here, because the signed type includes the range of the unsigned type
+    // static cast from u16q6_t to i32qm2_t works here, because the signed type includes the range
+    // of the unsigned type
     ASSERT_TRUE(( StaticCastable< u16q6_t, i32qm2_t > ));
 
-    ASSERT_NEAR(realA, b.real(), u16q6_t::resolution + i32qm2_clamp_t::resolution);
+    ASSERT_NEAR(realA, b.real(), u16q6_t::resolution + i32qm2_t::resolution);
     ASSERT_NEAR(realA, c.real(), u16q6_t::resolution + i32qm2_t::resolution);
-    ASSERT_NEAR(realA, d.real(), u16q6_t::resolution + i32qm2_clamp_t::resolution);
-    ASSERT_TRUE((std::is_same_v<i32qm2_clamp_t, decltype(b)>));
+    ASSERT_TRUE((std::is_same_v<i32qm2_t, decltype(b)>));
     ASSERT_TRUE((std::is_same_v<i32qm2_t, decltype(c)>));
-    ASSERT_TRUE((std::is_same_v<i32qm2_clamp_t, decltype(d)>));
 }
 
 TEST_F(QTest_Casting, q_static_cast__positive_real_value_signed__smaller_unsigned_type_largerF_same_value) {
@@ -1078,19 +1074,17 @@ TEST_F(QTest_Casting, q_static_cast__small_unsigned_type_2_large_signed_type__ex
     auto c = u8qm3_t::fromReal<u8qm3_t::realMax>();
     auto d = u8qm3_t::fromReal<1010., fpm::Ovf::allowed>();
     auto e = u8qm3_t::fromReal<1022., fpm::Ovf::allowed>();
-    auto ac = static_q_cast<i32q20_t, fpm::Ovf::clamp>(a);
-    auto bc = static_q_cast<i32q20_t, fpm::Ovf::clamp>(b);
-    auto cc = static_q_cast<i32q20_t, fpm::Ovf::clamp>(c);
-    auto dc = static_q_cast<i32q20_t, fpm::Ovf::clamp>(d);
-    auto ec = static_q_cast<i32q20_t, fpm::Ovf::clamp>(e);
-    auto ec_ovf = static_q_cast<i32q20_t, fpm::Ovf::allowed>(e);
+    auto ac = static_q_cast<i32q20_t>(a);
+    auto bc = static_q_cast<i32q20_t>(b);
+    auto cc = static_q_cast<i32q20_t>(c);
+    auto dc = static_q_cast<i32q20_t>(d);  // no ovf. check performed (wider value range, same ovfBx)
+    auto ec = static_q_cast<i32q20_t>(e);  // no ovf. check performed (wider value range, same ovfBx)
 
     ASSERT_NEAR(u8qm3_t::realMin, ac.real(), u8qm3_t::resolution);
     ASSERT_NEAR( 500., bc.real(), u8qm3_t::resolution);
     ASSERT_NEAR(u8qm3_t::realMax, cc.real(), u8qm3_t::resolution);
     ASSERT_NEAR(1010., dc.real(), u8qm3_t::resolution);
-    ASSERT_NEAR(i32q20_t::realMax, ec.real(), u8qm3_t::resolution);  // 1022 clamped to i32q20_t::realMax
-    ASSERT_NEAR(1022., ec_ovf.real(), u8qm3_t::resolution);
+    ASSERT_NEAR(1022., ec.real(), u8qm3_t::resolution);
 }
 
 TEST_F(QTest_Casting, q_static_cast__smaller_unsigned_type_2_larger_signed_type__expected_real_value) {
@@ -1114,19 +1108,17 @@ TEST_F(QTest_Casting, q_static_cast__smaller_unsigned_type_2_larger_signed_type_
     auto c = u16qm3_t::fromReal<u16qm3_t::realMax>();
     auto d = u16qm3_t::fromReal<410000., fpm::Ovf::allowed>();
     auto e = u16qm3_t::fromReal<520000., fpm::Ovf::allowed>();
-    auto ac = static_q_cast<i32q12_t, fpm::Ovf::clamp>(a);
-    auto bc = static_q_cast<i32q12_t, fpm::Ovf::clamp>(b);
-    auto cc = static_q_cast<i32q12_t, fpm::Ovf::clamp>(c);
-    auto dc = static_q_cast<i32q12_t, fpm::Ovf::clamp>(d);
-    auto ec = static_q_cast<i32q12_t, fpm::Ovf::clamp>(e);
-    auto ec_ovf = static_q_cast<i32q12_t, fpm::Ovf::allowed>(e);
+    auto ac = static_q_cast<i32q12_t>(a);
+    auto bc = static_q_cast<i32q12_t>(b);
+    auto cc = static_q_cast<i32q12_t>(c);
+    auto dc = static_q_cast<i32q12_t>(d);  // no ovf. check performed (wider value range, same ovfBx)
+    auto ec = static_q_cast<i32q12_t>(e);  // no ovf. check performed (wider value range, same ovfBx)
 
     ASSERT_NEAR(u16qm3_t::realMin, ac.real(), u16qm3_t::resolution);
     ASSERT_NEAR( 50000., bc.real(), u16qm3_t::resolution);
     ASSERT_NEAR(u16qm3_t::realMax, cc.real(), u16qm3_t::resolution);
     ASSERT_NEAR(410000., dc.real(), u16qm3_t::resolution);
-    ASSERT_NEAR(i32q12_t::realMax, ec.real(), u16qm3_t::resolution);  // 520000 clamped to i32q12::realMax
-    ASSERT_NEAR(520000., ec_ovf.real(), u16qm3_t::resolution);
+    ASSERT_NEAR(520000., ec.real(), u16qm3_t::resolution);
 }
 
 TEST_F(QTest_Casting, q_static_cast__small_signed_type_2_large_signed_type__expected_real_value) {
