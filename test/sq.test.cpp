@@ -321,24 +321,12 @@ TEST_F(SQTest_Casting, sq_static_cast__signed_user_range__unsigned_larger_range_
     auto b = i16sqm3_t::fromReal<70000.>();
     auto c = i16sqm3_t::fromReal<i16sqm3_t::realMax>();
     auto ac = static_cast<u32sq14_t>(a);
-    auto ac2 = static_sq_cast<u32sq14_t>(a);
-    auto ac3 = safe_sq_cast<u32sq14_t>(a);
     auto bc = static_cast<u32sq14_t>(b);
-    auto bc2 = static_sq_cast<u32sq14_t>(b);
-    auto bc3 = safe_sq_cast<u32sq14_t>(b);
     auto cc = static_cast<u32sq14_t>(c);
-    auto cc2 = static_sq_cast<u32sq14_t>(c);
-    auto cc3 = safe_sq_cast<u32sq14_t>(c);
 
     ASSERT_NEAR(i16sqm3_t::realMin, ac.real(), i16sqm3_t::resolution);
-    ASSERT_NEAR(i16sqm3_t::realMin, ac2.real(), i16sqm3_t::resolution);
-    ASSERT_NEAR(i16sqm3_t::realMin, ac3.real(), i16sqm3_t::resolution);
     ASSERT_NEAR(70000., bc.real(), i16sqm3_t::resolution);
-    ASSERT_NEAR(70000., bc2.real(), i16sqm3_t::resolution);
-    ASSERT_NEAR(70000., bc3.real(), i16sqm3_t::resolution);
     ASSERT_NEAR(i16sqm3_t::realMax, cc.real(), i16sqm3_t::resolution);
-    ASSERT_NEAR(i16sqm3_t::realMax, cc2.real(), i16sqm3_t::resolution);
-    ASSERT_NEAR(i16sqm3_t::realMax, cc3.real(), i16sqm3_t::resolution);
 }
 
 TEST_F(SQTest_Casting, sq_static_cast__unsigned_user_range__signed_larger_range__same_real_value) {
@@ -359,24 +347,12 @@ TEST_F(SQTest_Casting, sq_static_cast__unsigned_user_range__signed_larger_range_
     auto b = u16sqm3_t::fromReal<50000.>();
     auto c = u16sqm3_t::fromReal<u16sqm3_t::realMax>();
     auto ac = static_cast<i32sq12_t>(a);
-    auto ac2 = static_sq_cast<i32sq12_t>(a);
-    auto ac3 = safe_sq_cast<i32sq12_t>(a);
     auto bc = static_cast<i32sq12_t>(b);
-    auto bc2 = static_sq_cast<i32sq12_t>(b);
-    auto bc3 = safe_sq_cast<i32sq12_t>(b);
     auto cc = static_cast<i32sq12_t>(c);
-    auto cc2 = static_sq_cast<i32sq12_t>(c);
-    auto cc3 = safe_sq_cast<i32sq12_t>(c);
 
     ASSERT_NEAR(u16sqm3_t::realMin, ac.real(), u16sqm3_t::resolution);
-    ASSERT_NEAR(u16sqm3_t::realMin, ac2.real(), u16sqm3_t::resolution);
-    ASSERT_NEAR(u16sqm3_t::realMin, ac3.real(), u16sqm3_t::resolution);
     ASSERT_NEAR(50000., bc.real(), u16sqm3_t::resolution);
-    ASSERT_NEAR(50000., bc2.real(), u16sqm3_t::resolution);
-    ASSERT_NEAR(50000., bc3.real(), u16sqm3_t::resolution);
     ASSERT_NEAR(u16sqm3_t::realMax, cc.real(), u16sqm3_t::resolution);
-    ASSERT_NEAR(u16sqm3_t::realMax, cc2.real(), u16sqm3_t::resolution);
-    ASSERT_NEAR(u16sqm3_t::realMax, cc3.real(), u16sqm3_t::resolution);
 }
 
 TEST_F(SQTest_Casting, sq_static_cast__signed_user_range__signed_larger_range__same_real_value) {
@@ -397,24 +373,12 @@ TEST_F(SQTest_Casting, sq_static_cast__signed_user_range__signed_larger_range__s
     auto b = i16sqm4_t::fromReal<-50000.>();
     auto c = i16sqm4_t::fromReal<i16sqm4_t::realMax>();
     auto ac = static_cast<i32sq12_t>(a);
-    auto ac2 = static_sq_cast<i32sq12_t>(a);
-    auto ac3 = safe_sq_cast<i32sq12_t>(a);
     auto bc = static_cast<i32sq12_t>(b);
-    auto bc2 = static_sq_cast<i32sq12_t>(b);
-    auto bc3 = safe_sq_cast<i32sq12_t>(b);
     auto cc = static_cast<i32sq12_t>(c);
-    auto cc2 = static_sq_cast<i32sq12_t>(c);
-    auto cc3 = safe_sq_cast<i32sq12_t>(c);
 
     ASSERT_NEAR(i16sqm4_t::realMin, ac.real(), i16sqm4_t::resolution);
-    ASSERT_NEAR(i16sqm4_t::realMin, ac2.real(), i16sqm4_t::resolution);
-    ASSERT_NEAR(i16sqm4_t::realMin, ac3.real(), i16sqm4_t::resolution);
     ASSERT_NEAR(-50000., bc.real(), i16sqm4_t::resolution);
-    ASSERT_NEAR(-50000., bc2.real(), i16sqm4_t::resolution);
-    ASSERT_NEAR(-50000., bc3.real(), i16sqm4_t::resolution);
     ASSERT_NEAR(i16sqm4_t::realMax, cc.real(), i16sqm4_t::resolution);
-    ASSERT_NEAR(i16sqm4_t::realMax, cc2.real(), i16sqm4_t::resolution);
-    ASSERT_NEAR(i16sqm4_t::realMax, cc3.real(), i16sqm4_t::resolution);
 }
 
 TEST_F(SQTest_Casting, q_static_cast__unsigned_user_range__unsigned_larger_range__same_real_value) {
@@ -435,24 +399,12 @@ TEST_F(SQTest_Casting, q_static_cast__unsigned_user_range__unsigned_larger_range
     auto b = u16sqm2_t::fromReal<50000.>();
     auto c = u16sqm2_t::fromReal<u16sqm2_t::realMax>();
     auto ac = static_cast<u32sq14_t>(a);
-    auto ac2 = static_sq_cast<u32sq14_t>(a);
-    auto ac3 = safe_sq_cast<u32sq14_t>(a);
     auto bc = static_cast<u32sq14_t>(b);
-    auto bc2 = static_sq_cast<u32sq14_t>(b);
-    auto bc3 = safe_sq_cast<u32sq14_t>(b);
     auto cc = static_cast<u32sq14_t>(c);
-    auto cc2 = static_sq_cast<u32sq14_t>(c);
-    auto cc3 = safe_sq_cast<u32sq14_t>(c);
 
     ASSERT_NEAR(u16sqm2_t::realMin, ac.real(), u16sqm2_t::resolution);
-    ASSERT_NEAR(u16sqm2_t::realMin, ac2.real(), u16sqm2_t::resolution);
-    ASSERT_NEAR(u16sqm2_t::realMin, ac3.real(), u16sqm2_t::resolution);
     ASSERT_NEAR(50000., bc.real(), u16sqm2_t::resolution);
-    ASSERT_NEAR(50000., bc2.real(), u16sqm2_t::resolution);
-    ASSERT_NEAR(50000., bc3.real(), u16sqm2_t::resolution);
     ASSERT_NEAR(u16sqm2_t::realMax, cc.real(), u16sqm2_t::resolution);
-    ASSERT_NEAR(u16sqm2_t::realMax, cc2.real(), u16sqm2_t::resolution);
-    ASSERT_NEAR(u16sqm2_t::realMax, cc3.real(), u16sqm2_t::resolution);
 }
 
 

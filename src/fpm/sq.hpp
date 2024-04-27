@@ -576,20 +576,6 @@ public:
     explicit constexpr
     operator SqC() const noexcept { return SqC( Cast<SqC>::value(this->value) ); }
 
-    /// Explicit static cast to another Sq type with a different base type.
-    /// Uses static_cast internally. Exists for consistency reasons.
-    template< SqType SqC >
-    requires requires(Sq const &from) { { static_cast<SqC>(from) } -> std::same_as<SqC>; }
-    friend constexpr
-    SqC static_sq_cast(Sq const &from) noexcept { return static_cast<SqC>(from); }
-
-    /// Explicit safe cast to another Sq type with a different base type.
-    /// Uses static_cast internally. Exists for consistency reasons.
-    template< SqType SqC >
-    requires requires(Sq const &from) { { static_cast<SqC>(from) } -> std::same_as<SqC>; }
-    friend constexpr
-    SqC safe_sq_cast(Sq const &from) noexcept { return static_cast<SqC>(from); }
-
     /// Unary plus operator. Integral promotion does not make any sense, so this just creates a copy.
     /// \returns a copy of the value with the same type.
     constexpr
