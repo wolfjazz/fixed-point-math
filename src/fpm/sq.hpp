@@ -154,12 +154,14 @@ private:
     requires fpm::detail::CastableWithoutChecks<Sq, SqC>
     struct Cast {
         using base_t = typename SqC::base_t;
+        // scale type has size of target type but sign of source type to preserve sign information
+        using scale_t = fpm::detail::fit_type_t<sizeof(base_t), std::is_signed_v<typename Sq::base_t>>;
         static constexpr scaling_t f = SqC::f;
         static constexpr double realMin = SqC::realMin;
         static constexpr double realMax = SqC::realMax;
         static constexpr bool innerConstraints = true;
         static constexpr base_t value(typename Sq::base_t from) noexcept {
-            return s2s<Sq::f, f, base_t>(from);  // scale value
+            return static_cast<base_t>( s2s<Sq::f, f, scale_t>(from) );
         }
     };
 
