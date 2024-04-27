@@ -76,8 +76,26 @@ constexpr size_t MAX_BASETYPE_SIZE = sizeof(uint32_t);
 /// \note Absolute integers between 2^-53 and 2^53 can be exactly represented in double.
 constexpr scaling_t MAX_F = 53;
 
+namespace detail {
 
-// Template compile-time function to create a scaling factor with the nth bit set.
+/** Fits the smallest possible type to the given size and sign information. */
+template< size_t size, bool isSigned >
+struct fit_type {
+    using type =
+        std::conditional_t< isSigned && sizeof( int8_t ) >= size,  int8_t,
+        std::conditional_t<!isSigned && sizeof(uint8_t ) >= size, uint8_t,
+        std::conditional_t< isSigned && sizeof( int16_t) >= size,  int16_t,
+        std::conditional_t<!isSigned && sizeof(uint16_t) >= size, uint16_t,
+        std::conditional_t< isSigned && sizeof( int32_t) >= size,  int32_t,
+        std::conditional_t<!isSigned && sizeof(uint32_t) >= size, uint32_t,
+        std::conditional_t< isSigned,                              int64_t, uint64_t >>>>>>>;
+};
+/// Alias for fit_type<>::type.
+template< size_t size, bool isSigned >
+using fit_type_t = typename fit_type<size, isSigned>::type;
+
+
+/** Template compile-time function to create a scaling factor with the nth bit set. */
 template< unsigned n, bool isSigned >
 consteval auto scale_factor() {
     if constexpr (n < 31u) {
@@ -91,6 +109,8 @@ consteval auto scale_factor() {
     }
 }
 
+}  // end of detail
+
 
 /** Scale-To-Scale scaling function.
  * Used to scale a given, already scaled (integer) value to a different scaling factor and target type
@@ -103,14 +123,19 @@ consteval auto scale_factor() {
 template< scaling_t from, scaling_t to, typename TargetT, /* deduced: */ typename ValueT >
 [[nodiscard]] constexpr
 TargetT s2smd(ValueT value) noexcept {
-    // use common type for calculation to avoid loss of precision
+    // for scaling between integral values, use size of common type but sign of source type
+    // to avoid loss of precision and sign;
+    // otherwise, if the common type is a floating point type, use double
     using common_t = typename std::common_type_t<ValueT, TargetT>;
+    using scale_t = std::conditional_t< std::is_floating_point_v<common_t>,
+        double,
+        detail::fit_type_t<sizeof(common_t), std::is_signed_v<ValueT>> >;
 
     if constexpr (from > to) {
-        return static_cast<TargetT>( static_cast<common_t>(value) / scale_factor<from-to, std::is_signed_v<common_t>>() );
+        return static_cast<TargetT>( static_cast<scale_t>(value) / detail::scale_factor<from-to, std::is_signed_v<scale_t>>() );
     }
     else if constexpr (to > from) {
-        return static_cast<TargetT>( static_cast<common_t>(value) * scale_factor<to-from, std::is_signed_v<common_t>>() );
+        return static_cast<TargetT>( static_cast<scale_t>(value) * detail::scale_factor<to-from, std::is_signed_v<scale_t>>() );
     }
     else /* from == to */ {
         return static_cast<TargetT>(value);
@@ -128,14 +153,19 @@ TargetT s2smd(ValueT value) noexcept {
 template< scaling_t from, scaling_t to, std::integral TargetT, /* deduced: */ std::integral ValueT >
 [[nodiscard]] constexpr
 TargetT s2sh(ValueT value) noexcept {
-    // use common type for shift to avoid loss of precision
+    // for scaling between integral values, use size of common type but sign of source type
+    // to avoid loss of precision and sign;
+    // otherwise, if the common type is a floating point type, use double
     using common_t = typename std::common_type_t<ValueT, TargetT>;
+    using scale_t = std::conditional_t< std::is_floating_point_v<common_t>,
+        double,
+        detail::fit_type_t<sizeof(common_t), std::is_signed_v<ValueT>> >;
 
     if constexpr (from > to) {
-        return static_cast<TargetT>( static_cast<common_t>(value) >> (unsigned)(from - to) );
+        return static_cast<TargetT>( static_cast<scale_t>(value) >> (unsigned)(from - to) );
     }
     else if constexpr (to > from) {
-        return static_cast<TargetT>( static_cast<common_t>(value) << (unsigned)(to - from) );
+        return static_cast<TargetT>( static_cast<scale_t>(value) << (unsigned)(to - from) );
     }
     else /* from == to */ {
         return static_cast<TargetT>(value);
@@ -164,14 +194,19 @@ TargetT s2s(ValueT value) noexcept { return s2sh<from, to, TargetT, ValueT>(valu
 template< scaling_t to, typename TargetT, /* deduced: */ typename ValueT >
 [[nodiscard]] constexpr
 TargetT v2smd(ValueT value) noexcept {
-    // use common type for shift to avoid loss of precision
+    // for scaling between integral values, use size of common type but sign of source type
+    // to avoid loss of precision and sign;
+    // otherwise, if the common type is a floating point type, use double
     using common_t = typename std::common_type_t<ValueT, TargetT>;
+    using scale_t = std::conditional_t< std::is_floating_point_v<common_t>,
+        double,
+        detail::fit_type_t<sizeof(common_t), std::is_signed_v<ValueT>> >;
 
     if constexpr (to < 0) {
-        return static_cast<TargetT>( static_cast<common_t>(value) / scale_factor<-to, std::is_signed_v<common_t>>() );
+        return static_cast<TargetT>( static_cast<scale_t>(value) / detail::scale_factor<-to, std::is_signed_v<scale_t>>() );
     }
     else if constexpr (to > 0) {
-        return static_cast<TargetT>( static_cast<common_t>(value) * scale_factor<to, std::is_signed_v<common_t>>() );
+        return static_cast<TargetT>( static_cast<scale_t>(value) * detail::scale_factor<to, std::is_signed_v<scale_t>>() );
     }
     else /* to == 0 */ {
         return static_cast<TargetT>(value);
@@ -187,14 +222,19 @@ TargetT v2smd(ValueT value) noexcept {
 template< scaling_t to, std::integral TargetT, /* deduced: */ std::integral ValueT >
 [[nodiscard]] constexpr
 TargetT v2sh(ValueT value) noexcept {
-    // use common type for calculation to avoid loss of precision
+    // for scaling between integral values, use size of common type but sign of source type
+    // to avoid loss of precision and sign;
+    // otherwise, if the common type is a floating point type, use double
     using common_t = typename std::common_type_t<ValueT, TargetT>;
+    using scale_t = std::conditional_t< std::is_floating_point_v<common_t>,
+        double,
+        detail::fit_type_t<sizeof(common_t), std::is_signed_v<ValueT>> >;
 
     if constexpr (to < 0) {
-        return static_cast<TargetT>( static_cast<common_t>(value) >> (unsigned)(-to) );
+        return static_cast<TargetT>( static_cast<scale_t>(value) >> (unsigned)(-to) );
     }
     else if constexpr (to > 0) {
-        return static_cast<TargetT>( static_cast<common_t>(value) << (unsigned)to );
+        return static_cast<TargetT>( static_cast<scale_t>(value) << (unsigned)to );
     }
     else /* to == 0 */ {
         return static_cast<TargetT>(value);
@@ -456,22 +496,6 @@ namespace detail {
         }
         return value;
     }
-
-    /** Fits the smallest possible type to the given size and sign information. */
-    template< size_t size, bool isSigned >
-    struct fit_type {
-        using type =
-            std::conditional_t< isSigned && sizeof( int8_t ) >= size,  int8_t,
-            std::conditional_t<!isSigned && sizeof(uint8_t ) >= size, uint8_t,
-            std::conditional_t< isSigned && sizeof( int16_t) >= size,  int16_t,
-            std::conditional_t<!isSigned && sizeof(uint16_t) >= size, uint16_t,
-            std::conditional_t< isSigned && sizeof( int32_t) >= size,  int32_t,
-            std::conditional_t<!isSigned && sizeof(uint32_t) >= size, uint32_t,
-            std::conditional_t< isSigned,                              int64_t, uint64_t >>>>>>>;
-    };
-    /// Alias for fit_type<>::type.
-    template< size_t size, bool isSigned >
-    using fit_type_t = typename fit_type<size, isSigned>::type;
 
     /** Determines the smallest common type that can hold values of the two given base types.
      * \note This is similar to std::common_type, however, the trait from the standard library
