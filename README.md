@@ -52,13 +52,13 @@ int main() {
     auto s = static_q_cast<u32q11_t, Ovf::unchecked>(d);  // sc: 409600, re: 200
 
     // multiplication
-    auto p = a2 * d;  // i32q14<-20000.,40000.>; scaled: 345538400, real: 21090
+    auto p = a2 * d;  // i32sq14<-20000.,40000.>; scaled: 345538400, real: 21090
 
     // Sum: 200, Product: 21090
     std::cout << "Sum: " << s.real() << ", Product: " << p.real() << std::endl;
-    // Sum[u32q11]: 409600, Product[i32q14]: 345538400
+    // Sum[u32q11]: 409600, Product[i32sq14]: 345538400
     std::cout << "Sum[u32q11]: " << s.scaled() << ", "
-              << "Product[i32q14]: " << p.scaled() << std::endl;
+              << "Product[i32sq14]: " << p.scaled() << std::endl;
 
     return 0;
 }
