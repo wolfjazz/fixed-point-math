@@ -329,7 +329,7 @@ These adjustments are driven by internal logic designed to mirror what would typ
 
 The process of range clamping in the `Q` type framework is designed to handle conversions between types of different sizes and signs meticulously to avoid data loss and ensure integrity. Here's a detailed breakdown of how this process works:
 
-1. **Rescaling the Base Value**: Initially, the base value of the source `Q` type is rescaled in a `scale_t`, which has twice the size and retains the same sign as the `base_t` of the source `Q` type. This step is crucial as it preserves the sign bit during the scaling process, particularly important when the source type is signed and the operation might involve a reduction in size (down-cast).
+1. **Rescaling the Base Value**: Initially, the base value of the source `Q` type is rescaled in a `scale_t`, which has at least twice the size of the target type but is not smaller than the size of the source type, and retains the same sign as the `base_t` of the source `Q` type. This step is crucial as it preserves the sign bit during the scaling process, particularly important when the source type is signed and the operation might involve a reduction in size (down-cast).
 
 2. **Casting to a Transitional Type**: The scaled value is then cast to a transitional `cast_t`, which maintains the size of `scale_t` but adopts the sign of the target `Q` type. This intermediary step ensures that the value can be adjusted in a way that conforms to the sign characteristics of the target type, facilitating a smoother transition and accurate clamping in subsequent steps.
 

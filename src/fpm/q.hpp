@@ -177,11 +177,8 @@ private:
     requires fpm::detail::Scalable<typename Q::base_t, Q::f, typename QC::base_t, QC::f>
     struct Cast {
         using base_t = typename QC::base_t;
-        // scale_t and cast_t type are twice the size of the target type to allow for proper cropping;
-        // scale source value in scale type with source sign and cast it to cast type with target sign
-        // (rescaling in sign of source type is necessary to not lose sign information during down-cast)
-        using scale_t = fpm::detail::fit_type_t<sizeof(base_t) * 2u, std::is_signed_v<typename Q::base_t>>;
-        using cast_t = fpm::detail::fit_type_t<sizeof(scale_t), std::is_signed_v<base_t>>;
+        // cast_t type is twice the size of the target type to allow for proper cropping
+        using cast_t = fpm::detail::fit_type_t<sizeof(base_t) * 2u, std::is_signed_v<base_t>>;
         static constexpr scaling_t f = QC::f;
         static constexpr double realMin = QC::realMin;
         static constexpr double realMax = QC::realMax;
@@ -192,8 +189,7 @@ private:
         static constexpr bool ovfCheckNeeded = (Q::realMin < realMin || realMax < Q::realMax);
         static constexpr bool innerConstraints = fpm::detail::OvfCheckAllowedWhenNeeded<ovfBx, ovfCheckNeeded>;
         static constexpr base_t value(typename Q::base_t from) noexcept {
-            // scale and cast source value
-            auto cValue = static_cast<cast_t>( s2s<Q::f, f, scale_t>(from) );
+            auto cValue = s2s<Q::f, f, cast_t>(from);
             // perform overflow check if needed
             if constexpr (ovfCheckNeeded) {
                 fpm::detail::checkOverflow<ovfBx, cast_t, typename Q::base_t>(cValue, QC::scaledMin, QC::scaledMax);
@@ -208,11 +204,8 @@ private:
                || (std::is_unsigned_v<typename QC::base_t> && ovfBxOvrd == Overflow::allowed) )
     struct StaticCast {
         using base_t = typename QC::base_t;
-        // scale_t and cast_t type are twice the size of the target type to allow for proper cropping;
-        // scale source value in scale type with source sign and cast it to cast type with target sign
-        // (rescaling in sign of source type is necessary to not lose sign information during down-cast)
-        using scale_t = fpm::detail::fit_type_t<sizeof(base_t) * 2u, std::is_signed_v<typename Q::base_t>>;
-        using cast_t = fpm::detail::fit_type_t<sizeof(scale_t), std::is_signed_v<base_t>>;
+        // cast_t type is twice the size of the target type to allow for proper cropping
+        using cast_t = fpm::detail::fit_type_t<sizeof(base_t) * 2u, std::is_signed_v<base_t>>;
         static constexpr scaling_t f = QC::f;
         static constexpr double realMin = QC::realMin;
         static constexpr double realMax = QC::realMax;
@@ -227,18 +220,16 @@ private:
         static constexpr bool isOvfOvrdIgnored = ( !ovfCheckNeeded && is_ovf_stricter_v<QC::ovfBx, ovfBx> );
         [[deprecated("WARNING: Unnecessary overflow override ignored. Omit, or use safe_q_cast for enforced checks.")]]
         static constexpr base_t value(typename Q::base_t from) noexcept requires ( isOvfOvrdIgnored ) {
-            auto cValue = static_cast<cast_t>( s2s<Q::f, f, scale_t>(from) );
+            auto cValue = s2s<Q::f, f, cast_t>(from);
             return static_cast<base_t>(cValue);
         }
 
         static constexpr base_t value(typename Q::base_t from) noexcept requires ( !isOvfOvrdIgnored ) {
-            // scale and cast source value
-            auto cValue = static_cast<cast_t>( s2s<Q::f, f, scale_t>(from) );
+            auto cValue = s2s<Q::f, f, cast_t>(from);
             // perform overflow check if needed
             if constexpr (ovfCheckNeeded) {
                 fpm::detail::checkOverflow<ovfBx, cast_t, typename Q::base_t>(cValue, QC::scaledMin, QC::scaledMax);
             }
-            // create target value
             return static_cast<base_t>(cValue);
         }
     };
@@ -249,22 +240,17 @@ private:
                && ovfBxOvrd != Overflow::error && ovfBxOvrd != Overflow::unchecked )
     struct SafeCast {
         using base_t = typename QC::base_t;
-        // scale_t and cast_t type are twice the size of the target type to allow for proper cropping;
-        // scale source value in scale type with source sign and cast it to cast type with target sign
-        // (rescaling in sign of source type is necessary to not lose sign information during down-cast)
-        using scale_t = fpm::detail::fit_type_t<sizeof(base_t) * 2u, std::is_signed_v<typename Q::base_t>>;
-        using cast_t = fpm::detail::fit_type_t<sizeof(scale_t), std::is_signed_v<base_t>>;
+        // cast_t type is twice the size of the target type to allow for proper cropping
+        using cast_t = fpm::detail::fit_type_t<sizeof(base_t) * 2u, std::is_signed_v<base_t>>;
         static constexpr scaling_t f = QC::f;
         static constexpr double realMin = QC::realMin;
         static constexpr double realMax = QC::realMax;
         static constexpr Overflow ovfBx = ovfBxOvrd;
         static constexpr bool innerConstraints = true;
         static constexpr base_t value(typename Q::base_t from) noexcept {
-            // scale and cast source value
-            auto cValue = static_cast<cast_t>( s2s<Q::f, f, scale_t>(from) );
+            auto cValue = s2s<Q::f, f, cast_t>(from);
             // always perform overflow checks
             fpm::detail::checkOverflow<ovfBx, cast_t, typename Q::base_t>(cValue, QC::scaledMin, QC::scaledMax);
-            // create target value
             return static_cast<base_t>(cValue);
         }
     };
@@ -593,7 +579,7 @@ consteval auto fromLiteral() {
     template< char ...chars > consteval auto operator "" ## _ ## _literal () { return fpm::q::fromLiteral<_q, chars...>(); }
 
 /**\}*/
-}  // end of fpm::q
+}  // namespace fpm::q
 
 namespace std {
 
@@ -634,7 +620,7 @@ public:
     constexpr static int digits10 = static_cast<int>( std::log10(radix) * digits );
 };
 
-}
+}  // namespace std
 
 #endif
 // EOF

@@ -355,7 +355,7 @@ FPM_Q_BIND_LITERAL( u32q30<>, u32q30 )
 FPM_Q_BIND_LITERAL( u32q31<>, u32q31 )
 
 /**\}*/
-}
+}  // namespace fpm::q::types
 
 #endif
 // EOF

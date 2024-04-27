@@ -154,14 +154,12 @@ private:
     requires fpm::detail::CastableWithoutChecks<Sq, SqC>
     struct Cast {
         using base_t = typename SqC::base_t;
-        // scale type has size of target type but sign of source type to preserve sign information
-        using scale_t = fpm::detail::fit_type_t<sizeof(base_t), std::is_signed_v<typename Sq::base_t>>;
         static constexpr scaling_t f = SqC::f;
         static constexpr double realMin = SqC::realMin;
         static constexpr double realMax = SqC::realMax;
         static constexpr bool innerConstraints = true;
         static constexpr base_t value(typename Sq::base_t from) noexcept {
-            return static_cast<base_t>( s2s<Sq::f, f, scale_t>(from) );
+            return s2s<Sq::f, f, base_t>(from);
         }
     };
 
@@ -258,9 +256,9 @@ private:
         static constexpr double realMax = std::max(std::max(Sq::realMin / SqRhs::realMax, Sq::realMin / SqRhs::realMin),
                                                    std::max(Sq::realMax / SqRhs::realMin, Sq::realMax / SqRhs::realMax));
         using base_t = fpm::detail::common_q_base_t<typename Sq::base_t, typename SqRhs::base_t, f, realMin, realMax>;
-        using common_t = fpm::detail::common_base_t<typename Sq::base_t, typename SqRhs::base_t>;
         using calc_t = fpm::detail::fit_type_t<
-            sizeof(typename Sq::base_t) + fpm::detail::div_ceil(2*f - Sq::f, CHAR_BIT), std::is_signed_v<common_t>>;
+            sizeof(typename Sq::base_t) + fpm::detail::div_ceil(2*f - Sq::f, CHAR_BIT),
+            std::is_signed_v<typename Sq::base_t> || std::is_signed_v<typename SqRhs::base_t> >;
         static constexpr bool innerConstraints = true;
         static constexpr base_t value(typename Sq::base_t lv, typename SqRhs::base_t rv) noexcept {
             // divide lhs by rhs in calculation type and correct scaling to obtain result
@@ -327,7 +325,7 @@ private:
     template< class SqRhs >
     requires fpm::detail::Comparable<typename Sq::base_t, typename SqRhs::base_t>
     struct Equal {
-        using base_t = std::common_type_t<typename Sq::base_t, typename SqRhs::base_t>;
+        using base_t = fpm::detail::common_base_t<typename Sq::base_t, typename SqRhs::base_t>;
         static constexpr scaling_t f = std::max(Sq::f, SqRhs::f);
         static constexpr double realMin = Sq::realMin;
         static constexpr double realMax = Sq::realMax;
@@ -344,7 +342,7 @@ private:
     template< class SqRhs >
     requires fpm::detail::Comparable<typename Sq::base_t, typename SqRhs::base_t>
     struct Spaceship {
-        using base_t = std::common_type_t<typename Sq::base_t, typename SqRhs::base_t>;
+        using base_t = fpm::detail::common_base_t<typename Sq::base_t, typename SqRhs::base_t>;
         static constexpr scaling_t f = std::max(Sq::f, SqRhs::f);
         static constexpr double realMin = Sq::realMin;
         static constexpr double realMax = Sq::realMax;
@@ -401,7 +399,7 @@ private:
 
     /// Implements the square function.
     struct Square {
-        using base_t = std::common_type_t<int32_t, typename Sq::base_t>;
+        using base_t = fpm::detail::common_base_t<int32_t, typename Sq::base_t>;
         static constexpr scaling_t f = Sq::f;
         static constexpr double realMin = (std::is_signed_v<base_t> && Sq::scaledMin < 0 && Sq::scaledMax > 0)
             ? 0.0  // use 0 as new minimum if signed input type has a range of negative and positive values
@@ -458,7 +456,7 @@ private:
 
     /// Implements the cube function.
     struct Cube {
-        using base_t = std::common_type_t<int32_t, Sq::base_t>;
+        using base_t = fpm::detail::common_base_t<int32_t, Sq::base_t>;
         static constexpr scaling_t f = Sq::f;
         static constexpr double l1 = Sq::realMin*Sq::realMin*Sq::realMin;
         static constexpr double l2 = Sq::realMin*Sq::realMin*Sq::realMax;
@@ -962,7 +960,7 @@ consteval auto fromLiteral() {
     template< char ...chars > consteval auto operator "" ## _ ## _literal () { return fpm::sq::fromLiteral<_sq, chars...>(); }
 
 /**\}*/
-}
+}  // namespace fpm::sq
 
 namespace std {
 
@@ -1003,7 +1001,7 @@ public:
     constexpr static int digits10 = static_cast<int>( std::log10(radix) * digits );
 };
 
-}
+}  // namespace std
 
 #endif
 // EOF

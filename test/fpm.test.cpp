@@ -577,8 +577,8 @@ TEST_F(V2STest, v2sh__constexpr_signed_negativeF__int_asymmetric_output) {
 TEST_F(V2STest, v2smd__large_F__double_output) {
     constexpr double realMin = std::numeric_limits<int16_t>().min();
     constexpr double realMax = std::numeric_limits<int16_t>().max();
-    auto resultN = v2smd<MAX_F-std::numeric_limits<int16_t>::digits,double>(realMin);  // f: 53-15=38
-    auto resultP = v2smd<MAX_F-std::numeric_limits<int16_t>::digits,double>(realMax);
+    auto resultN = v2smd<detail::MAX_F-std::numeric_limits<int16_t>::digits,double>(realMin);  // f: 53-15=38
+    auto resultP = v2smd<detail::MAX_F-std::numeric_limits<int16_t>::digits,double>(realMax);
 
     constexpr double expectedResultN = -9.007199254740992e15;  // epsilon is very close to 1.0 for this number
     constexpr double expectedResultP = +9.006924376834048e15;

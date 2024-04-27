@@ -355,7 +355,7 @@ FPM_SQ_BIND_LITERAL( u32sq30<>, u32sq30 )
 FPM_SQ_BIND_LITERAL( u32sq31<>, u32sq31 )
 
 /**\}*/
-}
+}  // namespace fpm::sq::types
 
 #endif
 // EOF

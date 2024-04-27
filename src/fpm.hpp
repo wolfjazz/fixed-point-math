@@ -17,14 +17,13 @@
 namespace fpm {
 using q::Q;
 using sq::Sq;
-
 namespace types {
 using namespace fpm::q::types;
 using namespace fpm::sq::types;
 using fpm::operator ""_ic;
 using fpm::operator-;
-}
-}
+}  // namespace types
+}  // namespace fpm
 
 #endif
 // EOF
