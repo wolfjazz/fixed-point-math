@@ -854,13 +854,28 @@ TEST_F(QTest_Casting, q_static_cast__positive_real_value_signed__unsigned_type_s
     auto c = static_q_cast<u32qm2_t, fpm::Ovf::clamp>(a);
     auto d = static_q_cast<u32qm2_clamp_t>(a);
 
-    // static cast from i32q4_t to u32q4_t must not work here because first range is wider than second
+    // static cast from i32q4_t to u32qm2_t must not work here because first range is wider than second
     // and types have fpm::Ovf::error
     ASSERT_FALSE(( StaticCastable< i32q4_t, u32qm2_t > ));
 
     ASSERT_NEAR(realA, b.real(), i32q4_t::resolution + u32qm2_clamp_t::resolution);
     ASSERT_NEAR(realA, c.real(), i32q4_t::resolution + u32qm2_t::resolution);
     ASSERT_NEAR(realA, d.real(), i32q4_t::resolution + u32qm2_clamp_t::resolution);
+    ASSERT_TRUE((std::is_same_v<u32qm2_clamp_t, decltype(b)>));
+    ASSERT_TRUE((std::is_same_v<u32qm2_t, decltype(c)>));
+    ASSERT_TRUE((std::is_same_v<u32qm2_clamp_t, decltype(d)>));
+}
+
+TEST_F(QTest_Casting, q_static_cast__negative_real_value_signed__unsigned_type_smallerF_clamped_value) {
+    constexpr double realA = -1024.2;
+    auto a = i32q4_t::fromReal<realA>();
+    auto b = static_cast<u32qm2_clamp_t>(a);
+    auto c = static_q_cast<u32qm2_t, fpm::Ovf::clamp>(a);
+    auto d = static_q_cast<u32qm2_clamp_t>(a);
+
+    ASSERT_NEAR(u32qm2_clamp_t::realMin, b.real(), i32q4_t::resolution + u32qm2_clamp_t::resolution);
+    ASSERT_NEAR(u32qm2_t::realMin, c.real(), i32q4_t::resolution + u32qm2_t::resolution);
+    ASSERT_NEAR(u32qm2_clamp_t::realMin, d.real(), i32q4_t::resolution + u32qm2_clamp_t::resolution);
     ASSERT_TRUE((std::is_same_v<u32qm2_clamp_t, decltype(b)>));
     ASSERT_TRUE((std::is_same_v<u32qm2_t, decltype(c)>));
     ASSERT_TRUE((std::is_same_v<u32qm2_clamp_t, decltype(d)>));
@@ -1464,6 +1479,18 @@ TEST_F(QTest_Casting, q_safe_cast__positive_real_value_signed__unsigned_type_sma
     ASSERT_NEAR(realA, c.real(), i32q4_t::resolution + u32qm2_t::resolution);
     ASSERT_TRUE((std::is_same_v<u32qm2_clamp_t, decltype(b)>));
     ASSERT_TRUE((std::is_same_v<u32qm2_t, decltype(c)>));
+}
+
+TEST_F(QTest_Casting, q_safe_cast__negative_real_value_signed__unsigned_type_smallerF_clamped_value) {
+    constexpr double realA = -1024.2;
+    auto a = i32q4_t::fromReal<realA>();
+    auto b = safe_q_cast<u32qm2_t, fpm::Ovf::clamp>(a);
+    auto c = safe_q_cast<u32qm2_clamp_t>(a);
+
+    ASSERT_NEAR(u32qm2_t::realMin, b.real(), i32q4_t::resolution + u32qm2_t::resolution);
+    ASSERT_NEAR(u32qm2_clamp_t::realMin, c.real(), i32q4_t::resolution + u32qm2_clamp_t::resolution);
+    ASSERT_TRUE((std::is_same_v<u32qm2_t, decltype(b)>));
+    ASSERT_TRUE((std::is_same_v<u32qm2_clamp_t, decltype(c)>));
 }
 
 TEST_F(QTest_Casting, q_safe_cast__positive_real_value_unsigned__larger_signed_type_largerF_same_value) {

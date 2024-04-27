@@ -19,11 +19,11 @@ using speed_t = i32q16<-300., 300. /* mm/s */>;
 FPM_Q_BIND_LITERAL(speed_t, mm_p_s);
 using accel_t = i32q16<-200., 200. /* mm/s2 */>;
 FPM_Q_BIND_LITERAL(accel_t, mm_p_s2);
-using mtime_t = i32q20<-2000., 2000. /* s */>;
+using mtime_t = u32q20<0., 2000. /* s */>;
 FPM_Q_BIND_LITERAL(mtime_t, s);
 
 
-void accel(pos_t &position, speed_t &velocity, accel_t const acceleration, mtime_t const forTime, i32q20<0., .1> const dt) {
+void accel(pos_t &position, speed_t &velocity, accel_t const acceleration, mtime_t const forTime, u32q20<0., .1> const dt) {
     for (mtime_t t = 0_s; t < forTime; t = mtime_t::fromSq<Ovf::unchecked>(t + dt)) {
         auto dv = +acceleration * dt;
         auto ds = velocity * dt;
