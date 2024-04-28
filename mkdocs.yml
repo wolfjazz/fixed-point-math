@@ -2,6 +2,7 @@ site_name: Fixed Point Maths
 nav:
   - Home: index.md
   - Getting Started: getting_started.md
+  - Utilities: utilities.md
   - Q-Type: q.md
   - Sq-Type: sq.md
 theme: readthedocs
