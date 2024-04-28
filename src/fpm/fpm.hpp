@@ -98,7 +98,8 @@ using fit_type_t = typename fit_type<size, isSigned>::type;
 
 /** Template compile-time function to create a scaling factor with the nth bit set. */
 template< unsigned n, bool isSigned >
-consteval auto scale_factor() {
+[[nodiscard]] consteval
+auto scale_factor() {
     if constexpr (n < 31u) {
         std::conditional_t<isSigned, int32_t, uint32_t> mask = 1;
         mask <<= n;
@@ -115,7 +116,7 @@ consteval auto scale_factor() {
 
 /** Scale-To-Scale scaling function.
  * Used to scale a given, already scaled (integer) value to a different scaling factor and target type
- * using multiplication/division.
+ * using multiplication/division. Conversion can be compile-time or runtime.
  * \note Arithmetic multiplication/division is used here because these operations are symmetric for
  * positive and negative values with respect to rounding (e.g. +-514 / 2^4 is +-32).
  * Besides, floating-point types are also possible this way.
@@ -143,7 +144,7 @@ TargetT s2smd(ValueT value) noexcept {
 
 /** Scale-To-Scale-Shift scaling function.
  * Used to scale a given integer value to a different scaling factor and target type via arithmetic
- * shift operations.
+ * shift operations. Conversion can be compile-time or runtime.
  * \note Shift operations are well defined for C++20 and above (signed integers are Two's Complement).
  * \note Floating-point target types are NOT possible, since shift operators are not defined for them.
  * \warning Be aware that arithmetic right shift always rounds down. Consequently, the scaled result
@@ -169,8 +170,8 @@ TargetT s2sh(ValueT value) noexcept {
     }
 }
 
-/** Scale-To-Scale function used in the implementations of the (S)Q types.
- * Proxy for the s2sx function pre-selected by the user.
+/** Scale-To-Scale function for runtime and compile-time conversions used in the implementations
+ * of the (S)Q types. Proxy for the s2sx function pre-selected by the user.
  * \note FPM_USE_SH can be predefined before this header is included into a source file.
  * \note constexpr implies inline. */
 #if !defined FPM_USE_SH
@@ -184,12 +185,13 @@ TargetT s2s(ValueT value) noexcept { return s2sh<from, to, TargetT, ValueT>(valu
 #endif
 
 
-/** Value-To-Scale scaling function. Uses multiplication/division for the conversion.
+/** Value-To-Scale scaling function. Converts a real value to a scaled integral value with the given
+ * number of fractional bits at compile-time. Uses multiplication/division for the conversion.
  * Used to scale a given compile-time floating-point value to a scaled runtime value of target type.
  * \warning Floating-point target types are possible, however quite expensive at runtime!
  *          Use carefully! */
 template< scaling_t to, typename TargetT, /* deduced: */ typename ValueT >
-[[nodiscard]] constexpr
+[[nodiscard]] consteval
 TargetT v2smd(ValueT value) noexcept {
     // for scaling between integral values, use size of common type but sign of source type
     // to avoid loss of precision or sign; otherwise, if common type is floating point, use double
@@ -208,14 +210,15 @@ TargetT v2smd(ValueT value) noexcept {
     }
 }
 
-/** Value-To-Scale scaling function. Uses arithmetic shifts for the conversion.
+/** Value-To-Scale scaling function. Converts a real value to a scaled integral value with the given
+ * number of fractional bits at compile-time. Uses arithmetic shifts for the conversion.
  * \note Shift operations are well defined for C++20 and above (signed integers are Two's Complement).
  * \note Floating-point target types are NOT possible, since shift operators are not defined for them.
  * \warning Be aware that arithmetic right shift always rounds down. Consequently, the scaled result
  *          is not symmetric for the same value with a different sign
  *          (e.g. -514 >> 4u is -33 but +514 >> 4u is +32). */
 template< scaling_t to, std::integral TargetT, /* deduced: */ std::integral ValueT >
-[[nodiscard]] constexpr
+[[nodiscard]] consteval
 TargetT v2sh(ValueT value) noexcept {
     // for scaling between integral values, use size of common type but sign of source type
     // to avoid loss of precision or sign; otherwise, if common type is floating point, use double
@@ -234,31 +237,30 @@ TargetT v2sh(ValueT value) noexcept {
     }
 }
 
-/** Value-To-Scale function used in the implementations of the (S)Q types.
- * Proxy for the v2sx function pre-selected by the user.
- * \note FPM_USE_SH can be predefined before this header is included into a source file.
- * \note constexpr implies inline. */
+/** Value-To-Scale function for compile-time value conversion used in the implementations of the
+ * (S)Q types. Proxy for the v2sx function pre-selected by the user.
+ * \note FPM_USE_SH can be predefined before this header is included into a source file. */
 #if !defined FPM_USE_SH
 template< scaling_t to, typename TargetT, /* deduced: */ typename ValueT >
-[[nodiscard]] constexpr
+[[nodiscard]] consteval
 TargetT v2s(ValueT value) noexcept { return v2smd<to, TargetT, ValueT>(value); }
 #else
 template< scaling_t to, std::integral TargetT, /* deduced: */ std::integral ValueT >
-[[nodiscard]] constexpr
+[[nodiscard]] consteval
 TargetT v2s(ValueT value) noexcept { return v2sh<to, TargetT, ValueT>(value); }
 #endif
 
 
 /** \returns the scaled integral value that corresponds to a given real double value. */
 template< scaling_t f, /* optional: */ std::integral TargetT = int >
-[[nodiscard]] constexpr
+[[nodiscard]] consteval
 TargetT scaled(double real) noexcept { return v2s<f, TargetT>(real); }
 
 
 /** \returns the real value (double) that corresponds to the given scaled integral value. */
 template< scaling_t f, /* optional */ typename TargetT = double, /* deduced: */ std::integral T >
 [[nodiscard]] constexpr
-TargetT real(T scaled) noexcept { return v2s<-f, TargetT>(scaled); }
+TargetT real(T scaled) noexcept { return s2s<f, 0, TargetT>(scaled); }
 
 
 // Internal implementations.
@@ -282,7 +284,7 @@ double realMax() noexcept { return v2s<-f, double>( std::numeric_limits<T>::max(
 
 /** \returns the resolution of the given scaling. */
 template< scaling_t f >
-[[nodiscard]] constexpr
+consteval
 double resolution() noexcept { return v2s<-f, double>(1); }
 
 /** \returns +1 if the given value is positive, -1 if it is negative and 0 if the value is 0. */
@@ -857,7 +859,7 @@ void static_assert_specs() noexcept {
 
 /** Converts a given character array into an integral constant. */
 template< char ...charArray >
-consteval
+[[nodiscard]] consteval
 auto operator ""_ic() noexcept {
     constexpr unsigned int value = detail::intFromLiteral<charArray...>();
     return std::integral_constant<unsigned int, value>{};
@@ -865,7 +867,7 @@ auto operator ""_ic() noexcept {
 
 /** Negation operator for an integral constant. */
 template< /* deduced: */ std::integral T, T ic >
-consteval
+[[nodiscard]] consteval
 auto operator -(std::integral_constant<T, ic>) noexcept {
 #   define RT std::conditional_t< std::is_signed_v<T>, std::make_unsigned_t<T>, std::make_signed_t<T> >
     return std::integral_constant< RT, static_cast<RT>(-ic) >{};

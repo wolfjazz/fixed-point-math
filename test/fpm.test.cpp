@@ -379,65 +379,7 @@ protected:
     void TearDown() override
     {
     }
-
-    int8_t const a = 4;
-    int16_t const b = -512;
-    int16_t const c = -547;
 };
-
-TEST_F(V2STest, v2smd__var_signed_positiveF__int) {
-    constexpr scaling_t to = 7;
-    auto result = v2smd<to,int>(a);
-
-    constexpr int expectedResult = 512;
-    ASSERT_EQ(expectedResult, result);
-}
-
-TEST_F(V2STest, v2sh__var_signed_positiveF__int) {
-    constexpr scaling_t to = 7;
-    auto result = v2sh<to,int>(a);
-
-    constexpr int expectedResult = 512;
-    ASSERT_EQ(expectedResult, result);
-}
-
-TEST_F(V2STest, v2smd__var_signed_negativeF__int) {
-    constexpr scaling_t to = -6;
-    auto result = v2smd<to,int>(b);
-
-    constexpr int expectedResult = -8;
-    ASSERT_EQ(expectedResult, result);
-}
-
-TEST_F(V2STest, v2sh__var_signed_negativeF__int) {
-    constexpr scaling_t to = -6;
-    auto result = v2sh<to,int>(b);
-
-    constexpr int expectedResult = -8;
-    ASSERT_EQ(expectedResult, result);
-}
-
-TEST_F(V2STest, v2smd__var_signed_f0__int_same_value) {
-    constexpr scaling_t to = 0;
-    auto result = v2smd<to,int>(b);
-
-    ASSERT_EQ(b, result);
-}
-
-TEST_F(V2STest, v2sh__var_signed_f0__int_same_value) {
-    constexpr scaling_t to = 0;
-    auto result = v2sh<to,int>(b);
-
-    ASSERT_EQ(b, result);
-}
-
-TEST_F(V2STest, v2smd__var_signed_negativeF__double) {
-    constexpr scaling_t to = -4;
-    auto result = v2smd<to,double>(c);
-
-    constexpr double expectedResult = -34.1875;
-    ASSERT_NEAR(expectedResult, result, 0.0625);  // precision = 2^-4 = 1/16 = 0.0625
-}
 
 TEST_F(V2STest, v2smd__constexpr_double_positiveF__double) {
     constexpr scaling_t to = 7;
@@ -574,7 +516,7 @@ TEST_F(V2STest, v2sh__constexpr_signed_negativeF__int_asymmetric_output) {
     ASSERT_EQ(expectedResultN, resultN);
 }
 
-TEST_F(V2STest, v2smd__large_F__double_output) {
+TEST_F(V2STest, v2smd__constexpr_large_F__double_output) {
     constexpr double realMin = std::numeric_limits<int16_t>().min();
     constexpr double realMax = std::numeric_limits<int16_t>().max();
     auto resultN = v2smd<detail::MAX_F-std::numeric_limits<int16_t>::digits,double>(realMin);  // f: 53-15=38

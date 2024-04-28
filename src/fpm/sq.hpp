@@ -37,8 +37,8 @@ using fpm::detail::SqType;
 template<
     std::integral BaseT,  ///< type of the scaled integer stored in memory
     scaling_t f_,         ///< number of fraction bits (precision 2^(-f))
-    double realMin_ = fpm::detail::realMin<BaseT, f_>,   ///< minimum real value represented by the type
-    double realMax_ = fpm::detail::realMax<BaseT, f_> >  ///< maximum real value represented by the type
+    double realMin_ = fpm::detail::realMin<BaseT, f_>(),   ///< minimum real value represented by the type
+    double realMax_ = fpm::detail::realMax<BaseT, f_>() >  ///< maximum real value represented by the type
 requires fpm::detail::SqRequirements<BaseT, f_, realMin_, realMax_>
 class Sq final {
 public:
@@ -294,7 +294,7 @@ private:
         static constexpr bool innerConstraints = ( v2s<2*f, calc_t>(ic) <= std::numeric_limits<calc_t>::max() );
         static constexpr base_t value(std::integral_constant<T, ic>, typename Sq::base_t rv) noexcept {
             // ic * 2^(2f) / (v*2^f) = ic/v * 2^f
-            return static_cast<base_t>( v2s<2*f, calc_t>(ic) / static_cast<calc_t>(rv) );
+            return static_cast<base_t>( s2s<0, 2*f, calc_t>(ic) / static_cast<calc_t>(rv) );
         }
     };
 
@@ -450,7 +450,7 @@ private:
             return v < limit
                 ? fpm::scaled<f, base_t>(thMax)
                 // 1/sqrt(x) <=> [ 2^(2f) / ((x*2^f) * 2^f)^1/2 ] = 2^f / sqrt(x)
-                : static_cast<base_t>( v2s<2*f, calc_t>(1) / static_cast<calc_t>( Sqrt::value(v) ) );
+                : static_cast<base_t>( s2s<0, 2*f, calc_t>(1) / static_cast<calc_t>( Sqrt::value(v) ) );
         }
     };
 

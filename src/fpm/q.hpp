@@ -33,8 +33,8 @@ using fpm::detail::SqType;
 template<
     std::integral BaseT,  ///< type of the scaled integer stored in memory
     scaling_t f_,         ///< number of fraction bits (precision 2^(-f))
-    double realMin_ = fpm::detail::realMin<BaseT, f_>,  ///< minimum real value represented by the type
-    double realMax_ = fpm::detail::realMax<BaseT, f_>,  ///< maximum real value represented by the type
+    double realMin_ = fpm::detail::realMin<BaseT, f_>(),  ///< minimum real value represented by the type
+    double realMax_ = fpm::detail::realMax<BaseT, f_>(),  ///< maximum real value represented by the type
     Overflow ovfBx_ = Overflow::error >  ///< overflow behavior
 requires fpm::detail::QRequirements<BaseT, f_, realMin_, realMax_, ovfBx_>
 class Q final {
