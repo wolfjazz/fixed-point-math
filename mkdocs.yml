@@ -5,6 +5,7 @@ nav:
   - Utilities: utilities.md
   - Q-Type: q.md
   - Sq-Type: sq.md
+  - Arithmetics: arithmetics.md
 theme: readthedocs
 
 use_directory_urls: false
