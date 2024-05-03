@@ -20,10 +20,10 @@ add_subdirectory(googletest)
 add_subdirectory(test)
 
 set(Headers
-    src/fpm.hpp
-    src/fpm/fpm.hpp
-    src/fpm/q.hpp
-    src/fpm/sq.hpp
+    inc/fpm.hpp
+    inc/fpm/fpm.hpp
+    inc/fpm/q.hpp
+    inc/fpm/sq.hpp
 )
 
 set(Sources
@@ -31,7 +31,7 @@ set(Sources
 )
 
 set(Include
-    src
+    inc
 )
 
 add_compile_options(-Wall -Wextra -pedantic -ffunction-sections -fdata-sections)  # -v for verbose

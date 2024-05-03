@@ -27,4 +27,4 @@ target_link_libraries(${This} PUBLIC ${CMAKE_THREAD_LIBS_INIT}
 )
 target_link_options(${This} PUBLIC LINKER:-Map=${This}.map -static)  # -v for verbose
 
-target_include_directories(${This} PUBLIC ../src ../googletest/googletest/include)
+target_include_directories(${This} PUBLIC ../inc ../googletest/googletest/include)
