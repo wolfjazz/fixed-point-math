@@ -506,7 +506,7 @@ struct common_base {
 template< std::integral T1, std::integral T2 >
 using common_base_t = typename common_base<T1, T2>::type;
 
-/** \returns whether the two given values are in range of the given type. */
+/** \returns whether the two given values of type L are in range of the given type T. */
 template< std::integral T, std::integral L, L v1, L v2 >
 struct in_range {
     static constexpr bool value = std::in_range<T>(v1) && std::in_range<T>(v2);

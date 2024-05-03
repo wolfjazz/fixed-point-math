@@ -467,7 +467,7 @@ private:
         using calc_t = fpm::detail::fit_type_t< sizeof(typename Sq::base_t) * 2u, std::is_signed_v<base_t> >;
         static constexpr bool innerConstraints = true;
         static constexpr base_t value(typename Sq::base_t v) noexcept {
-            // x^3 <=> [ (x*2^f)*(x*2^f) / 2^f * (x*2^f) / 2^f ] = [ square(x)*(x*2^f) / 2^f ] = x*x*x*2^f
+            // x^3 <=> [ (x*2^f)*(x*2^f) / 2^f * (x*2^f) / 2^f ] = [ sqr(x)*(x*2^f) / 2^f ] = x*x*x*2^f
             auto xIntm = static_cast<calc_t>(v);
             auto xSqr = static_cast<calc_t>( Square::value(v) );
             constexpr auto fPower = v2s<f, calc_t>(1);
@@ -792,7 +792,7 @@ public:
     /// x is multiplied with itself n times, the maximum real error is (n+1)*x^n * 2^(-f).
     /// For the square function (n=1) this gives 2x * 2^(-f) at most.
     friend constexpr
-    auto square(Sq const &x) noexcept
+    auto sqr(Sq const &x) noexcept
     requires fpm::detail::ValidImplType< Square > {
         return Sq< UNPACK(Square) >( Square::value(x.value) );
     }
@@ -961,47 +961,6 @@ consteval auto fromLiteral() {
 
 /**\}*/
 }  // namespace fpm::sq
-
-namespace std {
-
-/// Provides the bare, real numeric limits for the given Sq type.
-template< /* deduced: */ std::integral BaseT, fpm::scaling_t f, double realMin, double realMax >
-class numeric_limits<fpm::sq::Sq<BaseT, f, realMin, realMax>> {
-    using SqT = fpm::sq::Sq<BaseT, f, realMin, realMax>;
-public:
-    /// \returns the minimum real value that can be represented by the Sq type.
-    /// \note In contrast to Sq::realMin, this does not return the minimum value specified by the
-    /// user, but the absolute minimum that can be represented by the underlying Sq type with respect
-    /// to its base type and scaling. This can be significantly smaller that the actual user minimum.
-    template< typename T = double >
-    static constexpr T min() noexcept {
-        return fpm::real<SqT::f, T>( numeric_limits<typename SqT::base_t>::min() );
-    }
-
-    /// \returns the maximum real value that can be represented by the Sq type.
-    /// \note In contrast to Sq::realMax, this does not return the maximum value specified by the
-    /// user, but the absolute maximum that can be represented by the underlying Sq type with respect
-    /// to its base type and scaling. This can be significantly larger that the actual user maximum.
-    template< typename T = double >
-    static constexpr T max() noexcept {
-        return fpm::real<SqT::f, T>( numeric_limits<typename SqT::base_t>::max() );
-    }
-
-    constexpr static bool is_specialized = true;
-    constexpr static bool is_signed = numeric_limits<typename SqT::base_t>::is_signed;
-    constexpr static bool is_bounded = true;
-    constexpr static bool traps = true;
-#   if defined FPM_USE_SH
-    constexpr static auto round_style = std::round_toward_neg_infinity;
-#   else
-    constexpr static auto round_style = std::round_toward_zero;
-#   endif
-    constexpr static int radix = numeric_limits<typename SqT::base_t>::radix;
-    constexpr static int digits = numeric_limits<typename SqT::base_t>::digits - SqT::f;
-    constexpr static int digits10 = static_cast<int>( std::log10(radix) * digits );
-};
-
-}  // namespace std
 
 #endif
 // EOF

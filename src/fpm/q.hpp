@@ -528,7 +528,7 @@ template< /* deduced: */ std::integral T, T v >
 constexpr bool operator >>(QType auto const &q, std::integral_constant<T, v> const ic) noexcept { return +q >> ic; }
 
 // Square(-Root)
-constexpr auto square(QType auto const &q) noexcept { return square( +q ); }
+constexpr auto sqr(QType auto const &q) noexcept { return sqr( +q ); }
 constexpr auto sqrt(QType auto const &q) noexcept { return sqrt( +q ); }
 constexpr auto rsqrt(QType auto const &q) noexcept { return rsqrt( +q ); }
 
@@ -580,47 +580,6 @@ consteval auto fromLiteral() {
 
 /**\}*/
 }  // namespace fpm::q
-
-namespace std {
-
-/// Provides the bare, real numeric limits for the given Q type.
-template< /* deduced: */ std::integral BaseT, fpm::scaling_t f, double realMin, double realMax, fpm::Overflow ovfBx >
-class numeric_limits<fpm::q::Q<BaseT, f, realMin, realMax, ovfBx>> {
-    using QT = fpm::q::Q<BaseT, f, realMin, realMax, ovfBx>;
-public:
-    /// \returns the minimum real value that can be represented by the Q type.
-    /// \note In contrast to Q::realMin, this does not return the minimum value specified by the
-    /// user, but the absolute minimum that can be represented by the underlying Q type with respect
-    /// to its base type and scaling. This can be significantly smaller that the actual user minimum.
-    template< typename T = double >
-    static constexpr T min() noexcept {
-        return fpm::real<QT::f, T>( numeric_limits<typename QT::base_t>::min() );
-    }
-
-    /// \returns the maximum real value that can be represented by the Q type.
-    /// \note In contrast to Q::realMax, this does not return the maximum value specified by the
-    /// user, but the absolute maximum that can be represented by the underlying Q type with respect
-    /// to its base type and scaling. This can be significantly larger that the actual user maximum.
-    template< typename T = double >
-    static constexpr T max() noexcept {
-        return fpm::real<QT::f, T>( numeric_limits<typename QT::base_t>::max() );
-    }
-
-    constexpr static bool is_specialized = true;
-    constexpr static bool is_signed = numeric_limits<typename QT::base_t>::is_signed;
-    constexpr static bool is_bounded = true;
-    constexpr static bool traps = true;
-#   if defined FPM_USE_SH
-    constexpr static auto round_style = std::round_toward_neg_infinity;
-#   else
-    constexpr static auto round_style = std::round_toward_zero;
-#   endif
-    constexpr static int radix = numeric_limits<typename QT::base_t>::radix;
-    constexpr static int digits = numeric_limits<typename QT::base_t>::digits - QT::f;
-    constexpr static int digits10 = static_cast<int>( std::log10(radix) * digits );
-};
-
-}  // namespace std
 
 #endif
 // EOF

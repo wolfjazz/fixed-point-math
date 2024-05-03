@@ -64,7 +64,7 @@ concept Absolutizable = requires(SqT &sq) {
 
 template< class SqT >
 concept Squarable = requires(SqT &sq) {
-    { square(sq) } -> fpm::detail::SqType;
+    { sqr(sq) } -> fpm::detail::SqType;
 };
 
 template< class SqT >
@@ -1638,7 +1638,7 @@ TEST_F(SQTest_Square, sq_square__positive_value__squared_value) {
     auto value = i32sq12_t::fromReal<23.4>();
 
     EXPECT_TRUE(( Squarable<i32sq12_t> ));
-    auto squared = square(value);
+    auto squared = sqr(value);
 
     using expected_t = i32sq12_t::clamp_t<0., 10000.>;
     ASSERT_TRUE(( std::is_same_v<expected_t, decltype(squared)> ));
@@ -1650,7 +1650,7 @@ TEST_F(SQTest_Square, sq_square__positive_value_smaller_type_with_positive_range
     auto value = i16sq10_t::fromReal<23.4>();
 
     EXPECT_TRUE(( Squarable<i16sq10_t> ));
-    auto squared = square(value);
+    auto squared = sqr(value);
 
     using expected_t = i32sq10<36., 625.>;
     ASSERT_TRUE(( std::is_same_v<expected_t, decltype(squared)> ));
@@ -1662,7 +1662,7 @@ TEST_F(SQTest_Square, sq_square__negative_value__squared_value) {
     auto value = i32sq12_t::fromReal<-45.999>();
 
     EXPECT_TRUE(( Squarable<i32sq12_t> ));
-    auto squared = square(value);
+    auto squared = sqr(value);
 
     using expected_t = i32sq12_t::clamp_t<0., 10000.>;
     ASSERT_TRUE(( std::is_same_v<expected_t, decltype(squared)> ));
@@ -1674,7 +1674,7 @@ TEST_F(SQTest_Square, sq_square__negative_value_smaller_type_with_negative_range
     auto value = i16sq10_t::fromReal<-18.9>();
 
     EXPECT_TRUE(( Squarable<i16sq10_t> ));
-    auto squared = square(value);
+    auto squared = sqr(value);
 
     using expected_t = i32sq10<36., 625.>;
     ASSERT_TRUE(( std::is_same_v<expected_t, decltype(squared)> ));
@@ -1687,8 +1687,8 @@ TEST_F(SQTest_Square, sq_square__value_zero__value_squared_is_zero) {
     auto value2 = i32sq12_t::fromReal<+0.>();
 
     EXPECT_TRUE(( Squarable<i32sq12_t> ));
-    auto squared1 = square(value1);
-    auto squared2 = square(value2);
+    auto squared1 = sqr(value1);
+    auto squared2 = sqr(value2);
 
     using expected_t = i32sq12_t::clamp_t<0., 10000.>;
     ASSERT_TRUE(( std::is_same_v<expected_t, decltype(squared1)> ));
