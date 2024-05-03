@@ -215,7 +215,7 @@ auto sqI32 = static_cast< i32sq3<-60., 60.> >( sqI16 );  // s: -453, r: 56.625
 auto sqI8 = static_cast< i8sqm4<-60., 60.> >( sqI32 );   // s: -3, r: -48
 ```
 
-*Note*: In contrast to the `Q` type, there is no `safe_cast` and no `force_cast` for the `Sq` type. Both functions would contradict the foundational concept of `Sq`, which is designed to ensure compile-time safety and immutability of values, preventing any changes that could lead to runtime errors or value inconsistencies.
+*Note*: In contrast to the `Q` type, there is no `safe_cast` and no `force_cast` for the `Sq` type. Both functions would contradict the foundational concept of `Sq`, which is designed to ensure compile-time safety and immutability of values, preventing any changes that could lead to runtime check overhead, errors, or value inconsistencies.
 
 **Compile-Time Overflow Checks:**
 The `Sq` type enforces `Ovf::error` as its inherent - and only - overflow behavior. If the target type's value range is narrower than the source type's, the compiler will block the operation to prevent any risk of overflow, thus maintaining strict type safety.
@@ -240,6 +240,6 @@ i32sq4<-100., 100.> sqSource = -78.1_i32sq4;  // scaled: -1249
 auto sqClamped = i32q4<-60., 60.>::fromSq< Ovf::clamp >( sqSource ).toSq();
 ```
 
-This little trick allows for fine control over when exactly an overflow check is performed when calculations are performed in the `Sq` scope. By utilizing `Q` for intermediate calculations, developers can ensure that overflows are handled appropriately before finalizing values within `Sq` types, thus maintaining the integrity and safety of the computations.
+This technique provides precise control over the timing of overflow checks within the `Sq` scope. By using `Q` for intermediate calculations, developers can ensure that overflows are addressed exactly when needed.
 
 *Additional Note*: There are only a few edge cases where overflow handling on `Sq` through `Q` is even needed. These typically arise when the `Sq` variable is constructed from a variable of a `Q` type that uses explicit `Ovf::allowed`. In such cases, the potential for overflow exists because the `Q` type permits it, and the value, which potentially is out of range, can be passed to `Sq` via the `toSq()` method. Crucially, when such out-of-range values are passed, the compiler will still assume that the value is within the specified range of the `Sq` type. This might be desired behavior for some edge case computations, where handling or ignoring overflow could be beneficial. This is precisely why `Ovf::allowed` exists — to enable these specific scenarios where standard overflow management practices are intentionally bypassed.
