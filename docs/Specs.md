@@ -80,7 +80,7 @@ using namespace fpm::types;
 //       compile-time-only!
 fpm::q::Q<type, f, v_min, v_max, ovf>;
 
-// predefined types
+// predefined types, like:
 using i32q<...> = fpm::q::Q<int32_t, ...>;
 using u32q<...> = fpm::q::Q<uint32_t, ...>;
 using i16q<...> = fpm::q::Q<int16_t, ...>;
@@ -166,7 +166,7 @@ auto cast3 = force_q_cast<i16q2<40., 100.>>(b);
  *  => Q values store dynamic values, Sq values are used for calculations. */
 fpm::sq::Sq<type, f, v_min, v_max>;
 
-// predefined types
+// predefined types, like:
 using i32sq<...> = fpm::sq::Sq<int32_t, ...>;
 using u32sq<...> = fpm::sq::Sq<uint32_t, ...>;
 using i16sq<...> = fpm::sq::Sq<int16_t, ...>;

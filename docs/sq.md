@@ -62,15 +62,14 @@ These examples demonstrate the flexibility of the `Sq` type in adapting to vario
 
 To simplify the usage of common `Sq` types in the library, shorter type aliases are provided via the `fpm::types` namespace. These aliases allow for more concise and readable code, particularly when dealing with commonly used configurations. Additionally, literals are defined for each alias to facilitate straightforward and error-free value assignments directly in the code.
 
-#### Common `Sq` Type Aliases
+#### Aliases for Common Types
 
-Here are examples of some typical type aliases for `Sq` types:
+Aliases exist for the most common `Sq` (and `Q`) types, covering all integral types up to 32 bits and scalings `f` ranging from \(\small-bitnum/2\) to \(\small bitnum-1\).  
+Here are examples of some type aliases for `Sq` types:
 
-- **`i32sq16<min, max>`**: Alias for `fpm::Sq<int32_t, 16, min, max>`. This configuration uses a 32-bit signed integer with 16 fractional bits, suitable for a range defined by `min` and `max`.
-- **`u16sq7<min, max>`**: Alias for `fpm::Sq<uint16_t, 7, min, max>`. This version employs a 16-bit unsigned integer with 7 fractional bits, accommodating the specified real value range.
-- **`i8qm2<>`**: Alias for `fpm::Sq<int8_t, -2>`. This configuration uses an 8-bit integer with `-2` fractional bits, effectively scaling the range upwards to accommodate larger values. The full symmetric value range achievable with this setup is from `-508.` to `508.`, facilitated by the negative scaling which expands the representable value range at the cost of precision (\(2^2\)).
-
-Such aliases exist for the most common `Sq` (and `Q`) types, covering all integral types up to 32 bits and scalings `f` ranging from \(\small\left[-bitnum/2, bitnum-1\right]\).
+- **`i32sq16< realMin, realMax >`**: Alias for `fpm::Sq<int32_t, 16, realMin, realMax>`. This configuration uses a 32-bit signed integer with 16 fractional bits, suitable for a real value range defined by `realMin` and `realMax`.
+- **`u16sq7< realMin, realMax >`**: Alias for `fpm::Sq<uint16_t, 7, realMin, realMax>`. This version employs a 16-bit unsigned integer with 7 fractional bits, accommodating the specified real value range.
+- **`i8qm2<>`**: Alias for `fpm::Sq<int8_t, -2>`. This configuration uses an 8-bit integer with `-2` fractional bits, effectively scaling the range upwards to accommodate larger values. The symmetric real value range achievable with this setup is from `-508.` to `508.`, facilitated by the negative scaling which expands the representable value range at the cost of precision (\(2^2\)).
 
 #### Literals for `Sq` Type Aliases
 
@@ -139,35 +138,35 @@ i32sq20<> sqLit2 = -444.56_i32sq20;
 
 ### Runtime Construction Through Q
 
-Unlike the `Q` type, `Sq` does not have a runtime `construct<>()` method. Direct construction of `Sq` instances from runtime variables is not possible; instead, construction through a `Q` variable via the `qVar.toSq< realMin, realMax, ovfBxOvrd >()` method is necessary to enforce proper runtime overflow checks:
+Unlike the `Q` type, `Sq` does not have a runtime `construct<>()` method. Direct construction of `Sq` instances from runtime variables is not possible; instead, construction through a `Q` variable via the `qVar.toSq< realMin, realMax, ovfBxOvrd >()` method is necessary to enforce proper runtime overflow checks.  
+Each `Q` type inherently provides a corresponding `Sq` type with similar properties, which is accessible via `Q<...>::Sq<>`. Instances of this `Sq` type are constructed using the aforementioned `toSq()` method:
 
 ```cpp
 // Constructing Q instance from a runtime scaled integer
 int32_t someVariable = fpm::scaled<16, int32_t>()
 auto qV = i32q16<-10., 50.>::fromReal< 42.5 >();  // note: Q not Sq
 
-// Constructing Sq instance from Q value; this Sq has similar properties than Q
+// Constructing Sq instance from Q value; this Sq has similar properties than Q;
+// Conversion is trivial, no overflow check needed
 auto sqFromQ = qV.toSq();  // Sq<int32_t, 16, -10., 50.>, real value: 42.5
 
-// toSq<>() can be used to clamp the Q value to a different Sq type
+// toSq<>() can be used to clamp the Q value to a narrower Sq type
 auto sqFromQ2 = qV.toSq<0., 38., Ovf::clamp>();  // i32sq16<0.,38.>, v: 38|real
 
 // if the target Sq type has a wider range, no clamping is needed
 auto SqFromQ3 = qV.toSq<-20., 50.>();  // i32sq16<-20.,50.>, real value: 42.5
 ```
 
-Additionally, `Q` implements a unary `+` operator, which provides a shortcut for constructing a similar `Sq`-typed variable from a `Q` variable. This unary operator functions similarly to `qVar.toSq()`. Using `+qVar` is a shorthand that automatically converts a `Q` variable `qVar` to an `Sq` type that retains the same properties as `qVar`:
+Additionally, `Q` implements a unary `+` operator, which provides a shorthand for constructing a similar `Sq`-typed variable from a `Q` variable. This unary operator functions similarly to `qVar.toSq()`:
 
 ```cpp
-auto qVal = fpm::Q<int32_t, 16, -10., 50.>::fromReal< -8.8 >();
+auto qVar = fpm::Q<int32_t, 16, -10., 50.>::fromReal< -8.8 >();
 
-// conversion of a Q value to an Sq value with similar properties:
-auto sqVal = +qVal;  // i32sq16<-10., 50.>, real value -8.8
+// conversion of a Q variable to an Sq variable with similar properties:
+auto sqVar = +qVar;  // i32sq16<-10., 50.>, real value -8.8
 ```
 
 Furthermore, when used in formulas, `Q` variables are implicitly converted to similar `Sq` variables. This implicit conversion feature is designed to streamline the syntax by reducing the clutter caused by explicit conversion overhead. For instance, in expressions involving multiple operations or different data types, `Q` variables can be seamlessly integrated without the need to manually convert each one, thus simplifying the code and enhancing its readability.
-
-Here's a rewritten section on accessing values in an `Sq` variable, aligned with the structure used for describing the `Q` class's value access methods:
 
 ## Value Access
 

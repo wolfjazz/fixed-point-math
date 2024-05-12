@@ -95,10 +95,10 @@ These construction methods provide precise control over how values are initializ
 
 The library provides alias templates as syntax sugar for common `Q` types, looking similarly to standard integer types, in the namespace `fpm::types`. This simplifies the usage and readability of the types in your code. For instance:
 
-- `i32q16< realMin, realMax, Ovf::clamp >` is a `Q<int32_t, 16, realMin, realMax, Ovf::clamp>`
-- `u16q8< realMin, realMax >` is a `Q<uint16_t, 8, realMin, realMax>`
-- `i32qm7< realMin, realMax >` is a `Q<int32_t, -7, realMin, realMax`
-- `i16q6<>` is a `Q<int16_t, 6>`, with the largest possible symmetric value range and `Ovf::error`
+- **`i32q16< realMin, realMax, Ovf::clamp >`** is a `Q<int32_t, 16, realMin, realMax, Ovf::clamp>`
+- **`u16q8< realMin, realMax >`** is a `Q<uint16_t, 8, realMin, realMax>`
+- **`i32qm7< realMin, realMax >`** is a `Q<int32_t, -7, realMin, realMax`
+- **`i16q6<>`** is a `Q<int16_t, 6>`, with the largest possible symmetric value range and `Ovf::error`
 
 Construction of `Q` instances using these aliases looks as follows:
 ```cpp
