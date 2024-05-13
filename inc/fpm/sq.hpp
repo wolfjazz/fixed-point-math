@@ -277,7 +277,7 @@ private:
         using base_t = fpm::detail::common_q_base_t<typename Sq::base_t, T, f, realMin, realMax>;
         static constexpr bool innerConstraints = true;
         static constexpr base_t value(typename Sq::base_t lv, std::integral_constant<T, ic>) noexcept {
-            return lv / static_cast<base_t>(ic);  // divide lhs value by the integral constant
+            return static_cast<base_t>(lv) / static_cast<base_t>(ic);  // divide lhs value by the integral constant
         }
     };
 

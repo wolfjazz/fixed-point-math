@@ -61,6 +61,12 @@ void playground() {
 int main(void) {
     playground();
 
+i16sq7<-200., 100.> sq1 = -150.0_i16sq7;
+u16sq7<10., 100.> sq2 = 45.0_u16sq7;
+auto sqMod = sq1 % sq2;  // i16sq7<-100., 100.>, real value -15.0
+
+    std::cout << "sqDiv: " << sqMod.real() << std::endl;
+
     return 0;
 }
 
