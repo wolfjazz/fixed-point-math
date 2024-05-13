@@ -2,10 +2,30 @@ site_name: Fixed Point Math
 nav:
   - Home: index.md
   - Getting Started: getting_started.md
-  - Utilities: utilities.md
-  - Q-Type: q.md
-  - Sq-Type: sq.md
-  - Arithmetics: arithmetics.md
+  - Utilities:
+    - Scaling: utilities/scaling.md
+    - Helpers: utilities/helpers.md
+    - Static Assertion: utilities/assertion.md
+  - Q-Type:
+    - Type: qtype/q.md
+    - Overflow Behaviors: qtype/overflow.md
+    - Construction: qtype/construction.md
+    - Value Access: qtype/value.md
+    - Rescaling: qtype/rescale.md
+    - Casting: qtype/cast.md
+  - Sq-Type:
+    - Type: sqtype/sq.md
+    - Construction: sqtype/construction.md
+    - Value Access: sqtype/value.md
+    - Rescaling & Casting: sqtype/rescale_cast.md
+  - Arithmetics:
+    - Overview: arithmetics/overview.md
+    - Unary Operators: arithmetics/unary.md
+    - Binary Operators: arithmetics/binary.md
+    - Comparison Operators: arithmetics/comparison.md
+    - Shift Operators: arithmetics/shift.md
+    - Math Functions: arithmetics/math.md
+    - Clamp Functions: arithmetics/clamp.md
 theme: readthedocs
 
 use_directory_urls: false
