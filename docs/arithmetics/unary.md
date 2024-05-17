@@ -9,7 +9,7 @@ The unary plus operator in the context of the `Sq` type simply copies the `Sq` v
 **Output:**
 
 | `Sq` | |
-|------|-|
+|-|-|
 | **base_t** | Sq::base_t |
 | **f** | Sq::f |
 | **realMin** | Sq::realMin |
@@ -30,10 +30,14 @@ auto sqVarCopy = +sqVar;  // Copies sqVar without any change in value and type
 
 The unary minus operator inverts the sign of the value and the limits of the `Sq` input type. This transformation essentially mirrors the value range around the origin.
 
+**Constraints:**
+
+For a signed base type, the minimum integer must not be within the value range because its negation will cause an overflow, resulting in the same negative value. This is why the default real value range is symmetric around 0. For example, an `i8q2<>` has a default symmetric real value range of -31.75 to 31.75. Although a type like `i8q2<-32., 31.75>` can still be manually declared, the negation operator is not available for this type.
+
 **Output:**
 
 | `Sq` | |
-|------|-|
+|-|-|
 | **base_t** | Sq::base_t |
 | **f** | Sq::f |
 | **realMin** | -Sq::realMax |

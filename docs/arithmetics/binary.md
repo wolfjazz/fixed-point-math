@@ -9,7 +9,7 @@ Adds two `Sq` instances, producing a new `Sq` instance with a proper base type, 
 **Output:**
 
 | `Sq` | |
-|------|-|
+|-|-|
 | **base_t** | smallest integer fitting the resulting range, no smaller than any input;<br>signed if either SqLhs or SqRhs is signed, otherwise unsigned |
 | **f** | max( SqLhs::f, SqRhs::f ) |
 | **realMin** | SqLhs::realMin + SqRhs::realMin |
@@ -34,7 +34,7 @@ Subtracts the right-hand side `Sq` instance from the left-hand side `Sq` instanc
 **Output:**
 
 | `Sq` | |
-|------|-|
+|-|-|
 | **base_t** | smallest integer fitting the resulting range, no smaller than any input;<br>signed if either SqLhs or SqRhs is signed, otherwise unsigned |
 | **f** | max( SqLhs::f, SqRhs::f ) |
 | **realMin** | min( SqLhs::realMin - SqRhs::realMax, SqRhs::realMin - SqLhs::realMax ) |
@@ -62,7 +62,7 @@ During multiplication, an intermediate calculation type is used, which has twice
 **Output:**
 
 | `Sq` | <span style="font-weight:normal;font-size:8pt">*lhsMin = SqLhs::realMin, lhsMax = SqLhs::realMax*, *rhsMin = SqRhs::realMin, rhsMax = SqRhs::realMax*</span> |
-|------|-|
+|-|-|
 | **base_t** | smallest integer fitting the resulting range, no smaller than any input;<br>signed if either SqLhs or SqRhs is signed, otherwise unsigned |
 | **f** | max( SqLhs::f, SqRhs::f ) |
 | **realMin** | min( min( lhsMin\*rhsMax, rhsMin\*lhsMax ), min( lhsMin\*rhsMin, lhsMax\*rhsMax ) ) |
@@ -87,7 +87,7 @@ Multiplies an `Sq` instance with an integral constant. The result is a new `Sq` 
 **Output:**
 
 | `Sq` | |
-|------|-|
+|-|-|
 | **base_t** | smallest integer fitting the resulting range, no smaller than any input;<br>signed if either Sq or the integral constant is signed, otherwise unsigned |
 | **f** | Sq::f |
 | **realMin** | min( Sq::realMin * ic, Sq::realMax * ic ) |
@@ -114,12 +114,12 @@ Divides one `Sq` instance by another, producing a new `Sq` object that properly 
 
 **Constraints:**
 
-The dividend (`SqRhs`) must not have real values from the range \((-1,+1)\) within its value range. This constraint is crucial as it prevents division by zero and avoids any undesired expansion of the resulting value range that could lead to significant restrictions on further computations.
+The dividend (`SqRhs`) must not have values from the range \((-1,+1)\) in its real value range. This constraint is crucial as it prevents division by zero and avoids any undesired expansion of the resulting value range that could lead to significant restrictions on further computations.
 
 **Output:**
 
 | `Sq` | <span style="font-weight:normal;font-size:8pt">*lhsMin = SqLhs::realMin, lhsMax = SqLhs::realMax*, *rhsMin = SqRhs::realMin, rhsMax = SqRhs::realMax*</span> |
-|------|-|
+|-|-|
 | **base_t** | smallest integer fitting the resulting range, no smaller than any input;<br>signed if either SqLhs or SqRhs is signed, otherwise unsigned |
 | **f** | max( SqLhs::f, SqRhs::f ) |
 | **realMin** | min( min( lhsMin/rhsMax, lhsMin/rhsMin ), min( lhsMax/rhsMin, lhsMax/rhsMax) ) |
@@ -144,7 +144,7 @@ Divides an `Sq` instance by an integral constant. The result maintains the `Sq` 
 **Output:**
 
 | `Sq` | |
-|------|-|
+|-|-|
 | **base_t** | smallest integer fitting the resulting range, no smaller than any input;<br>signed if either Sq or the integral constant is signed, otherwise unsigned |
 | **f** | Sq::f |
 | **realMin** | min( Sq::realMin / ic, Sq::realMax / ic ) |
@@ -165,12 +165,12 @@ Divides an integral constant by an `Sq` instance. The result maintains the `Sq` 
 
 **Constraints:**
 
-The dividend (`SqRhs`) must not have real values from the range \((-1,1)\) within its value range. This constraint is crucial as it prevents division by zero and avoids any undesired expansion of the resulting value range that could lead to significant restrictions on further computations.
+The dividend (`SqRhs`) must not have values from the range \(\small(-1,1)\) in its real value range. This constraint is crucial as it prevents division by zero and avoids any undesired expansion of the resulting value range that could lead to significant restrictions on further computations.
 
 **Output:**
 
 | `Sq` | |
-|------|-|
+|-|-|
 | **base_t** | smallest integer fitting the resulting range, no smaller than any input;<br>signed if either SqRhs or the integral constant is signed, otherwise unsigned |
 | **f** | SqRhs::f |
 | **realMin** | min( ic / SqRhs::realMin, ic / SqRhs::realMax ) |
@@ -189,18 +189,16 @@ auto sqDiv = -1500_ic / sq;  // i16sq7<7.5, 150.>, real value: -10.0
 
 ## Modulo (%)
 
-### Sq % Sq
-
 Calculates the modulo of one `Sq` instance by another, resulting in a new `Sq` object with adjusted type and limits based on the operands. This operation uses the unpromoted common type of the two input types as intermediate calculation type, corrected for the potential change in scaling, ensuring adequate size and sign handling.
 
 **Constraints:**
 
-The dividend (`SqRhs`) must not have real values from the range \((-resolution,resolution)\) within its value range. This constraint is crucial as it prevents a modulo zero, as this is not defined.
+The dividend (`SqRhs`) must not have any values from the range \(\small(-resolution,resolution)\) in its real value range. This constraint is crucial as it prevents a modulo zero, as this is not defined.
 
 **Output:**
 
 | `Sq` | <span style="font-weight:normal;font-size:8pt">*lhsMin = SqLhs::realMin, lhsMax = SqLhs::realMax*, *rhsMin = SqRhs::realMin, rhsMax = SqRhs::realMax*</span> |
-|------|-|
+|-|-|
 | **base_t** | smallest integer fitting the resulting range, no smaller than any input;<br>signed if either SqLhs or SqRhs is signed, otherwise unsigned |
 | **f** | max( SqLhs::f, SqRhs::f ) |
 | **realMin** | max( lhsMin, signum(lhsMin) * max( abs(rhsMin), abs(rhsMax) ) ) |
