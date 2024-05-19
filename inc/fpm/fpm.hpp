@@ -153,7 +153,8 @@ TargetT s2sh(ValueT value) noexcept {
     // for scaling between integral values, use size of common type but sign of source type
     // to avoid loss of precision or sign
     using common_t = typename std::common_type_t<ValueT, TargetT>;
-    using scale_t = detail::fit_type_t< sizeof(common_t), std::is_signed_v<ValueT> >;
+    using scale_t = std::conditional_t< false, int,  // keep to ensure that type shown in IDE is not 'scale_t'
+                                        detail::fit_type_t<sizeof(common_t), std::is_signed_v<ValueT>> >;
 
     if constexpr (from > to) {
         return static_cast<TargetT>( static_cast<scale_t>(value) >> (unsigned)(from - to) );
@@ -508,8 +509,8 @@ using common_q_base_t = typename common_q_base<T1, T2, f, realMin, realMax>::typ
 constexpr
 uint32_t isqrt(uint64_t const value) noexcept {
     uint64_t x = value,
-                b = (1u << (65u - std::countl_zero(x)) / 2u) - 1u,
-                a = (b + 3u) / 2u;
+             b = (1u << (65u - std::countl_zero(x)) / 2u) - 1u,
+             a = (b + 3u) / 2u;
     do {
         uint64_t m = (a + b) >> 1u;   // start between a and b, near center
         if (m*m > x) { b = m - 1u; }  // if m*m is larger than x, increase b
@@ -741,12 +742,12 @@ concept CanBePassedToSqrt = (
 
 /** Concept: Checks whether the given (S)Q type can be passed to the rsqrt function. This is
  * possible as long as the size of the base type does not exceed 4 bytes, the scaling is not too
- * large and the value range is larger than zero. */
+ * large and the minimum value is equal to or larger than the resolution. */
 template< typename T >
 concept CanBePassedToRSqrt = (
     sizeof(typename T::base_t) <= sizeof(int32_t)
     && T::f < std::numeric_limits<typename T::base_t>::digits  // lower and upper limits are out of range for f == digits
-    && T::realMin > 0.
+    && T::realMin >= T::resolution
 );
 
 /** Concept: Checks whether the given (S)Q type can be passed to the cbrt function. This is

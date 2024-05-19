@@ -424,9 +424,9 @@ private:
             else {
                 // take root of corrected number; result can be cast to base_t without truncation
                 // sqrt(x) <=> [ ((x*2^f) * 2^f)^1/2 ] = x^1/2 * 2^f
-                auto xIntm = static_cast<calc_t>(v);
+                auto vIntm = static_cast<calc_t>(v);
                 constexpr auto fPower = v2s<f, calc_t>(1);
-                return static_cast<base_t>( fpm::detail::isqrt( xIntm * fPower ) );
+                return static_cast<base_t>( fpm::detail::isqrt( vIntm * fPower ) );
             }
         }
     };
