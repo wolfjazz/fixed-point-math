@@ -434,11 +434,7 @@ public:
     /// \warning This conversion is expensive if the target type is a floating-point type.
     ///          If the target type is an integral type, there can be a significant loss of precision.
     ///          Use carefully!
-#   if defined FPM_USE_SH
-    template< typename TargetT = int >
-#   else
     template< typename TargetT = double >
-#   endif
     constexpr
     TargetT real() const noexcept { return fpm::real<f, TargetT>(value); }
     /// Implicit conversion of a Q value back into its double representation. Allows using a

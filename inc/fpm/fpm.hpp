@@ -119,10 +119,8 @@ auto scale_factor() {
  * using multiplication/division. Conversion can be compile-time or runtime.
  * \note Arithmetic multiplication/division is used here because these operations are symmetric for
  * positive and negative values with respect to rounding (e.g. +-514 / 2^4 is +-32).
- * Besides, floating-point types are also possible this way.
- * \warning Floating-point types are possible, however quite expensive at runtime!
- *          Use carefully! */
-template< scaling_t from, scaling_t to, typename TargetT, /* deduced: */ typename ValueT >
+ * \warning Floating-point target is possible, however quite expensive at runtime! Use carefully! */
+template< scaling_t from, scaling_t to, typename TargetT, /* deduced: */ std::integral ValueT >
 [[nodiscard]] constexpr
 TargetT s2smd(ValueT value) noexcept {
     // for scaling between integral values, use size of common type but sign of source type
@@ -143,10 +141,9 @@ TargetT s2smd(ValueT value) noexcept {
 }
 
 /** Scale-To-Scale-Shift scaling function.
- * Used to scale a given integer value to a different scaling factor and target type via arithmetic
- * shift operations. Conversion can be compile-time or runtime.
+ * Used to scale a given integer value to a different scaling factor and integral target type via
+ * arithmetic shift operations. Conversion can be compile-time or runtime.
  * \note Shift operations are well defined for C++20 and above (signed integers are Two's Complement).
- * \note Floating-point target types are NOT possible, since shift operators are not defined for them.
  * \warning Be aware that arithmetic right shift always rounds down. Consequently, the scaled result
  *          is not symmetric for the same value with a different sign
  *          (e.g. -514 >> 4u is -33 but +514 >> 4u is +32). */
@@ -154,10 +151,9 @@ template< scaling_t from, scaling_t to, std::integral TargetT, /* deduced: */ st
 [[nodiscard]] constexpr
 TargetT s2sh(ValueT value) noexcept {
     // for scaling between integral values, use size of common type but sign of source type
-    // to avoid loss of precision or sign; otherwise, if common type is floating point, use double
+    // to avoid loss of precision or sign
     using common_t = typename std::common_type_t<ValueT, TargetT>;
-    using scale_t = std::conditional_t< std::is_floating_point_v<common_t>, double,
-                                        detail::fit_type_t<sizeof(common_t), std::is_signed_v<ValueT>> >;
+    using scale_t = detail::fit_type_t< sizeof(common_t), std::is_signed_v<ValueT> >;
 
     if constexpr (from > to) {
         return static_cast<TargetT>( static_cast<scale_t>(value) >> (unsigned)(from - to) );
@@ -170,29 +166,29 @@ TargetT s2sh(ValueT value) noexcept {
     }
 }
 
-/** Scale-To-Scale function for runtime and compile-time conversions used in the implementations
- * of the (S)Q types. Proxy for the s2sx function pre-selected by the user.
- * \note FPM_USE_SH can be predefined before this header is included into a source file.
- * \note constexpr implies inline. */
-#if !defined FPM_USE_SH
-template< scaling_t from, scaling_t to, typename TargetT, /* deduced: */ typename ValueT >
+/** Scale-To-Scale function for runtime and compile-time conversions between scaled integral values.
+ * This function is used in the implementations of the (S)Q types to rescale values when needed.
+ * \note Proxy for a s2sx function pre-selected by the user. Shifting is the default,
+ *       multiplication/division can be selected explicitly by predefining the
+ *       FPM_USE_MULTDIV_TO_RESCALE symbol. */
+#if defined FPM_USE_MULTDIV_TO_RESCALE
+template< scaling_t from, scaling_t to, std::integral TargetT >
 [[nodiscard]] constexpr
-TargetT s2s(ValueT value) noexcept { return s2smd<from, to, TargetT, ValueT>(value); }
+TargetT s2s(std::integral auto value) noexcept { return s2smd<from, to, TargetT>(value); }
 #else
-template< scaling_t from, scaling_t to, std::integral TargetT, /* deduced: */ std::integral ValueT >
+template< scaling_t from, scaling_t to, std::integral TargetT >
 [[nodiscard]] constexpr
-TargetT s2s(ValueT value) noexcept { return s2sh<from, to, TargetT, ValueT>(value); }
+TargetT s2s(std::integral auto value) noexcept { return s2sh<from, to, TargetT>(value); }
 #endif
 
 
-/** Value-To-Scale scaling function. Converts a real value to a scaled integral value with the given
+/** Value-To-Scale scaling function. Converts a real value to a scaled value with the given
  * number of fractional bits at compile-time. Uses multiplication/division for the conversion.
  * Used to scale a given compile-time floating-point value to a scaled runtime value of target type.
- * \warning Floating-point target types are possible, however quite expensive at runtime!
- *          Use carefully! */
+ * \note Compile-time only. Works with integral and floating-point input- and output types. */
 template< scaling_t to, typename TargetT, /* deduced: */ typename ValueT >
 [[nodiscard]] consteval
-TargetT v2smd(ValueT value) noexcept {
+TargetT v2s(ValueT value) noexcept {
     // for scaling between integral values, use size of common type but sign of source type
     // to avoid loss of precision or sign; otherwise, if common type is floating point, use double
     using common_t = typename std::common_type_t<ValueT, TargetT>;
@@ -210,57 +206,21 @@ TargetT v2smd(ValueT value) noexcept {
     }
 }
 
-/** Value-To-Scale scaling function. Converts a real value to a scaled integral value with the given
- * number of fractional bits at compile-time. Uses arithmetic shifts for the conversion.
- * \note Shift operations are well defined for C++20 and above (signed integers are Two's Complement).
- * \note Floating-point target types are NOT possible, since shift operators are not defined for them.
- * \warning Be aware that arithmetic right shift always rounds down. Consequently, the scaled result
- *          is not symmetric for the same value with a different sign
- *          (e.g. -514 >> 4u is -33 but +514 >> 4u is +32). */
-template< scaling_t to, std::integral TargetT, /* deduced: */ std::integral ValueT >
-[[nodiscard]] consteval
-TargetT v2sh(ValueT value) noexcept {
-    // for scaling between integral values, use size of common type but sign of source type
-    // to avoid loss of precision or sign; otherwise, if common type is floating point, use double
-    using common_t = typename std::common_type_t<ValueT, TargetT>;
-    using scale_t = std::conditional_t< std::is_floating_point_v<common_t>, double,
-                                        detail::fit_type_t<sizeof(common_t), std::is_signed_v<ValueT>> >;
 
-    if constexpr (to < 0) {
-        return static_cast<TargetT>( static_cast<scale_t>(value) >> (unsigned)(-to) );
-    }
-    else if constexpr (to > 0) {
-        return static_cast<TargetT>( static_cast<scale_t>(value) << (unsigned)to );
-    }
-    else /* to == 0 */ {
-        return static_cast<TargetT>(value);
-    }
-}
-
-/** Value-To-Scale function for compile-time value conversion used in the implementations of the
- * (S)Q types. Proxy for the v2sx function pre-selected by the user.
- * \note FPM_USE_SH can be predefined before this header is included into a source file. */
-#if !defined FPM_USE_SH
-template< scaling_t to, typename TargetT, /* deduced: */ typename ValueT >
-[[nodiscard]] consteval
-TargetT v2s(ValueT value) noexcept { return v2smd<to, TargetT, ValueT>(value); }
-#else
-template< scaling_t to, std::integral TargetT, /* deduced: */ std::integral ValueT >
-[[nodiscard]] consteval
-TargetT v2s(ValueT value) noexcept { return v2sh<to, TargetT, ValueT>(value); }
-#endif
-
-
-/** \returns the scaled integral value that corresponds to a given real double value. */
+/** \returns the scaled integral value that corresponds to a given real double value.
+ * \note Compile-time only. Works with floating-point input and integral output type. */
 template< scaling_t f, /* optional: */ std::integral TargetT = int >
 [[nodiscard]] consteval
 TargetT scaled(double real) noexcept { return v2s<f, TargetT>(real); }
 
 
-/** \returns the real value (double) that corresponds to the given scaled integral value. */
-template< scaling_t f, /* optional */ typename TargetT = double, /* deduced: */ std::integral T >
+/** \returns the real value (double) that corresponds to the given scaled integral value.
+ * Utilizes s2smd for the conversion. Works with integral input type and integral or floating-point
+ * output type.
+ * \warning Floating-point target is possible, however quite expensive at runtime! Use carefully! */
+template< scaling_t f, /* optional */ typename TargetT = double >
 [[nodiscard]] constexpr
-TargetT real(T scaled) noexcept { return s2s<f, 0, TargetT>(scaled); }
+TargetT real(std::integral auto scaled) noexcept { return s2smd<f, 0, TargetT>(scaled); }  // only s2smd works with floating-point types
 
 
 // Internal implementations.
