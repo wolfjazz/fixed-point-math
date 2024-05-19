@@ -44,6 +44,13 @@ Shift operators adjust the bit representation of the fixed-point values:
 - **Left Shift (<<)**: Shifts the bits of an `Sq` instance to the left, effectively multiplying the value by a power of two.
 - **Right Shift (>>)**: Shifts the bits of an `Sq` instance to the right, effectively dividing the value by a power of two, rounded towards \(-\infty\) to the nearest integer.
 
+**Clamping Functions**:  
+Clamping functions are essential to maintain values within a specific range, both at runtime and compile-time, especially when dealing with edge cases:
+
+- **Clamp to Minimum**: Ensures the `Sq` instance does not fall below a specified minimum value.
+- **Clamp to Maximum**: Ensures the `Sq` instance does not exceed a specified maximum value.
+- **Clamp to Range**: Restricts the `Sq` instance within a specified minimum and maximum range, combining both of the above functionalities.
+
 **Mathematical Functions**:  
 The `Sq` type includes several built-in mathematical functions to extend its usability:
 
@@ -52,12 +59,5 @@ The `Sq` type includes several built-in mathematical functions to extend its usa
 - **Square Root (sqrt) and Cube Root (cbrt)**: Functions to calculate the square root and cube root of an `Sq` instance.
 - **Reverse Square Root (rsqrt)**: Calculates the reciprocal of the square root, commonly used in graphics and physics calculations to improve performance.
 - **Minimum (min) and Maximum (max)**: Functions to determine the minimum and maximum of two `Sq` instances.
-
-**Clamping Functions**:  
-Clamping functions are essential to maintain values within a specific range, both at runtime and compile-time, especially when dealing with edge cases:
-
-- **Clamp to Minimum**: Ensures the `Sq` instance does not fall below a specified minimum value.
-- **Clamp to Maximum**: Ensures the `Sq` instance does not exceed a specified maximum value.
-- **Clamp to Range**: Restricts the `Sq` instance within a specified minimum and maximum range, combining both of the above functionalities.
 
 These operators and functions make the `Sq` type a powerful tool in the fixed-point math library, allowing for efficient and safe mathematical computations. Each operation is optimized to leverage the static nature of `Sq` values, ensuring computations are both fast and reliable, with checks and balances performed at compile-time to prevent runtime errors and ensure type safety.

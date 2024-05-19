@@ -36,3 +36,53 @@ The goal is to enable calculations within a specified value range and precision 
 
 The library aims to extend further, potentially including functions like trigonometric and logarithmic calculations adapted for fixed-point types.  
 It is crucial to emphasize that operations on Q and Sq types, which are fundamentally compile-time constructs built around basic integral types stored in memory at runtime, are not all thread-safe.
+
+## Example
+
+Here's a simple example of using the library:
+
+```cpp
+#include <fpm.hpp>
+using namespace fpm::types;
+
+int main() {
+    using i32q12_t = i32q12<-100.,  200.>;  // int32_t, q12
+    using i32q14_t = i32q14<-100.,  200.>;  // int32_t, q14
+    using u32q11_t = u32q11<   0., 1111.>;  // uint32_t, q11
+
+    // Type resolutions
+    // i32q12_t::res: 0.000244141, i32q14_t::res: 6.10352e-05,
+    // u32q11_t::res: 0.000488281
+    std::cout << "i32q12_t::res: " << i32q12_t::resolution << ", "
+              << "i32q14_t::res: " << i32q14_t::resolution << ", "
+              << "u32q11_t::res: " << u32q11_t::resolution << std::endl;
+
+    auto a = i32q12_t::fromReal<105.45>();  // scaled to 431923
+    i32q14_t b = 123.456_i32q14;  // via literal; scaled to 2022703
+    i32q14_t a2 = a;  // copy-upscale from q12 to q14; scaled to 1727692
+
+    /* do some math: math results have static-Q (Sq) types */
+
+    // addition
+    auto c = a + b;  // i32sq14<-200.,400.>; scaled: 3750395, real: 228.906
+
+    // clamp value to narrower type
+    auto d = i32q12_t::fromSq<Ovf::clamp>(c);  // scaled: 819200, real: 200.0
+
+    // cast to unsigned type
+    auto s = static_q_cast<u32q11_t, Ovf::unchecked>(d);  // sc: 409600, re: 200
+
+    // multiplication
+    auto p = a2 * d;  // i32sq14<-20000.,40000.>; scaled: 345538400, real: 21090
+
+    // Sum: 200, Product: 21090
+    std::cout << "Sum: " << s.real() << ", Product: " << p.real() << std::endl;
+    // Sum[u32q11]: 409600, Product[i32sq14]: 345538400
+    std::cout << "Sum[u32q11]: " << s.scaled() << ", "
+              << "Product[i32sq14]: " << p.scaled() << std::endl;
+
+    return 0;
+}
+```
+
+For a more complex example of a computation, please refer to [Practical Example](arithmetics/practical.md).

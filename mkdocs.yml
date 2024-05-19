@@ -24,8 +24,10 @@ nav:
     - Binary Operators: arithmetics/binary.md
     - Comparison Operators: arithmetics/comparison.md
     - Shift Operators: arithmetics/shift.md
-    - Math Functions: arithmetics/math.md
     - Clamp Functions: arithmetics/clamp.md
+    - Math Functions: arithmetics/math.md
+    - Practial Example: arithmetics/practical.md
+
 theme: readthedocs
 
 use_directory_urls: false
