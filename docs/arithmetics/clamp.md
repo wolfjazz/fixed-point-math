@@ -6,7 +6,7 @@ Clamping functions are essential for maintaining values within specific ranges, 
 
 ## Clamp to Minimum
 
-Ensures the `Sq` instance does not fall below a specified minimum value. This function is available in two versions: one for runtime limits and one for compile-time limits.
+Ensures the `Sq` instance `v` does not fall below a specified minimum value. This function is available in two versions: one for runtime limits and one for compile-time limits.
 
 ### Runtime Clamp to Minimum
 
@@ -21,12 +21,12 @@ Ensures the `Sq` instance does not fall below a specified minimum value. This fu
 
 | `Sq` | |
 |-|-|
-| **base_t** | Sq::base_t |
-| **f** | Sq::f |
-| **realMin** | SqLo::realMin |
-| **realMax** | Sq::realMax |
+| **base_t** | *Sq::base_t* |
+| **f** | *Sq::f* |
+| **realMin** | *SqLo::realMin* |
+| **realMax** | *Sq::realMax* |
 | | |
-| *value* | (v < lo) ? s2s<SqLo::f, f, base_t\>(lo.value) : v.value |
+| *value* | *(v < lo) ? lo.value \* 2^(f - SqLo::f) : v.value* |
 
 **Example:**
 
@@ -44,13 +44,13 @@ Compile-time limits can be either real `double` values or `Sq` literals.
 
 | `Sq` | |
 |-|-|
-| **base_t** | Sq::base_t |
-| **f** | Sq::f |
-| **realMin** | realMin |
-| **realMax** | Sq::realMax |
+| **base_t** | *Sq::base_t* |
+| **f** | *Sq::f* |
+| **realMin** | *realMin* |
+| **realMax** | *Sq::realMax* |
 | | |
-| *lo* | fpm::scaled<f, base_t\>(realMin) |
-| *value* | (v < lo) ? lo : v |
+| *lo* | *realMin \* 2^f* |
+| *value* | *(v.value < lo) ? lo : v.value* |
 
 **Example:**
 
@@ -64,7 +64,7 @@ auto clampedMin2 = clampLower<20.25_i16q2>(sq);  // i16sq2<20.25, 200.>, real: 2
 
 ## Clamp to Maximum
 
-Ensures the `Sq` instance does not exceed a specified maximum value. This function is available in two versions: one for runtime limits and one for compile-time limits.
+Ensures the `Sq` instance `v` does not exceed a specified maximum value. This function is available in two versions: one for runtime limits and one for compile-time limits.
 
 ### Runtime Clamp to Maximum
 
@@ -79,12 +79,12 @@ Ensures the `Sq` instance does not exceed a specified maximum value. This functi
 
 | `Sq` | |
 |-|-|
-| **base_t** | Sq::base_t |
-| **f** | Sq::f |
-| **realMin** | Sq::realMin |
-| **realMax** | SqHi::realMax |
+| **base_t** | *Sq::base_t* |
+| **f** | *Sq::f* |
+| **realMin** | *Sq::realMin* |
+| **realMax** | *SqHi::realMax* |
 | | |
-| *value* | (hi < v) ? s2s<SqHi::f, f, base_t\>(hi.value) : v.value |
+| *value* | *(hi < v) ? hi.value \* 2^(f - SqHi::f) : v.value* |
 
 **Example:**
 
@@ -102,13 +102,13 @@ Compile-time limits can be either real `double` values or `Sq` literals.
 
 | `Sq` | |
 |-|-|
-| **base_t** | Sq::base_t |
-| **f** | Sq::f |
-| **realMin** | Sq::realMin |
-| **realMax** | realMax |
+| **base_t** | *Sq::base_t* |
+| **f** | *Sq::f* |
+| **realMin** | *Sq::realMin* |
+| **realMax** | *realMax* |
 | | |
-| *hi* | fpm::scaled<f, base_t\>(realMax) |
-| *value* | (hi < v) ? hi : v |
+| *hi* | *realMax \* 2^f* |
+| *value* | *(hi < v.value) ? hi : v.value* |
 
 **Example:**
 
@@ -122,7 +122,7 @@ auto clampedMax2 = clampUpper<10.5_i16sq1>(sq);  // i16sq7<-100., 10.5>, real: 1
 
 ## Clamp to Range
 
-Restricts the `Sq` instance within a specified minimum and maximum range, combining both the clamp to minimum and clamp to maximum functionalities. This function is available in two versions: one for runtime limits and one for compile-time limits.
+Restricts the `Sq` instance `v` within a specified minimum and maximum range, combining both the clamp to minimum and clamp to maximum functionalities. This function is available in two versions: one for runtime limits and one for compile-time limits.
 
 ### Runtime Clamp to Range
 
@@ -139,12 +139,12 @@ The minimum value (`lo`) of type `SqLo` and maximum value (`hi`) of type `SqHi` 
 
 | `Sq` | |
 |-|-|
-| **base_t** | Sq::base_t |
-| **f** | Sq::f |
-| **realMin** | SqLo::realMin |
-| **realMax** | SqHi::realMax |
+| **base_t** | *Sq::base_t* |
+| **f** | *Sq::f* |
+| **realMin** | *SqLo::realMin* |
+| **realMax** | *SqHi::realMax* |
 | | |
-| *value* | (v < lo) ? s2s<SqLo::f, f, base_t\>(lo.value)<br>: (hi < v) ? s2s<SqHi::f, f, base_t\>(hi.value) : v.value |
+| *value* | *(v < lo) ? lo.value \* 2^(f - SqLo::f)<br>: (hi < v) ? hi.value \* 2^(f - SqHi::f) : v.value* |
 
 **Example:**
 
@@ -163,14 +163,14 @@ Compile-time limits can be either real `double` values or `Sq` literals.
 
 | `Sq` | |
 |-|-|
-| **base_t** | Sq::base_t |
-| **f** | Sq::f |
-| **realMin** | realMin |
-| **realMax** | realMax |
+| **base_t** | *Sq::base_t* |
+| **f** | *Sq::f* |
+| **realMin** | *realMin* |
+| **realMax** | *realMax* |
 | | |
-| *lo* | fpm::scaled<f, base_t\>(realMin) |
-| *hi* | fpm::scaled<f, base_t\>(realMax) |
-| *value* | (v < lo) ? lo : (hi < v) ? hi : v |
+| *lo* | *realMin \* 2^f* |
+| *hi* | *realMax \* 2^f* |
+| *value* | *(v.value < lo) ? lo : (hi < v.value) ? hi : v.value* |
 
 **Example:**
 

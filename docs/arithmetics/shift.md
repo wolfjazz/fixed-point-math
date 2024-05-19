@@ -6,7 +6,7 @@ The shift operators facilitate shifting `Sq` instances left or right by a specif
 
 ## Left Shift (<<)
 
-Shifts the scaled value of an `Sq` instance to the left by a specified number of bits, given as an integral constant (using the `_ic` literal). The result is a new `Sq` type with the same base type, adjusted limits, and the scaled value shifted.
+Shifts the scaled value of an `Sq` instance `v` to the left by a specified number of bits, given as an integral constant (using the `_ic` literal). The result is a new `Sq` type with the same base type, adjusted limits, and the scaled value shifted.
 Effectively, a left shift is similar to a multiplication by a power of 2.
 
 **Constraints:**
@@ -17,12 +17,12 @@ The shift amount must be a non-negative integral constant.
 
 | `Sq` | |
 |------|-|
-| **base_t** | Sq::base_t |
-| **f** | Sq::f |
-| **realMin** | ( Sq::scaledMin << ic ) \* \(2^{-f}\) |
-| **realMax** | ( Sq::scaledMax << ic ) \* \(2^{-f}\) |
+| **base_t** | *Sq::base_t* |
+| **f** | *Sq::f* |
+| **realMin** | *( Sq::scaledMin << ic ) \* \(2^{-f}\)* |
+| **realMax** | *( Sq::scaledMax << ic ) \* \(2^{-f}\)* |
 | | |
-| *value* | value << ic |
+| *value* | *v.value << ic* |
 
 **Example:**
 
@@ -35,7 +35,7 @@ auto sqShiftLeft = sq << 2_ic;  // i32sq16<-400., 800.>, real value 600.
 
 ## Right Shift (>>)
 
-Shifts the scaled value of an `Sq` instance to the right by a specified number of bits, given as an integral constant (using the `_ic` literal). The result is a new `Sq` type with the same base type, adjusted limits, and the scaled value shifted. Effectively, a right shift is similar to a division by a power of 2, with the result rounded towards \(\small-\infty\) to the nearest integer.
+Shifts the scaled value of an `Sq` instance `v` to the right by a specified number of bits, given as an integral constant (using the `_ic` literal). The result is a new `Sq` type with the same base type, adjusted limits, and the scaled value shifted. Effectively, a right shift is similar to a division by a power of 2, with the result rounded towards \(\small-\infty\) to the nearest integer.
 
 **Constraints:**
 
@@ -45,12 +45,12 @@ The shift amount must be a non-negative integral constant.
 
 | `Sq` | |
 |------|-|
-| **base_t** | Sq::base_t |
-| **f** | Sq::f |
-| **realMin** | ( Sq::scaledMin >> ic ) \* \(2^{-f}\) |
-| **realMax** | ( Sq::scaledMax >> ic ) \* \(2^{-f}\) |
+| **base_t** | *Sq::base_t* |
+| **f** | *Sq::f* |
+| **realMin** | *( Sq::scaledMin >> ic ) \* \(2^{-f}\)* |
+| **realMax** | *( Sq::scaledMax >> ic ) \* \(2^{-f}\)* |
 | | |
-| *value* | value \>\> ic |
+| *value* | *v.value \>\> ic* |
 
 **Example:**
 

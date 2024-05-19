@@ -4,18 +4,18 @@
 
 ## Unary Plus (+)
 
-The unary plus operator in the context of the `Sq` type simply copies the `Sq` variable. Typically, the unary plus operator is used for integral promotion, but this concept does not apply to the `Sq` type. The inclusion of this operator is mainly for the sake of completeness, ensuring that the `Sq` type has a consistent set of unary operators.
+The unary plus operator in the context of the `Sq` type simply copies the `Sq` variable `v`. Typically, the unary plus operator is used for integral promotion, but this concept does not apply to the `Sq` type. The inclusion of this operator is mainly for the sake of completeness, ensuring that the `Sq` type has a consistent set of unary operators.
 
 **Output:**
 
 | `Sq` | |
 |-|-|
-| **base_t** | Sq::base_t |
-| **f** | Sq::f |
-| **realMin** | Sq::realMin |
-| **realMax** | Sq::realMax |
+| **base_t** | *Sq::base_t* |
+| **f** | *Sq::f* |
+| **realMin** | *Sq::realMin* |
+| **realMax** | *Sq::realMax* |
 | | |
-| *value* | value |
+| *value* | *v.value* |
 
 **Example:**
 
@@ -28,7 +28,7 @@ auto sqVarCopy = +sqVar;  // Copies sqVar without any change in value and type
 
 ## Unary Minus (-)
 
-The unary minus operator inverts the sign of the value and the limits of the `Sq` input type. This transformation essentially mirrors the value range around the origin.
+The unary minus operator inverts the sign of the value `v` and the limits of the `Sq` input type. This transformation essentially mirrors the value range around the origin.
 
 **Constraints:**
 
@@ -38,12 +38,12 @@ For a signed base type, the minimum integer must not be within the value range b
 
 | `Sq` | |
 |-|-|
-| **base_t** | Sq::base_t |
-| **f** | Sq::f |
-| **realMin** | -Sq::realMax |
-| **realMax** | -Sq::realMin |
+| **base_t** | *Sq::base_t* |
+| **f** | *Sq::f* |
+| **realMin** | *-Sq::realMax* |
+| **realMax** | *-Sq::realMin* |
 | | |
-| *value* | -value |
+| *value* | *-v.value* |
 
 **Example:**
 
