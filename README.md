@@ -65,8 +65,12 @@ int main() {
 
 ```
 
+## Generate Documentation
+
+Install `mkdocs` and run `mkdocs serve`. If successful, the generated documentation can then be accessed via `http://127.0.0.1:8000/`.
+
 ## Contributions
-Contributions are welcome! Whether it's adding new features, improving existing ones, or fixing bugs, your input is valuable. Please submit your pull requests or open issues on GitHub to discuss potential changes or additions.
+Contributions are welcome! Whether it's adding new features, improving existing ones, or fixing bugs, your input is valuable. Please submit your pull requests or open issues on GitLab to discuss potential changes or additions.
 
 ## License
 This library is released under the MIT License, allowing it to be used freely in both open-source and proprietary software.
