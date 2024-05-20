@@ -450,7 +450,7 @@ private:
             return v < limit
                 ? fpm::scaled<f, base_t>(thMax)
                 // 1/sqrt(x) <=> [ 2^(2f) / ((x*2^f) * 2^f)^1/2 ] = 2^f / sqrt(x)
-                : static_cast<base_t>( s2s<0, 2*f, calc_t>(1) / static_cast<calc_t>( Sqrt<int>::value(v) ) );
+                : static_cast<base_t>( s2s<0, 2*f, calc_t>(1) / static_cast<calc_t>( Sqrt<base_t>::value(v) ) );
         }
     };
 
@@ -804,8 +804,8 @@ public:
     /// \note A binary search algorithm is used to calculate the square root in logarithmic time.
     friend constexpr
     auto sqrt(Sq const &x) noexcept
-    requires fpm::detail::ValidImplType< Sqrt<int> > {
-        return Sq< UNPACK(Sqrt<int>) >( Sqrt<int>::value(x.value) );
+    requires fpm::detail::ValidImplType< Sqrt<base_t> > {
+        return Sq< UNPACK(Sqrt<base_t>) >( Sqrt<base_t>::value(x.value) );
     }
 
     /// \returns the computed reciprocal square root of the given number x, wrapped into a new Sq type
@@ -817,8 +817,8 @@ public:
     /// error with the resolution of the given number.
     friend constexpr
     auto rsqrt(Sq const &x) noexcept
-    requires fpm::detail::ValidImplType< RSqrt<int> > {
-        return Sq< UNPACK(RSqrt<int>) >( RSqrt<int>::value(x.value) );
+    requires fpm::detail::ValidImplType< RSqrt<base_t> > {
+        return Sq< UNPACK(RSqrt<base_t>) >( RSqrt<base_t>::value(x.value) );
     }
 
     /// \returns the cube of the given number x, wrapped into a new Sq type with at least 32 bits
@@ -839,8 +839,8 @@ public:
     /// of the limits is approximated via binary search.
     friend constexpr
     auto cbrt(Sq const &x) noexcept
-    requires fpm::detail::ValidImplType< Cbrt<int> > {
-        return Sq< UNPACK(Cbrt<int>) >( Cbrt<int>::value(x.value) );
+    requires fpm::detail::ValidImplType< Cbrt<base_t> > {
+        return Sq< UNPACK(Cbrt<base_t>) >( Cbrt<base_t>::value(x.value) );
     }
 
     /// If v compares less than lo, lo is returned; otherwise if hi compares less than v, hi is
