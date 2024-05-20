@@ -37,6 +37,26 @@ markdown_extensions:
       generic: true
   - pymdownx.superfences
 
+plugins:
+  - print-site:
+      add_to_navigation: false
+      print_page_title: 'FixedPointMath'
+      add_print_site_banner: false
+      # Table of contents
+      add_table_of_contents: false
+      toc_title: 'Table of Contents'
+      toc_depth: 6
+      # Content-related
+      add_full_urls: false
+      enumerate_headings: false
+      enumerate_figures: true
+      add_cover_page: false
+      cover_page_template: ""
+      path_to_pdf: ""
+      include_css: true
+      enabled: true
+      exclude:
+
 extra_javascript:
   - javascripts/mathjax.js
   - https://polyfill.io/v3/polyfill.min.js?features=es6

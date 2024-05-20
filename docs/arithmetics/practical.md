@@ -20,13 +20,16 @@ FPM_Q_BIND_LITERAL(accel_t, mm_p_s2);
 
 using mtime_t = u32q20<0., 2000. /* s */, Ovf::allowed>;
 FPM_Q_BIND_LITERAL(mtime_t, s);
-using tstep_t = mtime_t::clamp_t<0., .01>;  // u32q20
+using ts_t = mtime_t::clamp_t<0., .01>;  // u32q20
 
 
-void accel(pos_t &s, speed_t &v, accel_t const a, mtime_t const time, tstep_t const dt) {
+void accel(pos_t &s, speed_t &v, accel_t const a, mtime_t const time, ts_t const dt) {
     for (mtime_t t = 0_s; t < time; t = t + dt) {
         auto dv = a * dt;  // i32sq20<-2., 2.>
         auto ds = v * dt;  // i32sq20<-3., 3.>
+
+        // note: computation results are in Sq representation;
+        // explicit conversion back to Q representation is necessary
         v = speed_t::fromSq<Ovf::clamp>(v + dv);
         s = pos_t::fromSq<Ovf::clamp>(s + ds);
     }
