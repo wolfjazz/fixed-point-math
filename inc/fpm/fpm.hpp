@@ -292,7 +292,7 @@ inline namespace lib {
 
     /** Famous fast reciprocal square root algorithm (Quake III) adapted for double precision and
      * constant expression context. */
-    constexpr
+    consteval
     double rsqrt(double number) noexcept {
         static_assert(std::numeric_limits<double>::is_iec559); // (enable only on IEEE 754)
 
@@ -307,14 +307,14 @@ inline namespace lib {
 
     /** \returns the approximated square root of the given double. If the number is negative,
      * 0 is returned. */
-    constexpr
+    consteval
     double sqrt(double number) noexcept {
         return number <= 0. ? 0. : 1. / detail::rsqrt(number);
     }
 
     /** \returns the approximated cube root of the given number. If the number is positive,
      * the cube root is positive, if the number is negative, the cube root is negative. */
-    constexpr
+    consteval
     double cbrt(double number) noexcept {
         // Algorithm according to https://www.geeksforgeeks.org/find-cubic-root-of-a-number/
         // set start and end for binary search

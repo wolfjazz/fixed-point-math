@@ -547,7 +547,7 @@ TEST_F(SQTest_Unary, sq_unary_abs__some_signed_negative_sq_value__absolute_value
     auto value = i16sq4_t::fromReal<-1897.6>();
     auto absValue = abs(value);  // unqualified lookup (argument-dependent lookup, ADL)
 
-    using expected_result_t = u16sq4< 0., i16sq4<>::realMax >;
+    using expected_result_t = i16sq4< 0., i16sq4<>::realMax >;
     ASSERT_TRUE((std::is_same_v<expected_result_t, decltype(absValue)>));
     ASSERT_NEAR(std::abs(value.real()), absValue.real(), expected_result_t::resolution);
 }
@@ -559,7 +559,7 @@ TEST_F(SQTest_Unary, sq_unary_abs__some_signed_positive_sq_value__same_value_abs
     auto value = i16sq4_t::fromReal<+1897.6>();
     auto absValue = abs(value);
 
-    using expected_result_t = u16sq4< 0., i16sq4<>::realMax >;
+    using expected_result_t = i16sq4< 0., i16sq4<>::realMax >;
     ASSERT_TRUE((std::is_same_v<expected_result_t, decltype(absValue)>));
     ASSERT_NEAR(value.real(), absValue.real(), expected_result_t::resolution);
 }
@@ -588,7 +588,7 @@ TEST_F(SQTest_Unary, sq_unary_abs__some_signed_q_value__absolute_sq_value_and_li
     auto value = i16q4_t::fromReal<-1897.6>();
     auto absValue = abs(value);
 
-    using expected_result_t = u16sq4< 0., i16sq4<>::realMax >;
+    using expected_result_t = i16sq4< 0., i16sq4<>::realMax >;
     ASSERT_TRUE((std::is_same_v<expected_result_t, decltype(absValue)>));
     ASSERT_NEAR(std::abs(value.real()), absValue.real(), expected_result_t::resolution);
 }
