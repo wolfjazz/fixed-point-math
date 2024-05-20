@@ -73,4 +73,4 @@ Install `mkdocs` and run `mkdocs serve`. If successful, the generated documentat
 Contributions are welcome! Whether it's adding new features, improving existing ones, or fixing bugs, your input is valuable. Please submit your pull requests or open issues on GitLab to discuss potential changes or additions.
 
 ## License
-This library is released under the MIT License, allowing it to be used freely in both open-source and proprietary software.
+This library is released under the Apache License 2.0, allowing it to be used freely in both open-source and proprietary software. However, any modifications made to the original code must be clearly documented, and all copies or substantial portions of the library must retain the original copyright notice, license, and any accompanying notices.
