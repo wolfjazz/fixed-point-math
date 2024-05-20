@@ -412,18 +412,16 @@ private:
     };
 
     /// Implements the square root function.
-    template< SqType SqT >
-    requires fpm::detail::CanBePassedToSqrt<SqT>
+    template< typename _ >  // unused template parameter to enable requires-clause
+    requires fpm::detail::CanBePassedToSqrt<Sq>
     struct Sqrt {
-        using base_t = typename SqT::base_t;
-        static constexpr scaling_t f = SqT::f;
-        static constexpr double realMinT = SqT::realMin;  // for some reason the compiler needs this
-        static constexpr double realMaxT = SqT::realMax;
-        static constexpr double realMin = fpm::detail::floor( fpm::detail::sqrt(realMinT) );
-        static constexpr double realMax = fpm::detail::ceil( fpm::detail::sqrt(realMaxT) );
+        using base_t = typename Sq::base_t;
+        static constexpr scaling_t f = Sq::f;
+        static constexpr double realMin = fpm::detail::floor( fpm::detail::sqrt(Sq::realMin) );
+        static constexpr double realMax = fpm::detail::ceil( fpm::detail::sqrt(Sq::realMax) );
         using calc_t = fpm::detail::fit_type_t< sizeof(base_t) + fpm::detail::div_ceil(f, CHAR_BIT), std::is_signed_v<base_t> >;
         static constexpr bool innerConstraints = true;
-        static constexpr base_t value(typename SqT::base_t v) noexcept {
+        static constexpr base_t value(typename Sq::base_t v) noexcept {
             if (v <= 0) { return 0; }  // negative value has imaginary root, real part is 0
             else {
                 // take root of corrected number; result can be cast to base_t without truncation
@@ -436,25 +434,23 @@ private:
     };
 
     /// Implements the reverse square root function.
-    template< SqType SqT >
-    requires fpm::detail::CanBePassedToRSqrt<SqT>
+    template< typename _ >  // unused template parameter to enable requires-clause
+    requires fpm::detail::CanBePassedToRSqrt<Sq>
     struct RSqrt {
-        using base_t = typename SqT::base_t;
-        static constexpr scaling_t f = SqT::f;
+        using base_t = typename Sq::base_t;
+        static constexpr scaling_t f = Sq::f;
         static constexpr double thMax = fpm::detail::realMax<base_t, f>();
-        static constexpr double realMinT = SqT::realMin;  // for some reason the compiler needs this
-        static constexpr double realMaxT = SqT::realMax;
-        static constexpr double realMin = fpm::detail::floor( fpm::detail::rsqrt(realMaxT) );
-        static constexpr double realMax = std::min( thMax, fpm::detail::ceil( fpm::detail::rsqrt(realMinT) ) );
+        static constexpr double realMin = fpm::detail::floor( fpm::detail::rsqrt(Sq::realMax) );
+        static constexpr double realMax = std::min( thMax, fpm::detail::ceil( fpm::detail::rsqrt(Sq::realMin) ) );
         using calc_t = fpm::detail::fit_type_t< sizeof(base_t) + fpm::detail::div_ceil(f, CHAR_BIT), std::is_signed_v<base_t> >;
         static constexpr bool innerConstraints = true;
-        static constexpr auto value(typename SqT::base_t v) noexcept {
+        static constexpr auto value(typename Sq::base_t v) noexcept {
             // too small number results in theoretical maximum; this is the case if x*2^f <= (2^f / max^2)
             constexpr base_t limit = fpm::scaled<f, base_t>( 1. / thMax / thMax );
             return v < limit
                 ? fpm::scaled<f, base_t>(thMax)
                 // 1/sqrt(x) <=> [ 2^(2f) / ((x*2^f) * 2^f)^1/2 ] = 2^f / sqrt(x)
-                : static_cast<base_t>( s2s<0, 2*f, calc_t>(1) / static_cast<calc_t>( Sqrt<SqT>::value(v) ) );
+                : static_cast<base_t>( s2s<0, 2*f, calc_t>(1) / static_cast<calc_t>( Sqrt<int>::value(v) ) );
         }
     };
 
@@ -480,18 +476,16 @@ private:
     };
 
     /// Implements the cube root function.
-    template< SqType SqT >
-    requires fpm::detail::CanBePassedToCbrt<SqT>
+    template< typename _ >  // unused template parameter to enable requires-clause
+    requires fpm::detail::CanBePassedToCbrt<Sq>
     struct Cbrt {
-        using base_t = typename SqT::base_t;
-        static constexpr scaling_t f = SqT::f;
-        static constexpr double realMinT = SqT::realMin;  // for some reason the compiler needs this
-        static constexpr double realMaxT = SqT::realMax;
-        static constexpr double realMin = fpm::detail::floor( fpm::detail::cbrt(realMinT) );
-        static constexpr double realMax = fpm::detail::ceil( fpm::detail::cbrt(realMaxT) );
+        using base_t = typename Sq::base_t;
+        static constexpr scaling_t f = Sq::f;
+        static constexpr double realMin = fpm::detail::floor( fpm::detail::cbrt(Sq::realMin) );
+        static constexpr double realMax = fpm::detail::ceil( fpm::detail::cbrt(Sq::realMax) );
         using calc_t = fpm::detail::fit_type_t< sizeof(base_t) + fpm::detail::div_ceil(2*f, CHAR_BIT), std::is_signed_v<base_t> >;
         static constexpr bool innerConstraints = true;
-        static constexpr base_t value(typename SqT::base_t v) noexcept {
+        static constexpr base_t value(typename Sq::base_t v) noexcept {
             if (v <= 0) { return 0; }  // negative number is out of scope for hardware algorithm icbrt
             else {
                 // cbrt(x) <=> [ ((x*2^f) * 2^f * 2^f)^1/3 ] = x^1/3 * 2^f
@@ -810,8 +804,8 @@ public:
     /// \note A binary search algorithm is used to calculate the square root in logarithmic time.
     friend constexpr
     auto sqrt(Sq const &x) noexcept
-    requires fpm::detail::ValidImplType< Sqrt<Sq> > {
-        return Sq< UNPACK(Sqrt<Sq>) >( Sqrt<Sq>::value(x.value) );
+    requires fpm::detail::ValidImplType< Sqrt<int> > {
+        return Sq< UNPACK(Sqrt<int>) >( Sqrt<int>::value(x.value) );
     }
 
     /// \returns the computed reciprocal square root of the given number x, wrapped into a new Sq type
@@ -823,8 +817,8 @@ public:
     /// error with the resolution of the given number.
     friend constexpr
     auto rsqrt(Sq const &x) noexcept
-    requires fpm::detail::ValidImplType< RSqrt<Sq> > {
-        return Sq< UNPACK(RSqrt<Sq>) >( RSqrt<Sq>::value(x.value) );
+    requires fpm::detail::ValidImplType< RSqrt<int> > {
+        return Sq< UNPACK(RSqrt<int>) >( RSqrt<int>::value(x.value) );
     }
 
     /// \returns the cube of the given number x, wrapped into a new Sq type with at least 32 bits
@@ -845,8 +839,8 @@ public:
     /// of the limits is approximated via binary search.
     friend constexpr
     auto cbrt(Sq const &x) noexcept
-    requires fpm::detail::ValidImplType< Cbrt<Sq> > {
-        return Sq< UNPACK(Cbrt<Sq>) >( Cbrt<Sq>::value(x.value) );
+    requires fpm::detail::ValidImplType< Cbrt<int> > {
+        return Sq< UNPACK(Cbrt<int>) >( Cbrt<int>::value(x.value) );
     }
 
     /// If v compares less than lo, lo is returned; otherwise if hi compares less than v, hi is
