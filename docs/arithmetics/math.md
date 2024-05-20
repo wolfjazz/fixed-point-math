@@ -1,6 +1,6 @@
 # Mathematical Functions
 
-**Note**: Although multiplication and division are used for rescaling *value* in the following sections for clarity, the actual implementation relies on the `s2s` function. By default, this function uses shift operations unless the user has explicitly selected multiplication/division. See [Helpers](../utilities/helpers.md) for details.
+**Note**: Although multiplication and division are used for rescaling *value* in the following sections for clarity, the actual implementation relies on the `s2s` function. By default, this function uses shift operations unless multiplication/division was explicitly selected. See [Helpers](../utilities/helpers.md) for details.
 
 ---
 
@@ -205,50 +205,58 @@ auto cbrtValue = cbrt(sq);  // i16sq7<0., 6.>, real value 5.0
 
 ## Minimum (min)
 
-Determines the minimum of two `Sq` instances `v1` and `v2`.
+Determines the minimum of two similar `Sq` instances `v1` and `v2`. Produces a new `Sq` instance with the same base type and scaling, the minimum limits and the resultant minimum value.
 
 **Constraints:**
 
-- Both `Sq` instances must have the same base type and resolution.
+Both `Sq` instances must be similar, i.e. have the same base type and scaling.
 
 **Output:**
 
-| `Result` | |
-|----------|-|
-| **Type** | `Sq` |
-| **Value** | The minimum of the two `Sq` instances |
+| `Sq` | |
+|-|-|
+| **base_t** | *Sq1::base_t* |
+| **f** | *Sq1::f* |
+| **realMin** | *min( Sq1::realMin, Sq2::realMin )* |
+| **realMax** | *min( Sq1::realMax, Sq2::realMax )* |
+| | |
+| *value* | *(v1.value > v2.value) ? v2.value : v1.value* |
 
 **Example:**
 
 ```cpp
 i16sq7<-100., 200.> sq1 = 50.0_i16sq7;
-i16sq7<-100., 200.> sq2 = 150.0_i16sq7;
-auto minValue = min(sq1, sq2);  // i16sq7<-100., 200.>, real value 50.0
+i16sq7<-250., 250.> sq2 = 150.0_i16sq7;
+auto minValue = min(sq1, sq2);  // i16sq7<-250., 200.>, real value 50.0
 ```
 
 ---
 
 ## Maximum (max)
 
-Determines the maximum of two `Sq` instances `v1` and `v2`.
+Determines the maximum of two similar `Sq` instances `v1` and `v2`. Produces a new `Sq` instance with the same base type and scaling, the maximum limits and the resultant maximum value.
 
 **Constraints:**
 
-- Both `Sq` instances must have the same base type and resolution.
+Both `Sq` instances must be similar, i.e. have the same base type and scaling.
 
 **Output:**
 
-| `Result` | |
-|----------|-|
-| **Type** | `Sq` |
-| **Value** | The maximum of the two `Sq` instances |
+| `Sq` | |
+|-|-|
+| **base_t** | *Sq1::base_t* |
+| **f** | *Sq1::f* |
+| **realMin** | *max( Sq1::realMin, Sq2::realMin )* |
+| **realMax** | *max( Sq1::realMax, Sq2::realMax )* |
+| | |
+| *value* | *(v1.value < v2.value) ? v2.value : v1.value* |
 
 **Example:**
 
 ```cpp
 i16sq7<-100., 200.> sq1 = 50.0_i16sq7;
-i16sq7<-100., 200.> sq2 = 150.0_i16sq7;
-auto maxValue = max(sq1, sq2);  // i16sq7<-100., 200.>, real value 150.0
+i16sq7<-200., 250.> sq2 = 150.0_i16sq7;
+auto maxValue = max(sq1, sq2);  // i16sq7<-100., 250.>, real value 150.0
 ```
 
 ---

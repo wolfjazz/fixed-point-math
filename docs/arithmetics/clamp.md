@@ -2,7 +2,7 @@
 
 Clamping functions are essential for maintaining values within specific ranges, ensuring efficient and safe mathematical computations with `Sq` instances. Each operation is optimized to leverage the static nature of `Sq` values, ensuring computations are both fast and reliable, with checks and balances performed at compile-time to prevent runtime errors and ensure type safety.
 
-**Note**: Although multiplication and division are used for rescaling *value* in the following sections for clarity, the actual implementation relies on the `s2s` function. By default, this function uses shift operations unless the user has explicitly selected multiplication/division. See [Helpers](../utilities/helpers.md) for details.
+**Note**: Although multiplication and division are used for rescaling *value* in the following sections for clarity, the actual implementation relies on the `s2s` function. By default, this function uses shift operations unless multiplication/division was explicitly selected. See [Helpers](../utilities/helpers.md) for details.
 
 ---
 
