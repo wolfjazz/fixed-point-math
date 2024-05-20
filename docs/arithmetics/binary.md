@@ -1,5 +1,7 @@
 # Binary Operators
 
+**Note**: Although multiplication and division are used for rescaling *value* in the following sections for clarity, the actual implementation relies on the `s2s` function. By default, this function uses shift operations unless the user has explicitly selected multiplication/division. See [Helpers](../utilities/helpers.md) for details.
+
 ---
 
 ## Addition (+)
