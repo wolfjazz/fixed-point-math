@@ -16,6 +16,8 @@ This C++20 Fixed-Point Math Library is designed specifically for embedded system
 
 The library provides a robust framework for implementing fixed-point arithmetic in embedded applications. It allows developers to handle mathematical calculations efficiently without the need for floating-point units, reducing both the code footprint and execution time.
 
+The code compiles with GCC 13.2.0 and Clang 18.1.1.
+
 ### Example
 
 Here's a simple example of using the library:
