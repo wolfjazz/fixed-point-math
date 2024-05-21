@@ -2,7 +2,7 @@
 
 ## Overview
 
-This Fixed-Point Math Library is designed specifically for embedded systems that operate in C++ environments where the overhead of floating-point calculations is prohibitive. The library employs scaled integers to perform precise and efficient arithmetic operations, crucial in contexts where resources such as code size and execution time are limited.
+This C++20 Fixed-Point Math Library is designed specifically for embedded systems that operate in environments where the overhead of floating-point calculations is prohibitive. The library employs scaled integers to perform precise and efficient arithmetic operations, crucial in contexts where resources such as code size and execution time are limited.
 
 ## Features
 
